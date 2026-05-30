@@ -1,5 +1,8 @@
 # Credenciales — NUNCA subir
 **/serviceAccountKey.json
+.env
+.env.local
+.env.*.local
 
 # IntelliJ
 .idea/
