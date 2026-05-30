@@ -1,7 +1,6 @@
 package com.meteomontana.api.domain.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Escuela {
@@ -42,8 +41,8 @@ public class Escuela {
     public String getCcaa()      { return ccaa; }
     public String getEstilo()    { return estilo; }
     public String getRoca()      { return roca; }
-    public double getLat()       { return lat; }
-    public double getLon()       { return lon; }
+    public Double getLat()       { return lat; }
+    public Double getLon()       { return lon; }
     public String getFuente()    { return fuente; }
 
 
