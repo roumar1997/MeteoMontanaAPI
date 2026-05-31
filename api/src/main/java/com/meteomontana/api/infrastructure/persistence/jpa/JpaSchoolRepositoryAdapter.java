@@ -1,6 +1,7 @@
 package com.meteomontana.api.infrastructure.persistence.jpa;
-import com.meteomontana.api.domain.model.Escuela;
-import com.meteomontana.api.domain.port.EscuelaRepository;
+
+import com.meteomontana.api.domain.model.School;
+import com.meteomontana.api.domain.port.SchoolRepository;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 
@@ -9,38 +10,39 @@ import java.util.Optional;
 
 @Repository
 @Primary
-public class JpaSchoolRepositoryAdapter implements  EscuelaRepository {
+public class JpaSchoolRepositoryAdapter implements SchoolRepository {
+
     private final SpringDataSchoolRepository jpaRepo;
-    public JpaSchoolRepositoryAdapter (SpringDataSchoolRepository jpaRepo){
+
+    public JpaSchoolRepositoryAdapter(SpringDataSchoolRepository jpaRepo) {
         this.jpaRepo = jpaRepo;
     }
 
     @Override
-    public List<Escuela> findAll() {
+    public List<School> findAll() {
         return jpaRepo.findAll()
                 .stream()
-                .map(this::toEscuela)
+                .map(this::toSchool)
                 .toList();
     }
-        @Override
-        public Optional<Escuela> findById(String id) {
-            return jpaRepo.findById(id)
-                    .map(this::toEscuela);
-        }
 
-        private Escuela toEscuela(SchoolJpaEntity e) {
-            return new Escuela(
-                    e.getId(),
-                    e.getName(),
-                    e.getLocation(),
-                    e.getRegion(),
-                    e.getStyle(),
-                    e.getRockType(),
-                    e.getLat(),
-                    e.getLon(),
-                    e.getSource()
-            );
-        }
+    @Override
+    public Optional<School> findById(String id) {
+        return jpaRepo.findById(id)
+                .map(this::toSchool);
+    }
 
-
+    private School toSchool(SchoolJpaEntity e) {
+        return new School(
+                e.getId(),
+                e.getName(),
+                e.getLocation(),
+                e.getRegion(),
+                e.getStyle(),
+                e.getRockType(),
+                e.getLat(),
+                e.getLon(),
+                e.getSource()
+        );
+    }
 }

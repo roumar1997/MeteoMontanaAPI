@@ -2,7 +2,7 @@ package com.meteomontana.api.infrastructure.persistence.jpa;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.meteomontana.api.domain.model.Escuela;
+import com.meteomontana.api.domain.model.School;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -38,21 +38,21 @@ public class SchoolSeeder {
                     return;
                 }
 
-                List<Escuela> escuelas = objectMapper.readValue(
-                        in, new TypeReference<List<Escuela>>() {}
+                List<School> schools = objectMapper.readValue(
+                        in, new TypeReference<List<School>>() {}
                 );
 
-                List<SchoolJpaEntity> entities = escuelas.stream()
-                        .map(e -> new SchoolJpaEntity(
-                                e.getId(),
-                                e.getNombre(),
-                                e.getUbicacion(),
-                                e.getCcaa(),
-                                e.getEstilo(),
-                                e.getRoca(),
-                                e.getLat(),
-                                e.getLon(),
-                                e.getFuente()
+                List<SchoolJpaEntity> entities = schools.stream()
+                        .map(s -> new SchoolJpaEntity(
+                                s.getId(),
+                                s.getName(),
+                                s.getLocation(),
+                                s.getRegion(),
+                                s.getStyle(),
+                                s.getRockType(),
+                                s.getLat(),
+                                s.getLon(),
+                                s.getSource()
                         ))
                         .toList();
 
@@ -65,4 +65,3 @@ public class SchoolSeeder {
         };
     }
 }
-
