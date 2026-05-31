@@ -552,24 +552,31 @@ consciente).
   eliminados. `School.java` limpiado de `@JsonProperty` — POJO puro sin
   dependencias de framework. Endpoints `/api/schools` y `/api/schools/{id}`
   funcionando con filtros (region, style, rockType, distancia).
+- **Fase 3 ✅ COMPLETA**: tabla `notes` con FK a `schools` (Flyway V2),
+  `NoteJpaEntity`, `Note` (dominio), `NoteRepository` (puerto),
+  `SpringDataNoteRepository` (query derivada), `JpaNoteRepositoryAdapter`,
+  `GetNotesBySchoolUseCase`, endpoint `GET /api/schools/{id}/notes`.
+  Script de migración en `tools/migrate-notes/` — lee Firestore con
+  `collectionGroup("notas")`, hace match escuela por coordenadas (Haversine SQL),
+  inserta en Postgres. 4 notas migradas correctamente. Postman: `200 OK`.
 
 ## Estado actual
 
-**Fase 3 — Notas con Postgres (siguiente)**
+**Fase 4 — Spring Security + Firebase Auth (siguiente)**
 
-Crear tabla `notes` con FK a `schools`. Endpoint `GET /api/schools/{id}/notes`
-público. Migración Flyway `V2__create_notes.sql`. Script standalone para
-migrar notas desde Firestore a Postgres.
+Añadir un filtro `OncePerRequestFilter` que valide los ID tokens de Firebase
+como JWT estándar usando JWKS de Google. `@AuthenticationPrincipal` con un
+`FirebaseUser` propio. Los endpoints públicos (GET schools, GET notes) siguen
+sin auth. Los endpoints futuros (POST note, POST journal, etc.) requerirán token.
 
-Aprendizaje: `@ManyToOne` / `@OneToMany`, claves foráneas, índices, lazy loading.
+Aprendizaje: Spring Security, `OncePerRequestFilter`, JWT, JWKS, CORS.
 
 **Notas operativas para el siguiente Claude**:
 - Contraseña Postgres en `.env` (no commit). Arranque: `docker compose up -d`
   desde raíz, luego `cd api && ./mvnw spring-boot:run`.
-- 191 escuelas en Postgres. Seed idempotente, no re-inserta.
-- `application.yaml` usa `spring.config.import: optional:file:../.env[.properties]`
-  — working dir debe ser `api/` para que la ruta `../` funcione.
-- Frontend evoluciona rápido: `git fetch && git status -sb` en
-  `C:\Users\rouma\Desktop\MeteoMontana` antes de tocar el front.
-- El usuario aprende paso a paso. Explicar `@ManyToOne` y FK desde cero
-  cuando aparezcan — JPA y relaciones son terreno nuevo.
+- 191 escuelas + 4 notas en Postgres.
+- Script de migración en `tools/migrate-notes/` — idempotente, se puede
+  volver a ejecutar sin duplicar.
+- `serviceAccountKey.json` en raíz del proyecto (excluido de git).
+- El usuario aprende paso a paso. Spring Security es terreno nuevo — explicar
+  filter chain, SecurityContext y JWT desde cero cuando aparezcan.
