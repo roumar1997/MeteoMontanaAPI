@@ -14,7 +14,6 @@ import java.util.Optional;
 
 
 @Repository
-@Primary
 public class JsonEscuelaRepository implements EscuelaRepository {
 
     private final List<Escuela> escuelas;
