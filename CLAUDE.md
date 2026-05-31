@@ -425,22 +425,19 @@ Patrones aprendidos: `param == null || compara(...)` en stream con
 cortocircuito `||` para filtros opcionales. Listas con `List<String>` +
 `anyMatch`. `Double` envoltorio en params opcionales numéricos.
 
-### Fase 2 — Postgres + JPA (**aquí estamos**)
-Levantar Postgres en Docker, añadir Spring Data JPA y Flyway, migrar
-`escuelas` desde el JSON estático a una tabla real. El endpoint sigue
-sirviendo igual hacia fuera; por dentro pasa a SQL. Aquí se introduce el
-renombrado a inglés (`School` reemplaza a `Escuela` al aparecer).
-
-- [ ] Docker Desktop instalado en Windows
-- [ ] `docker-compose.yml` con Postgres 16
-- [ ] Dependencias en `pom.xml`: `spring-boot-starter-data-jpa`,
-      `postgresql`, `flyway-core`
-- [ ] `application.properties`: datasource, JPA, Flyway
-- [ ] Migración Flyway `V1__create_schools.sql`
-- [ ] `SchoolJpaEntity` + `SchoolJpaRepository`
-- [ ] Nueva implementación del port → adapta JPA al dominio
-- [ ] Seed inicial: `CommandLineRunner` que importa `escuelas.json` a Postgres
-- [ ] Deprecar/eliminar `JsonEscuelaRepository`
+### Fase 2 — Postgres + JPA ✅ COMPLETA
+- [x] Docker Desktop + `docker-compose.yml` con Postgres 16
+- [x] Dependencias JPA + Postgres driver + Flyway en `pom.xml`
+- [x] `application.yaml`: datasource, JPA (`ddl-auto: validate`), Flyway
+- [x] Migración Flyway `V1__create_schools.sql` (tabla `schools` + índices)
+- [x] `SchoolJpaEntity` + `SpringDataSchoolRepository`
+- [x] `JpaSchoolRepositoryAdapter implements SchoolRepository` (hexagonal)
+- [x] Seed inicial desde `escuelas.json` con `CommandLineRunner` (idempotente)
+- [x] Rename completo a inglés: `School`, `SchoolRepository`, `SchoolController`,
+      `GetSchoolsUseCase`, `GetSchoolByIdUseCase`, `SchoolNotFoundException`
+- [x] URLs: `/api/schools`, `/api/schools/{id}`
+- [x] Borrados: `JsonEscuelaRepository`, `FirebaseEscuelaRepository`, `Escuela.java`
+      y todas las clases en español
 
 Aprendizaje: Docker básico, SQL básico, `@Entity`, `@Id`, `JpaRepository`,
 Flyway, hexagonal con adaptadores reales.
@@ -549,73 +546,24 @@ consciente).
   `application.yaml` configurado con datasource, JPA (`ddl-auto: validate`,
   `show-sql: true`), y `spring.config.import: optional:file:../.env[.properties]`
   para reusar la contraseña del docker-compose.
-- **Fase 2.3 ✅**: primera migración Flyway `V1__create_schools.sql` aplicada.
-  Tabla `schools` creada con 9 columnas (id, name, location, region, style,
-  rock_type, lat, lon, source) + 3 índices (region, rock_type, style).
-  `flyway_schema_history` contiene la fila de auditoría.
+- **Fase 2 ✅ COMPLETA**: Postgres en Docker, JPA con Flyway, seed de 191
+  escuelas desde JSON, arquitectura hexagonal con `JpaSchoolRepositoryAdapter`,
+  rename completo a inglés (`School`, `/api/schools`). JSON y clases en español
+  eliminados. Endpoints `/api/schools` y `/api/schools/{id}` funcionando con
+  filtros (region, style, rockType, distancia).
 
 ## Estado actual
 
-**Fase 2, sub-paso 2.4 (siguiente)**: crear el modelo JPA `SchoolJpaEntity`,
-su repositorio Spring Data JPA, y el adaptador que conecta con el port
-`EscuelaRepository` del dominio.
+**Fase 3 — Notas con Postgres (siguiente)**
 
-**Decisión pendiente que el usuario debe entender bien antes de continuar:**
+Crear tabla `notes` con FK a `schools`. Endpoint `GET /api/schools/{id}/notes`
+público. Script standalone que migra notas desde Firestore a Postgres.
 
-Hay dos formas de hacer 2.4:
-- **Opción A (recomendada — hexagonal pura)**: `SchoolJpaEntity` es una
-  CLASE NUEVA en `infrastructure/persistence/jpa/`, con las anotaciones
-  JPA. `Escuela.java` (dominio) NO se toca, sigue siendo POJO puro. Un
-  adaptador (`JpaSchoolRepositoryAdapter implements EscuelaRepository`)
-  mapea entre `SchoolJpaEntity` y `Escuela`. Cuesta ~20 líneas de mapping
-  pero mantiene el dominio libre de framework.
-- **Opción B (pragmática)**: meter las anotaciones JPA directamente en
-  `Escuela.java`. Menos código, pero acopla el dominio a JPA, exige
-  constructor sin args y quitar `final` a los campos.
-
-El usuario cerró la sesión SIN haber elegido — pidió volver a ver la
-explicación más clara cuando regrese. **Próximo Claude: re-explica A vs B
-con ejemplos concretos del código y deja que decida.** Una vez elegida,
-sub-paso 2.4 arranca:
-
-Si **A**:
-1. Crear `infrastructure/persistence/jpa/SchoolJpaEntity.java` (con
-   `@Entity`, `@Table(name="schools")`, `@Id`, etc.).
-2. Crear `infrastructure/persistence/jpa/SpringDataSchoolRepository.java`
-   (interfaz que `extends JpaRepository<SchoolJpaEntity, String>`).
-3. Crear `infrastructure/persistence/jpa/JpaSchoolRepositoryAdapter.java`
-   que implementa `EscuelaRepository` y delega en el Spring Data repo.
-4. Anotar la nueva impl con `@Primary` o desactivar/borrar la antigua
-   `JsonEscuelaRepository` (al principio podemos tenerlas ambas con
-   `@Profile` para no romper Fase 1).
-
-Si **B**:
-1. Añadir anotaciones JPA a `Escuela.java` (`@Entity`, `@Table`, `@Id`).
-2. Quitar `final` de los campos, añadir constructor sin args (puede ser
-   `protected`).
-3. Crear `infrastructure/persistence/jpa/EscuelaJpaRepository` que extiende
-   `JpaRepository<Escuela, String>` y a la vez implementa el port
-   `EscuelaRepository`.
-
-Después de 2.4 viene **2.5 — Seed**: `CommandLineRunner` que lee
-`escuelas.json` (sigue en `resources/`) y lo inserta en Postgres si está
-vacío. Y luego **2.6 — Rename masivo a inglés** (Escuela → School, URLs,
-etc.) como commit aparte.
-
-**Bloqueo actual**: ninguno técnico. El usuario quiere recordatorio
-claro del trade-off A vs B antes de seguir.
-
-**Notas operativas para el siguiente Claude**:
-- El usuario tiene **huecos en SQL básico** y **es la primera vez con
-  Docker**. Ambos cubiertos hasta donde hemos llegado, pero JPA es
-  terreno nuevo: explica `@Entity`, `@Id`, `@Column` desde cero.
-- La contraseña Postgres está en `.env` (no commit). docker-compose y
-  Spring la leen ambos via `${POSTGRES_PASSWORD}`.
-- `application.yaml` tiene `spring.config.import: optional:file:../.env[.properties]`
-  — depende del working dir = `api/`. Si IntelliJ corre desde otro
-  sitio fallará. Solución apuntada: variable de entorno en Run Config.
-- La app arranca con `cd api && ./mvnw spring-boot:run`. El contenedor
-  Postgres se arranca con `docker compose up -d` desde la raíz.
-- El frontend en `C:\Users\rouma\Desktop\MeteoMontana` evoluciona rápido;
-  haz `git fetch && git status -sb` allí en cada sesión que vaya a tocar
-  el front (NO necesario para sesiones puramente de back).
+**Notas operativas**:
+- La contraseña Postgres está en `.env` (no commit). `docker compose up -d`
+  desde la raíz levanta Postgres. La app arranca con `cd api && ./mvnw spring-boot:run`.
+- `application.yaml` usa `spring.config.import: optional:file:../.env[.properties]`
+  → depende del working dir = `api/`. Si IntelliJ usa otro dir, puede fallar.
+- 191 escuelas ya están en Postgres. Seed es idempotente.
+- El frontend evoluciona rápido: `git fetch && git status -sb` en
+  `C:\Users\rouma\Desktop\MeteoMontana` antes de tocar el front.
