@@ -552,6 +552,9 @@ consciente).
   eliminados. `School.java` limpiado de `@JsonProperty` — POJO puro sin
   dependencias de framework. Endpoints `/api/schools` y `/api/schools/{id}`
   funcionando con filtros (region, style, rockType, distancia).
+- **Fase 5 ✅ COMPLETA**: `ClimbScoreCalculator` y `RockDryingProfile` en
+  `domain/score/` — traducción exacta de `score-core.js`. 9 tests JUnit en
+  `src/test/` verifican caps de lluvia, perfiles de roca, labels y bounds.
 - **Fase 4 ✅ COMPLETA**: Spring Security añadido. `FirebaseTokenFilter`
   valida JWT de Firebase en cada request. `SecurityConfig` define endpoints
   públicos (GET /api/schools/**) y protegidos (todo lo demás). CORS configurado
@@ -566,11 +569,7 @@ consciente).
 
 ## Estado actual
 
-**Fase 5 — Cálculo del score (siguiente)**
-
-Migrar `js/score.js` y `js/score-core.js` de la PWA a Java puro.
-Clases: `ClimbScoreCalculator`, `RockDryingProfile`, `HourlyScoreCalculator`.
-Tests con JUnit. Sin llamadas externas — lógica pura.
+**Fase 6 — Open-Meteo + endpoint `/api/schools/{id}/forecast` (siguiente)**
 
 **Notas operativas para el siguiente Claude**:
 - Contraseña Postgres en `.env` (no commit). Arranque: `docker compose up -d`
