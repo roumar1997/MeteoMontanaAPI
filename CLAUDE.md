@@ -552,6 +552,10 @@ consciente).
   eliminados. `School.java` limpiado de `@JsonProperty` — POJO puro sin
   dependencias de framework. Endpoints `/api/schools` y `/api/schools/{id}`
   funcionando con filtros (region, style, rockType, distancia).
+- **Fase 4 ✅ COMPLETA**: Spring Security añadido. `FirebaseTokenFilter`
+  valida JWT de Firebase en cada request. `SecurityConfig` define endpoints
+  públicos (GET /api/schools/**) y protegidos (todo lo demás). CORS configurado
+  para PWA local y producción. `FirebaseUser` record como principal del contexto.
 - **Fase 3 ✅ COMPLETA**: tabla `notes` con FK a `schools` (Flyway V2),
   `NoteJpaEntity`, `Note` (dominio), `NoteRepository` (puerto),
   `SpringDataNoteRepository` (query derivada), `JpaNoteRepositoryAdapter`,
@@ -562,21 +566,21 @@ consciente).
 
 ## Estado actual
 
-**Fase 4 — Spring Security + Firebase Auth (siguiente)**
+**Fase 5 — Cálculo del score (siguiente)**
 
-Añadir un filtro `OncePerRequestFilter` que valide los ID tokens de Firebase
-como JWT estándar usando JWKS de Google. `@AuthenticationPrincipal` con un
-`FirebaseUser` propio. Los endpoints públicos (GET schools, GET notes) siguen
-sin auth. Los endpoints futuros (POST note, POST journal, etc.) requerirán token.
-
-Aprendizaje: Spring Security, `OncePerRequestFilter`, JWT, JWKS, CORS.
+Migrar `js/score.js` y `js/score-core.js` de la PWA a Java puro.
+Clases: `ClimbScoreCalculator`, `RockDryingProfile`, `HourlyScoreCalculator`.
+Tests con JUnit. Sin llamadas externas — lógica pura.
 
 **Notas operativas para el siguiente Claude**:
 - Contraseña Postgres en `.env` (no commit). Arranque: `docker compose up -d`
   desde raíz, luego `cd api && ./mvnw spring-boot:run`.
 - 191 escuelas + 4 notas en Postgres.
-- Script de migración en `tools/migrate-notes/` — idempotente, se puede
-  volver a ejecutar sin duplicar.
-- `serviceAccountKey.json` en raíz del proyecto (excluido de git).
-- El usuario aprende paso a paso. Spring Security es terreno nuevo — explicar
-  filter chain, SecurityContext y JWT desde cero cuando aparezcan.
+- Spring Security activo: GET /api/schools/** es público. Todo lo demás
+  requiere `Authorization: Bearer <firebase-id-token>`.
+- CORS configurado para localhost:5173, localhost:3000, 127.0.0.1:5500
+  y climbingteams.com.
+- `serviceAccountKey.json` en `api/src/main/resources/` Y en raíz (para el
+  script de migración). Ambos excluidos de git.
+- El usuario aprende paso a paso. JUnit y tests son terreno nuevo — explicar
+  desde cero cuando aparezcan.
