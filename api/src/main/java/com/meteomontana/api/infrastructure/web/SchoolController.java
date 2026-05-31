@@ -1,8 +1,10 @@
 package com.meteomontana.api.infrastructure.web;
 
+import com.meteomontana.api.application.GetNotesBySchoolUseCase;
 import com.meteomontana.api.application.GetSchoolByIdUseCase;
 import com.meteomontana.api.application.GetSchoolsUseCase;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
+import com.meteomontana.api.domain.model.Note;
 import com.meteomontana.api.domain.model.School;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,11 +20,14 @@ public class SchoolController {
 
     private final GetSchoolsUseCase getSchoolsUseCase;
     private final GetSchoolByIdUseCase getSchoolByIdUseCase;
+    private final GetNotesBySchoolUseCase getNotesBySchoolUseCase;
 
     public SchoolController(GetSchoolsUseCase getSchoolsUseCase,
-                            GetSchoolByIdUseCase getSchoolByIdUseCase) {
-        this.getSchoolsUseCase   = getSchoolsUseCase;
-        this.getSchoolByIdUseCase = getSchoolByIdUseCase;
+                            GetSchoolByIdUseCase getSchoolByIdUseCase,
+                            GetNotesBySchoolUseCase getNotesBySchoolUseCase) {
+        this.getSchoolsUseCase       = getSchoolsUseCase;
+        this.getSchoolByIdUseCase    = getSchoolByIdUseCase;
+        this.getNotesBySchoolUseCase = getNotesBySchoolUseCase;
     }
 
     @GetMapping("/schools")
@@ -40,5 +45,10 @@ public class SchoolController {
     public School getSchoolById(@PathVariable String id) {
         return getSchoolByIdUseCase.execute(id)
                 .orElseThrow(() -> new SchoolNotFoundException(id));
+    }
+
+    @GetMapping("/schools/{id}/notes")
+    public List<Note> getNotesBySchool(@PathVariable String id) {
+        return getNotesBySchoolUseCase.execute(id);
     }
 }
