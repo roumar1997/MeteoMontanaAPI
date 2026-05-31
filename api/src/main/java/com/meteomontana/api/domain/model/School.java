@@ -1,8 +1,5 @@
 package com.meteomontana.api.domain.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 public class School {
     private final String id;
     private final String name;
@@ -14,16 +11,8 @@ public class School {
     private final double lon;
     private final String source;
 
-    @JsonCreator
-    public School(@JsonProperty("id")        String id,
-                  @JsonProperty("nombre")    String name,
-                  @JsonProperty("ubicacion") String location,
-                  @JsonProperty("ccaa")      String region,
-                  @JsonProperty("estilo")    String style,
-                  @JsonProperty("roca")      String rockType,
-                  @JsonProperty("lat")       double lat,
-                  @JsonProperty("lon")       double lon,
-                  @JsonProperty("fuente")    String source) {
+    public School(String id, String name, String location, String region,
+                  String style, String rockType, double lat, double lon, String source) {
         this.id       = id;
         this.name     = name;
         this.location = location;
