@@ -549,21 +549,27 @@ consciente).
 - **Fase 2 ✅ COMPLETA**: Postgres en Docker, JPA con Flyway, seed de 191
   escuelas desde JSON, arquitectura hexagonal con `JpaSchoolRepositoryAdapter`,
   rename completo a inglés (`School`, `/api/schools`). JSON y clases en español
-  eliminados. Endpoints `/api/schools` y `/api/schools/{id}` funcionando con
-  filtros (region, style, rockType, distancia).
+  eliminados. `School.java` limpiado de `@JsonProperty` — POJO puro sin
+  dependencias de framework. Endpoints `/api/schools` y `/api/schools/{id}`
+  funcionando con filtros (region, style, rockType, distancia).
 
 ## Estado actual
 
 **Fase 3 — Notas con Postgres (siguiente)**
 
 Crear tabla `notes` con FK a `schools`. Endpoint `GET /api/schools/{id}/notes`
-público. Script standalone que migra notas desde Firestore a Postgres.
+público. Migración Flyway `V2__create_notes.sql`. Script standalone para
+migrar notas desde Firestore a Postgres.
 
-**Notas operativas**:
-- La contraseña Postgres está en `.env` (no commit). `docker compose up -d`
-  desde la raíz levanta Postgres. La app arranca con `cd api && ./mvnw spring-boot:run`.
+Aprendizaje: `@ManyToOne` / `@OneToMany`, claves foráneas, índices, lazy loading.
+
+**Notas operativas para el siguiente Claude**:
+- Contraseña Postgres en `.env` (no commit). Arranque: `docker compose up -d`
+  desde raíz, luego `cd api && ./mvnw spring-boot:run`.
+- 191 escuelas en Postgres. Seed idempotente, no re-inserta.
 - `application.yaml` usa `spring.config.import: optional:file:../.env[.properties]`
-  → depende del working dir = `api/`. Si IntelliJ usa otro dir, puede fallar.
-- 191 escuelas ya están en Postgres. Seed es idempotente.
-- El frontend evoluciona rápido: `git fetch && git status -sb` en
+  — working dir debe ser `api/` para que la ruta `../` funcione.
+- Frontend evoluciona rápido: `git fetch && git status -sb` en
   `C:\Users\rouma\Desktop\MeteoMontana` antes de tocar el front.
+- El usuario aprende paso a paso. Explicar `@ManyToOne` y FK desde cero
+  cuando aparezcan — JPA y relaciones son terreno nuevo.
