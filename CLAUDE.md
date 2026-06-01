@@ -552,6 +552,13 @@ consciente).
   eliminados. `School.java` limpiado de `@JsonProperty` — POJO puro sin
   dependencias de framework. Endpoints `/api/schools` y `/api/schools/{id}`
   funcionando con filtros (region, style, rockType, distancia).
+- **Fase 6 ✅ COMPLETA**: endpoint `GET /api/schools/{id}/forecast`.
+  `OpenMeteoClient` con `RestClient` llama a Open-Meteo. `OpenMeteoResponse`
+  DTO mapea el JSON con `@JsonProperty`. `GetForecastUseCase` combina escuela
+  + tiempo + score por hora (usa `ClimbScoreCalculator` y `RockDryingProfile`).
+  `ForecastResponse` DTO de salida. `@EnableCaching` + `@Cacheable` cachean
+  por lat,lon — primera llamada ~500ms, siguientes ~10ms. TODO: TTL con
+  Caffeine (los datos de Open-Meteo no expiran solos).
 - **Fase 5 ✅ COMPLETA**: `ClimbScoreCalculator` y `RockDryingProfile` en
   `domain/score/` — traducción exacta de `score-core.js`. 9 tests JUnit en
   `src/test/` verifican caps de lluvia, perfiles de roca, labels y bounds.
@@ -569,7 +576,14 @@ consciente).
 
 ## Estado actual
 
-**Fase 6 — Open-Meteo + endpoint `/api/schools/{id}/forecast` (siguiente)**
+**Fase 7 — Fotos y storage (siguiente)**
+
+Subir fotos de bloques/escuelas. Recomendación: empezar con Firebase Storage
+(ya está configurado). Endpoint `POST /api/schools/{id}/photos` con multipart.
+
+**TODO técnico antes de seguir**: añadir TTL a la caché del forecast.
+La opción más limpia es Caffeine con `expireAfterWrite=30m`. Sin TTL los
+datos meteorológicos quedan cacheados indefinidamente hasta reiniciar la app.
 
 **Notas operativas para el siguiente Claude**:
 - Contraseña Postgres en `.env` (no commit). Arranque: `docker compose up -d`
