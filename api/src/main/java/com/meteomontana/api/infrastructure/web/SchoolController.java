@@ -3,6 +3,8 @@ package com.meteomontana.api.infrastructure.web;
 import com.meteomontana.api.application.GetNotesBySchoolUseCase;
 import com.meteomontana.api.application.GetSchoolByIdUseCase;
 import com.meteomontana.api.application.GetSchoolsUseCase;
+import com.meteomontana.api.application.forecast.ForecastResponse;
+import com.meteomontana.api.application.forecast.GetForecastUseCase;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.model.Note;
 import com.meteomontana.api.domain.model.School;
@@ -21,13 +23,16 @@ public class SchoolController {
     private final GetSchoolsUseCase getSchoolsUseCase;
     private final GetSchoolByIdUseCase getSchoolByIdUseCase;
     private final GetNotesBySchoolUseCase getNotesBySchoolUseCase;
+    private final GetForecastUseCase getForecastUseCase;
 
     public SchoolController(GetSchoolsUseCase getSchoolsUseCase,
                             GetSchoolByIdUseCase getSchoolByIdUseCase,
-                            GetNotesBySchoolUseCase getNotesBySchoolUseCase) {
+                            GetNotesBySchoolUseCase getNotesBySchoolUseCase,
+                            GetForecastUseCase getForecastUseCase) {
         this.getSchoolsUseCase       = getSchoolsUseCase;
         this.getSchoolByIdUseCase    = getSchoolByIdUseCase;
         this.getNotesBySchoolUseCase = getNotesBySchoolUseCase;
+        this.getForecastUseCase      = getForecastUseCase;
     }
 
     @GetMapping("/schools")
@@ -50,5 +55,10 @@ public class SchoolController {
     @GetMapping("/schools/{id}/notes")
     public List<Note> getNotesBySchool(@PathVariable String id) {
         return getNotesBySchoolUseCase.execute(id);
+    }
+
+    @GetMapping("/schools/{id}/forecast")
+    public ForecastResponse getForecast(@PathVariable String id) {
+        return getForecastUseCase.execute(id);
     }
 }
