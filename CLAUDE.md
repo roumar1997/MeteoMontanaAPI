@@ -552,6 +552,23 @@ consciente).
   eliminados. `School.java` limpiado de `@JsonProperty` — POJO puro sin
   dependencias de framework. Endpoints `/api/schools` y `/api/schools/{id}`
   funcionando con filtros (region, style, rockType, distancia).
+- **Fase 8 ✅ COMPLETA**: tabla `users` (Flyway V4). `User` dominio,
+  `UserJpaEntity`, `UserRepository`, adaptador. DTOs: `PublicProfileDto`
+  (sin email), `PrivateProfileDto` (con email, flags), `UpdateProfileRequest`.
+  Use cases: `GetOrCreateMyProfileUseCase` (auto-crea en primer login —
+  JIT provisioning), `GetPublicProfileUseCase` (busca por uid o username,
+  oculta perfiles privados con 404), `UpdateMyProfileUseCase` (valida
+  username regex `[a-z0-9_]{3,20}`, detecta colisión → 409). Endpoints:
+  `GET /api/me`, `PUT /api/me`, `GET /api/users/{identifier}` (público).
+  `UserDtoMapper` resuelve `photoPath` → URL firmada.
+- **Fase 7 ✅ COMPLETA**: tabla `school_photos` (Flyway V3) con FK a `schools`.
+  `StorageService` envuelve Firebase Storage (upload, delete, signedReadUrl
+  v4). `UploadSchoolPhotoUseCase` valida content-type image/*, max 5MB,
+  transaccional con rollback de Storage si Postgres falla. `GetSchoolPhotosUseCase`
+  genera URLs firmadas a 60min. `DeleteSchoolPhotoUseCase` solo el uploader.
+  Endpoints: `GET /api/schools/{id}/photos` (público), `POST` (multipart, auth),
+  `DELETE /api/photos/{photoId}` (auth + ownership). `FirebaseConfig` configura
+  bucket `climbingteams.firebasestorage.app`.
 - **Fase 6 ✅ COMPLETA**: endpoint `GET /api/schools/{id}/forecast`.
   `OpenMeteoClient` con `RestClient` llama a Open-Meteo. `OpenMeteoResponse`
   DTO mapea el JSON con `@JsonProperty`. `GetForecastUseCase` combina escuela
@@ -576,14 +593,18 @@ consciente).
 
 ## Estado actual
 
-**Fase 7 — Fotos y storage (siguiente)**
+**Fase 9 — Admin (siguiente)**
 
-Subir fotos de bloques/escuelas. Recomendación: empezar con Firebase Storage
-(ya está configurado). Endpoint `POST /api/schools/{id}/photos` con multipart.
+Endpoints de moderación: listar submissions, approve/reject con transacción
+multi-tabla, log de actividad. Roles con Spring Security (`@PreAuthorize`
+o filtro custom que mire `users.is_admin`).
 
-**TODO técnico antes de seguir**: añadir TTL a la caché del forecast.
-La opción más limpia es Caffeine con `expireAfterWrite=30m`. Sin TTL los
-datos meteorológicos quedan cacheados indefinidamente hasta reiniciar la app.
+**TODOs técnicos acumulados**:
+- TTL en la caché del forecast (Caffeine con `expireAfterWrite=30m`).
+- Probar `POST /api/schools/{id}/photos` con un token Firebase real.
+- Probar `GET /api/me` con token Firebase para verificar JIT provisioning.
+- `users.photo_path` se actualiza desde un endpoint aparte que aún no
+  tenemos (`POST /api/me/photo`). Pendiente añadirlo.
 
 **Notas operativas para el siguiente Claude**:
 - Contraseña Postgres en `.env` (no commit). Arranque: `docker compose up -d`
