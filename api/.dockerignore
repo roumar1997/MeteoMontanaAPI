@@ -1,0 +1,13 @@
+target/
+.idea/
+*.iml
+.git/
+.gitignore
+.mvn/wrapper/maven-wrapper.jar
+HELP.md
+README.md
+*.log
+.env*
+!.env.example
+# El serviceAccountKey NO va dentro de la imagen — se inyecta en runtime
+src/main/resources/serviceAccountKey.json

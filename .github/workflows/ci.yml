@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: meteomontana
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: meteomontana
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # Generamos un serviceAccountKey vacío válido SOLO para tests
+      # (los tests no llaman a Firebase real)
+      - name: Stub Firebase service account
+        run: |
+          cat > api/src/main/resources/serviceAccountKey.json <<'EOF'
+          {
+            "type": "service_account",
+            "project_id": "test-project",
+            "private_key_id": "stub",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIBVgIBADANBgkqhkiG9w0BAQEFAASCAUAwggE8AgEAAkEAxxOX24fJZxr8eutA\nfrcpfTC9YzJiAGdh9wkkRDLZRJ9PUcc7+H77SCvFP5Tj9lAxbsoTl3l3bNRZBkN0\nv87XfwIDAQABAkB7ZLBaaPj4N5R7H8DkjFTPnLlAsR+wB4kU01a0Vx8R5cBLm2HZ\n+aRcWNV8bgcW8nFAQNRKVMSyyMc4Vqe2qSwBAiEA9c30NqVCYn8aLJyl2gIWcZ7r\nJpu3Vc3kskZdF7nq8AECIQDPnQXbVkSGS0+0gWnePQjAtgF1Fda2C/A8r6Z7PE5l\nfwIhANYwz0p9mxZOhAKgKqYJ8FH0iiVZSt9KBJ4tFLLqEDsBAiEAhLkbBz4tCsBV\nF1AvHzz/wp10vUkrZWZbnIyVZAuwxBcCIQCb9PRMnXMz31RYrSE0z5jvk+u9SRTb\nlQjjUEpPRy0YnQ==\n-----END PRIVATE KEY-----\n",
+            "client_email": "stub@test-project.iam.gserviceaccount.com",
+            "client_id": "0",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token"
+          }
+          EOF
+
+      - name: Run tests
+        working-directory: api
+        env:
+          POSTGRES_PASSWORD: testpass
+          DATABASE_URL: jdbc:postgresql://localhost:5432/meteomontana
+          DATABASE_USERNAME: meteomontana
+        run: ./mvnw -B test
+
+      - name: Build jar
+        working-directory: api
+        run: ./mvnw -B -DskipTests package

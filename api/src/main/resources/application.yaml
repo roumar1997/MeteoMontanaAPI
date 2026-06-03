@@ -4,13 +4,28 @@ spring:
   config:
     import: optional:file:../.env[.properties]
   datasource:
-    url: jdbc:postgresql://localhost:5432/meteomontana
-    username: meteomontana
+    # En prod estas vars vienen del entorno (Railway/Render/Fly).
+    # En dev, del .env de la raíz.
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/meteomontana}
+    username: ${DATABASE_USERNAME:meteomontana}
     password: ${POSTGRES_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:true}
     properties:
       hibernate:
         format_sql: true
+
+server:
+  port: ${PORT:8080}
+
+# Healthcheck endpoint para que Railway/Render sepan si la app está viva.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
