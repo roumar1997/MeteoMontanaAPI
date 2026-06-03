@@ -552,6 +552,25 @@ consciente).
   eliminados. `School.java` limpiado de `@JsonProperty` — POJO puro sin
   dependencias de framework. Endpoints `/api/schools` y `/api/schools/{id}`
   funcionando con filtros (region, style, rockType, distancia).
+- **Fase 11 ✅ COMPLETA**: Dockerfile multi-stage (JDK 21 build + JRE 21
+  runtime, usuario no-root), `.dockerignore`, GitHub Actions CI con servicio
+  Postgres en `.github/workflows/ci.yml` (corre tests + build), Spring
+  Actuator añadido para `/actuator/health` (público en `SecurityConfig`),
+  `application.yaml` parametrizado con env vars (`DATABASE_URL`,
+  `DATABASE_USERNAME`, `PORT`, `JPA_SHOW_SQL`). `DEPLOY.md` con guía
+  para Railway/Render/Fly.io.
+- **Fase 10 ✅ COMPLETA**: FCM push. `FcmService` envuelve FirebaseMessaging.
+  Columna `fcm_token` en users (Flyway V6) + `PUT /api/me/fcm-token`.
+  `@EnableScheduling` + `@EnableAsync` en `ApiApplication`.
+  `SubmissionCleanupScheduler` cron 03:00 borra submissions revisadas >5 días.
+  `SubmissionReviewedEvent` + listener `@Async` manda push al autor al
+  aprobar/rechazar. `SendAdminPushUseCase` + `POST /api/admin/push`.
+- **Fase 9 ✅ COMPLETA**: tablas `school_submissions` y `admin_logs`
+  (Flyway V5). `AdminGuard` valida `is_admin=true` en BD.
+  `ApproveSubmissionUseCase` crea School + actualiza submission + log
+  todo en `@Transactional`. Endpoints `POST /api/submissions`,
+  `GET /api/submissions/me`, `GET /api/admin/submissions`,
+  `POST /api/admin/submissions/{id}/approve|reject`, `GET /api/admin/logs`.
 - **Fase 8 ✅ COMPLETA**: tabla `users` (Flyway V4). `User` dominio,
   `UserJpaEntity`, `UserRepository`, adaptador. DTOs: `PublicProfileDto`
   (sin email), `PrivateProfileDto` (con email, flags), `UpdateProfileRequest`.
@@ -593,18 +612,36 @@ consciente).
 
 ## Estado actual
 
-**Fase 9 — Admin (siguiente)**
+**TODAS LAS FASES DEL PLAN ORIGINAL ESTÁN COMPLETAS (1-11).**
 
-Endpoints de moderación: listar submissions, approve/reject con transacción
-multi-tabla, log de actividad. Roles con Spring Security (`@PreAuthorize`
-o filtro custom que mire `users.is_admin`).
+Pendiente: verificación end-to-end de Fases 9, 10, 11 con token Firebase real.
 
-**TODOs técnicos acumulados**:
+**Endpoints implementados (resumen):**
+- `GET /api/schools[?region&style&rockType&lat&lon&radioKm]` (público)
+- `GET /api/schools/{id}` (público)
+- `GET /api/schools/{id}/notes` (público)
+- `GET /api/schools/{id}/photos` (público) | `POST` (auth) | `DELETE /api/photos/{id}` (auth)
+- `GET /api/schools/{id}/forecast` (público, cache)
+- `GET /api/me` (auth, JIT provisioning) | `PUT /api/me` | `PUT /api/me/fcm-token`
+- `GET /api/users/{uid o username}` (público, oculta perfiles privados)
+- `POST /api/submissions` (auth) | `GET /api/submissions/me` (auth)
+- `GET /api/admin/submissions` | `POST .../approve|reject` (admin)
+- `GET /api/admin/logs` | `POST /api/admin/push` (admin)
+- `GET /actuator/health` (público, healthcheck)
+
+**TODOs técnicos acumulados** (mejoras, no bloqueantes):
 - TTL en la caché del forecast (Caffeine con `expireAfterWrite=30m`).
-- Probar `POST /api/schools/{id}/photos` con un token Firebase real.
-- Probar `GET /api/me` con token Firebase para verificar JIT provisioning.
-- `users.photo_path` se actualiza desde un endpoint aparte que aún no
-  tenemos (`POST /api/me/photo`). Pendiente añadirlo.
+- `POST /api/me/photo` para subir foto de perfil (actualiza `users.photo_path`).
+- Endpoint de búsqueda de usuarios (`GET /api/users/search?q=...`).
+- Follows entre usuarios (tabla `follows`, endpoints, counts denormalizados).
+- Diario personal (`POST/GET /api/journal`, `GET /api/users/{uid}/journal`).
+- Notas: `POST /api/schools/{id}/notes` (crear) y votos (tabla `note_votes`).
+- Migrar `FirebaseConfig` para leer `serviceAccountKey.json` desde filesystem
+  cuando esté disponible (necesario en prod con volúmenes montados).
+
+**Despliegue (Fase 11)**:
+- Dockerfile y CI listos. Elegir proveedor (Railway/Render/Fly.io) y crear
+  cuenta. Ver `DEPLOY.md`.
 
 **Notas operativas para el siguiente Claude**:
 - Contraseña Postgres en `.env` (no commit). Arranque: `docker compose up -d`
