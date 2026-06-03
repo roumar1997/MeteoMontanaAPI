@@ -6,17 +6,24 @@ import com.meteomontana.api.application.users.PrivateProfileDto;
 import com.meteomontana.api.application.users.PublicProfileDto;
 import com.meteomontana.api.application.users.UpdateFcmTokenUseCase;
 import com.meteomontana.api.application.users.UpdateMyProfileUseCase;
+import com.meteomontana.api.application.users.UpdateProfilePhotoUseCase;
 import com.meteomontana.api.application.users.UpdateProfileRequest;
+import com.meteomontana.api.application.users.UserDtoMapper;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api")
@@ -26,15 +33,21 @@ public class UserController {
     private final GetPublicProfileUseCase     getPublicProfile;
     private final UpdateMyProfileUseCase      updateMyProfile;
     private final UpdateFcmTokenUseCase       updateFcmToken;
+    private final UpdateProfilePhotoUseCase   updateProfilePhoto;
+    private final UserDtoMapper               userDtoMapper;
 
     public UserController(GetOrCreateMyProfileUseCase getOrCreateMyProfile,
                           GetPublicProfileUseCase getPublicProfile,
                           UpdateMyProfileUseCase updateMyProfile,
-                          UpdateFcmTokenUseCase updateFcmToken) {
+                          UpdateFcmTokenUseCase updateFcmToken,
+                          UpdateProfilePhotoUseCase updateProfilePhoto,
+                          UserDtoMapper userDtoMapper) {
         this.getOrCreateMyProfile = getOrCreateMyProfile;
         this.getPublicProfile     = getPublicProfile;
         this.updateMyProfile      = updateMyProfile;
         this.updateFcmToken       = updateFcmToken;
+        this.updateProfilePhoto   = updateProfilePhoto;
+        this.userDtoMapper        = userDtoMapper;
     }
 
     @GetMapping("/me")
@@ -53,6 +66,12 @@ public class UserController {
     public void updateFcmToken(@AuthenticationPrincipal FirebaseUser user,
                                @RequestBody UpdateFcmTokenUseCase.FcmTokenRequest req) {
         updateFcmToken.execute(user.uid(), req.token());
+    }
+
+    @PostMapping("/me/photo")
+    public PrivateProfileDto updateMyPhoto(@AuthenticationPrincipal FirebaseUser user,
+                                           @RequestParam("file") MultipartFile file) throws IOException {
+        return updateProfilePhoto.execute(user.uid(), file, userDtoMapper);
     }
 
     @GetMapping("/users/{identifier}")

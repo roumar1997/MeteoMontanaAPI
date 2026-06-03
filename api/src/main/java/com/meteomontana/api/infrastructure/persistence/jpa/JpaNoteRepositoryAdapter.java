@@ -1,18 +1,23 @@
 package com.meteomontana.api.infrastructure.persistence.jpa;
 
+import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.model.Note;
 import com.meteomontana.api.domain.port.NoteRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class JpaNoteRepositoryAdapter implements NoteRepository {
 
     private final SpringDataNoteRepository jpaRepo;
+    private final SpringDataSchoolRepository schoolJpaRepo;
 
-    public JpaNoteRepositoryAdapter(SpringDataNoteRepository jpaRepo) {
+    public JpaNoteRepositoryAdapter(SpringDataNoteRepository jpaRepo,
+                                    SpringDataSchoolRepository schoolJpaRepo) {
         this.jpaRepo = jpaRepo;
+        this.schoolJpaRepo = schoolJpaRepo;
     }
 
     @Override
@@ -20,6 +25,27 @@ public class JpaNoteRepositoryAdapter implements NoteRepository {
         return jpaRepo.findBySchoolId(schoolId).stream()
                 .map(this::toNote)
                 .toList();
+    }
+
+    @Override
+    public Optional<Note> findById(String id) {
+        return jpaRepo.findById(id).map(this::toNote);
+    }
+
+    @Override
+    public Note save(Note n) {
+        SchoolJpaEntity school = schoolJpaRepo.findById(n.getSchoolId())
+                .orElseThrow(() -> new SchoolNotFoundException(n.getSchoolId()));
+        NoteJpaEntity e = new NoteJpaEntity(
+                n.getId(), school, n.getText(), n.getAuthor(), n.getUid(),
+                n.getCreatedAt(), n.getUpvotesCount(), n.getDownvotesCount()
+        );
+        return toNote(jpaRepo.save(e));
+    }
+
+    @Override
+    public void deleteById(String id) {
+        jpaRepo.deleteById(id);
     }
 
     private Note toNote(NoteJpaEntity e) {
