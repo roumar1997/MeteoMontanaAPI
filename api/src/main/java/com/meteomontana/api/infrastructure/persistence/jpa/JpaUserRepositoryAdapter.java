@@ -4,6 +4,7 @@ import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.UserRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -30,7 +31,8 @@ public class JpaUserRepositoryAdapter implements UserRepository {
         UserJpaEntity entity = new UserJpaEntity(
                 u.getUid(), u.getEmail(), u.getUsername(), u.getDisplayName(),
                 u.getPhotoPath(), u.getBio(), u.isPublic(), u.getTopGrade(),
-                u.isAdmin(), u.isPremium(), u.getCreatedAt(), u.getUpdatedAt()
+                u.isAdmin(), u.isPremium(), u.getFcmToken(),
+                u.getCreatedAt(), u.getUpdatedAt()
         );
         return toDomain(jpaRepo.save(entity));
     }
@@ -42,11 +44,17 @@ public class JpaUserRepositoryAdapter implements UserRepository {
                 .orElse(false);
     }
 
+    @Override
+    public List<User> findAllWithFcmToken() {
+        return jpaRepo.findAllByFcmTokenIsNotNull().stream().map(this::toDomain).toList();
+    }
+
     private User toDomain(UserJpaEntity e) {
         return new User(
                 e.getUid(), e.getEmail(), e.getUsername(), e.getDisplayName(),
                 e.getPhotoPath(), e.getBio(), e.isPublic(), e.getTopGrade(),
-                e.isAdmin(), e.isPremium(), e.getCreatedAt(), e.getUpdatedAt()
+                e.isAdmin(), e.isPremium(), e.getFcmToken(),
+                e.getCreatedAt(), e.getUpdatedAt()
         );
     }
 }

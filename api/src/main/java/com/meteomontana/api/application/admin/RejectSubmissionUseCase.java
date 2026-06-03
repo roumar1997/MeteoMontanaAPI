@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.admin;
 
+import com.meteomontana.api.application.events.SubmissionReviewedEvent;
 import com.meteomontana.api.application.submissions.SubmissionDto;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.model.AdminLog;
@@ -7,6 +8,7 @@ import com.meteomontana.api.domain.model.SchoolSubmission;
 import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.domain.port.AdminLogRepository;
 import com.meteomontana.api.domain.port.SchoolSubmissionRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,13 +21,16 @@ public class RejectSubmissionUseCase {
     private final SchoolSubmissionRepository submissionRepository;
     private final AdminLogRepository adminLogRepository;
     private final AdminGuard adminGuard;
+    private final ApplicationEventPublisher events;
 
     public RejectSubmissionUseCase(SchoolSubmissionRepository submissionRepository,
                                    AdminLogRepository adminLogRepository,
-                                   AdminGuard adminGuard) {
+                                   AdminGuard adminGuard,
+                                   ApplicationEventPublisher events) {
         this.submissionRepository = submissionRepository;
         this.adminLogRepository = adminLogRepository;
         this.adminGuard = adminGuard;
+        this.events = events;
     }
 
     @Transactional
@@ -61,6 +66,11 @@ public class RejectSubmissionUseCase {
                 submission.getId(),
                 "Reason: " + (reason != null ? reason : "n/a"),
                 LocalDateTime.now()
+        ));
+
+        events.publishEvent(new SubmissionReviewedEvent(
+                persisted.getId(), persisted.getSubmittedByUid(),
+                persisted.getProposedName(), SubmissionStatus.REJECTED, reason
         ));
 
         return SubmissionDto.from(persisted);

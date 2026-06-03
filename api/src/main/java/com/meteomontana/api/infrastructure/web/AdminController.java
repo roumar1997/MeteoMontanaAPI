@@ -4,6 +4,7 @@ import com.meteomontana.api.application.admin.ApproveSubmissionUseCase;
 import com.meteomontana.api.application.admin.ListAdminLogsUseCase;
 import com.meteomontana.api.application.admin.ListPendingSubmissionsUseCase;
 import com.meteomontana.api.application.admin.RejectSubmissionUseCase;
+import com.meteomontana.api.application.admin.SendAdminPushUseCase;
 import com.meteomontana.api.application.submissions.SubmissionDto;
 import com.meteomontana.api.domain.model.AdminLog;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
@@ -26,15 +27,25 @@ public class AdminController {
     private final ApproveSubmissionUseCase approveUseCase;
     private final RejectSubmissionUseCase rejectUseCase;
     private final ListAdminLogsUseCase listLogs;
+    private final SendAdminPushUseCase sendPushUseCase;
 
     public AdminController(ListPendingSubmissionsUseCase listPending,
                            ApproveSubmissionUseCase approveUseCase,
                            RejectSubmissionUseCase rejectUseCase,
-                           ListAdminLogsUseCase listLogs) {
+                           ListAdminLogsUseCase listLogs,
+                           SendAdminPushUseCase sendPushUseCase) {
         this.listPending = listPending;
         this.approveUseCase = approveUseCase;
         this.rejectUseCase = rejectUseCase;
         this.listLogs = listLogs;
+        this.sendPushUseCase = sendPushUseCase;
+    }
+
+    @PostMapping("/push")
+    public SendAdminPushUseCase.AdminPushResponse sendPush(
+            @AuthenticationPrincipal FirebaseUser user,
+            @RequestBody SendAdminPushUseCase.AdminPushRequest req) {
+        return sendPushUseCase.execute(user.uid(), req);
     }
 
     @GetMapping("/submissions")

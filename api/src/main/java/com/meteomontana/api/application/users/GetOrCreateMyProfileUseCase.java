@@ -44,6 +44,7 @@ public class GetOrCreateMyProfileUseCase {
                 null,                    // top grade
                 false,                   // isAdmin
                 false,                   // isPremium
+                null,                    // fcmToken — se setea desde PUT /api/me/fcm-token
                 now, now
         );
         return userRepository.save(newUser);

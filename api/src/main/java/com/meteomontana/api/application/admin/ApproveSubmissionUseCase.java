@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.admin;
 
+import com.meteomontana.api.application.events.SubmissionReviewedEvent;
 import com.meteomontana.api.application.submissions.SubmissionDto;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.model.AdminLog;
@@ -9,6 +10,7 @@ import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.domain.port.AdminLogRepository;
 import com.meteomontana.api.domain.port.SchoolRepository;
 import com.meteomontana.api.domain.port.SchoolSubmissionRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,15 +28,18 @@ public class ApproveSubmissionUseCase {
     private final SchoolRepository schoolRepository;
     private final AdminLogRepository adminLogRepository;
     private final AdminGuard adminGuard;
+    private final ApplicationEventPublisher events;
 
     public ApproveSubmissionUseCase(SchoolSubmissionRepository submissionRepository,
                                     SchoolRepository schoolRepository,
                                     AdminLogRepository adminLogRepository,
-                                    AdminGuard adminGuard) {
+                                    AdminGuard adminGuard,
+                                    ApplicationEventPublisher events) {
         this.submissionRepository = submissionRepository;
         this.schoolRepository = schoolRepository;
         this.adminLogRepository = adminLogRepository;
         this.adminGuard = adminGuard;
+        this.events = events;
     }
 
     @Transactional
@@ -90,6 +95,12 @@ public class ApproveSubmissionUseCase {
                 submission.getId(),
                 "Created school: " + saved.getId(),
                 LocalDateTime.now()
+        ));
+
+        // 4. Publicar evento (listeners async mandan push)
+        events.publishEvent(new SubmissionReviewedEvent(
+                persisted.getId(), persisted.getSubmittedByUid(),
+                persisted.getProposedName(), SubmissionStatus.APPROVED, null
         ));
 
         return SubmissionDto.from(persisted);

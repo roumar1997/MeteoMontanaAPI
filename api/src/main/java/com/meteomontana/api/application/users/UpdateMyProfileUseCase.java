@@ -45,6 +45,7 @@ public class UpdateMyProfileUseCase {
                 newTopGrade,
                 current.isAdmin(),
                 current.isPremium(),
+                current.getFcmToken(),
                 current.getCreatedAt(),
                 LocalDateTime.now()
         );

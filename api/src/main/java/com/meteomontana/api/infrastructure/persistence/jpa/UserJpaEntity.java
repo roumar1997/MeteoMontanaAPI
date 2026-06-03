@@ -39,6 +39,9 @@ public class UserJpaEntity {
     @Column(name = "is_premium", nullable = false)
     private boolean isPremium;
 
+    @Column(name = "fcm_token")
+    private String fcmToken;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -49,7 +52,7 @@ public class UserJpaEntity {
 
     public UserJpaEntity(String uid, String email, String username, String displayName,
                          String photoPath, String bio, boolean isPublic, String topGrade,
-                         boolean isAdmin, boolean isPremium,
+                         boolean isAdmin, boolean isPremium, String fcmToken,
                          LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.uid = uid;
         this.email = email;
@@ -61,6 +64,7 @@ public class UserJpaEntity {
         this.topGrade = topGrade;
         this.isAdmin = isAdmin;
         this.isPremium = isPremium;
+        this.fcmToken = fcmToken;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -75,6 +79,7 @@ public class UserJpaEntity {
     public String getTopGrade()        { return topGrade; }
     public boolean isAdmin()           { return isAdmin; }
     public boolean isPremium()         { return isPremium; }
+    public String getFcmToken()        { return fcmToken; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
     public LocalDateTime getUpdatedAt(){ return updatedAt; }
 }
