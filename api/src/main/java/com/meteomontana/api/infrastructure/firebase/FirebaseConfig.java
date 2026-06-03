@@ -10,15 +10,22 @@ import java.io.InputStream;
 
 @Configuration
 public class FirebaseConfig {
+
+    // Bucket por defecto de Firebase Storage del proyecto climbingteams.
+    // Necesario para que StorageClient.getInstance().bucket() funcione.
+    private static final String STORAGE_BUCKET = "climbingteams.firebasestorage.app";
+
     @PostConstruct
-    public void intialize() throws IOException{
+    public void intialize() throws IOException {
         InputStream serviceAccount =
                 getClass().getClassLoader().getResourceAsStream("serviceAccountKey.json");
+
         FirebaseOptions options = FirebaseOptions.builder()
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .setStorageBucket(STORAGE_BUCKET)
                 .build();
 
-        if (FirebaseApp.getApps().isEmpty()){
+        if (FirebaseApp.getApps().isEmpty()) {
             FirebaseApp.initializeApp(options);
         }
     }
