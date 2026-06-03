@@ -1,0 +1,18 @@
+package com.meteomontana.api.application.users;
+
+/**
+ * Vista privada del usuario autenticado (`GET /api/me`).
+ * Incluye email y flags que el propio usuario debe ver pero nadie más.
+ */
+public record PrivateProfileDto(
+        String uid,
+        String email,
+        String username,
+        String displayName,
+        String photoUrl,
+        String bio,
+        String topGrade,
+        boolean isPublic,
+        boolean isAdmin,
+        boolean isPremium
+) {}
