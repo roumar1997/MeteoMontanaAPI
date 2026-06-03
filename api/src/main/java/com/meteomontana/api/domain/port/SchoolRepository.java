@@ -7,4 +7,5 @@ import java.util.Optional;
 public interface SchoolRepository {
     List<School> findAll();
     Optional<School> findById(String id);
+    School save(School school);
 }

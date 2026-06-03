@@ -32,6 +32,15 @@ public class JpaSchoolRepositoryAdapter implements SchoolRepository {
                 .map(this::toSchool);
     }
 
+    @Override
+    public School save(School s) {
+        SchoolJpaEntity e = new SchoolJpaEntity(
+                s.getId(), s.getName(), s.getLocation(), s.getRegion(),
+                s.getStyle(), s.getRockType(), s.getLat(), s.getLon(), s.getSource()
+        );
+        return toSchool(jpaRepo.save(e));
+    }
+
     private School toSchool(SchoolJpaEntity e) {
         return new School(
                 e.getId(),
