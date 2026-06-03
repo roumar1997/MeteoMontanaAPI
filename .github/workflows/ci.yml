@@ -52,6 +52,10 @@ jobs:
           }
           EOF
 
+      - name: Make mvnw executable
+        working-directory: api
+        run: chmod +x mvnw
+
       - name: Run tests
         working-directory: api
         env:
@@ -62,4 +66,6 @@ jobs:
 
       - name: Build jar
         working-directory: api
+        env:
+          POSTGRES_PASSWORD: testpass
         run: ./mvnw -B -DskipTests package
