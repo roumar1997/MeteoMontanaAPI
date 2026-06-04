@@ -32,6 +32,12 @@ public class SchoolBlockController {
         return useCase.listBySchool(id);
     }
 
+    /** Público: detalle de un bloque (con sus líneas). */
+    @GetMapping("/blocks/{id}")
+    public SchoolBlockUseCase.BlockDto get(@PathVariable String id) {
+        return useCase.findById(id);
+    }
+
     /** Auth: crear bloque (cualquier user; el admin lo creará directamente,
      *  usuarios mandarán propuestas vía submissions en el futuro). */
     @PostMapping("/schools/{id}/blocks")

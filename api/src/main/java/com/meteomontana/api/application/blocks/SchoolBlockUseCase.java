@@ -53,6 +53,11 @@ public class SchoolBlockUseCase {
         return blockRepository.findBySchoolId(schoolId).stream().map(this::toDto).toList();
     }
 
+    public BlockDto findById(String id) {
+        return blockRepository.findById(id).map(this::toDto)
+                .orElseThrow(() -> new SchoolNotFoundException(id));
+    }
+
     @Transactional
     public BlockDto create(String creatorUid, String schoolId, CreateBlockRequest req) {
         schoolRepository.findById(schoolId)
