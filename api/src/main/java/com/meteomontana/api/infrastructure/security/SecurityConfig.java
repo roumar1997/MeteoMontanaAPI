@@ -52,7 +52,10 @@ public class SecurityConfig {
                 // Endpoints públicos de lectura — cualquiera puede llamarlos
                 .requestMatchers(HttpMethod.GET, "/api/schools").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/schools/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/search").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/*/followers").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/*/following").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/forecast/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
