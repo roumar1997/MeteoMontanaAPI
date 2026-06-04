@@ -87,10 +87,42 @@ public class SchoolBlockUseCase {
     }
 
     @Transactional
+    public BlockDto update(String editorUid, String blockId, CreateBlockRequest req) {
+        SchoolBlock current = blockRepository.findById(blockId)
+                .orElseThrow(() -> new SchoolNotFoundException(blockId));
+        if (!current.getCreatedByUid().equals(editorUid))
+            throw new ForbiddenException("No es tu bloque");
+
+        SchoolBlock.Type type = req.type() != null ? SchoolBlock.Type.valueOf(req.type()) : current.getType();
+        List<BlockLine> lines = req.lines() == null ? current.getLines() :
+                req.lines().stream().map(l -> new BlockLine(
+                        UUID.randomUUID().toString(),
+                        blockId,
+                        l.name(),
+                        l.grade(),
+                        l.startType() != null ? BlockLine.StartType.valueOf(l.startType()) : null,
+                        l.linePath(),
+                        req.lines().indexOf(l)
+                )).toList();
+
+        SchoolBlock updated = new SchoolBlock(
+                blockId, current.getSchoolId(), type,
+                req.name() != null ? req.name() : current.getName(),
+                req.lat() != null ? req.lat() : current.getLat(),
+                req.lon() != null ? req.lon() : current.getLon(),
+                req.photoPath() != null ? req.photoPath() : current.getPhotoPath(),
+                req.description() != null ? req.description() : current.getDescription(),
+                current.getCreatedByUid(), current.getCreatedAt(), lines
+        );
+        // Borramos el viejo y guardamos nuevo (cascade eliminará líneas viejas)
+        blockRepository.deleteById(blockId);
+        return toDto(blockRepository.save(updated));
+    }
+
+    @Transactional
     public void delete(String adminUid, String blockId) {
         SchoolBlock b = blockRepository.findById(blockId)
                 .orElseThrow(() -> new SchoolNotFoundException(blockId));
-        // Solo creador o admin (simplificado: solo creador)
         if (!b.getCreatedByUid().equals(adminUid))
             throw new ForbiddenException("No es tu bloque");
         blockRepository.deleteById(blockId);
