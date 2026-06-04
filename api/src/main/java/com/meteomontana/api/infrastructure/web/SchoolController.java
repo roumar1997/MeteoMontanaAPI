@@ -4,6 +4,7 @@ import com.meteomontana.api.application.CreateNoteUseCase;
 import com.meteomontana.api.application.GetNotesBySchoolUseCase;
 import com.meteomontana.api.application.GetSchoolByIdUseCase;
 import com.meteomontana.api.application.GetSchoolsUseCase;
+import com.meteomontana.api.application.SearchSchoolsUseCase;
 import com.meteomontana.api.application.forecast.ForecastResponse;
 import com.meteomontana.api.application.forecast.GetForecastUseCase;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
@@ -32,17 +33,26 @@ public class SchoolController {
     private final GetNotesBySchoolUseCase getNotesBySchoolUseCase;
     private final GetForecastUseCase getForecastUseCase;
     private final CreateNoteUseCase createNoteUseCase;
+    private final SearchSchoolsUseCase searchSchoolsUseCase;
 
     public SchoolController(GetSchoolsUseCase getSchoolsUseCase,
                             GetSchoolByIdUseCase getSchoolByIdUseCase,
                             GetNotesBySchoolUseCase getNotesBySchoolUseCase,
                             GetForecastUseCase getForecastUseCase,
-                            CreateNoteUseCase createNoteUseCase) {
+                            CreateNoteUseCase createNoteUseCase,
+                            SearchSchoolsUseCase searchSchoolsUseCase) {
         this.getSchoolsUseCase       = getSchoolsUseCase;
         this.getSchoolByIdUseCase    = getSchoolByIdUseCase;
         this.getNotesBySchoolUseCase = getNotesBySchoolUseCase;
         this.getForecastUseCase      = getForecastUseCase;
         this.createNoteUseCase       = createNoteUseCase;
+        this.searchSchoolsUseCase    = searchSchoolsUseCase;
+    }
+
+    @GetMapping("/schools/search")
+    public List<School> search(@RequestParam("q") String query,
+                                @RequestParam(value = "limit", defaultValue = "10") int limit) {
+        return searchSchoolsUseCase.execute(query, limit);
     }
 
     @GetMapping("/schools")
