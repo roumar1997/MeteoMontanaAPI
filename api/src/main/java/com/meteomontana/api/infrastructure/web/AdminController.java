@@ -1,5 +1,6 @@
 package com.meteomontana.api.infrastructure.web;
 
+import com.meteomontana.api.application.admin.AdminStatsUseCase;
 import com.meteomontana.api.application.admin.ApproveSubmissionUseCase;
 import com.meteomontana.api.application.admin.ListAdminLogsUseCase;
 import com.meteomontana.api.application.admin.ListPendingSubmissionsUseCase;
@@ -28,17 +29,25 @@ public class AdminController {
     private final RejectSubmissionUseCase rejectUseCase;
     private final ListAdminLogsUseCase listLogs;
     private final SendAdminPushUseCase sendPushUseCase;
+    private final AdminStatsUseCase statsUseCase;
 
     public AdminController(ListPendingSubmissionsUseCase listPending,
                            ApproveSubmissionUseCase approveUseCase,
                            RejectSubmissionUseCase rejectUseCase,
                            ListAdminLogsUseCase listLogs,
-                           SendAdminPushUseCase sendPushUseCase) {
+                           SendAdminPushUseCase sendPushUseCase,
+                           AdminStatsUseCase statsUseCase) {
         this.listPending = listPending;
         this.approveUseCase = approveUseCase;
         this.rejectUseCase = rejectUseCase;
         this.listLogs = listLogs;
         this.sendPushUseCase = sendPushUseCase;
+        this.statsUseCase = statsUseCase;
+    }
+
+    @GetMapping("/stats")
+    public AdminStatsUseCase.AdminStats stats(@AuthenticationPrincipal FirebaseUser user) {
+        return statsUseCase.compute(user.uid());
     }
 
     @PostMapping("/push")
