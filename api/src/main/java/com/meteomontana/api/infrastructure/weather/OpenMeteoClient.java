@@ -4,10 +4,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+
+import java.time.Duration;
 
 /**
  * Cliente HTTP para llamar a la API de Open-Meteo.
@@ -27,8 +30,13 @@ public class OpenMeteoClient {
     private final RestClient restClient;
 
     public OpenMeteoClient() {
+        // Timeouts cortos para que el back no se cuelgue cuando Open-Meteo está down
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout((int) Duration.ofSeconds(4).toMillis());
+        factory.setReadTimeout((int) Duration.ofSeconds(6).toMillis());
         this.restClient = RestClient.builder()
                 .baseUrl(BASE_URL)
+                .requestFactory(factory)
                 .build();
     }
 
