@@ -1,14 +1,23 @@
 package com.meteomontana.api.infrastructure.weather;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+
 /**
  * Cliente HTTP para llamar a la API de Open-Meteo.
- * Encapsula la URL, los parámetros y la deserialización del JSON.
+ * Captura errores HTTP de Open-Meteo (ej. rate-limit 403/429) y los convierte
+ * en ResponseStatusException 503 para no exponer el status interno al cliente.
  */
-
 @Component
 public class OpenMeteoClient {
+
+    private static final Logger log = LoggerFactory.getLogger(OpenMeteoClient.class);
 
     private static final String BASE_URL = "https://api.open-meteo.com/v1/forecast";
     private static final String HOURLY_VARS =
@@ -17,29 +26,40 @@ public class OpenMeteoClient {
 
     private final RestClient restClient;
 
-    public OpenMeteoClient(){
-        //RestClient es el cliente HTTP moderno de Spring(sustituye a RestTemplate).
-        //.baseUrl() fija la URL común - luego solo añadimos los query y params.
+    public OpenMeteoClient() {
         this.restClient = RestClient.builder()
                 .baseUrl(BASE_URL)
                 .build();
     }
 
-    //llama a Open-Meteo y devuelve la respuesta deserializada
     @Cacheable(value = "forecast", key = "#lat + ',' + #lon")
-    public OpenMeteoResponse fetchForecast(double lat, double lon){
-        return restClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .queryParam("latitude", lat)
-                        .queryParam("longitude", lon)
-                        .queryParam("hourly", HOURLY_VARS)
-                        .queryParam("wind_speed_unit" , "kmh")
-                        .queryParam("forecast_days", 7)
-                        .build())
-                .retrieve()
-                .body(OpenMeteoResponse.class);
+    public OpenMeteoResponse fetchForecast(double lat, double lon) {
+        try {
+            return restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .queryParam("latitude", lat)
+                            .queryParam("longitude", lon)
+                            .queryParam("hourly", HOURLY_VARS)
+                            .queryParam("wind_speed_unit", "kmh")
+                            .queryParam("forecast_days", 7)
+                            .build())
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, (req, resp) -> {
+                        log.warn("Open-Meteo error: HTTP {} for lat={} lon={}", resp.getStatusCode(), lat, lon);
+                        throw new ResponseStatusException(
+                                HttpStatus.SERVICE_UNAVAILABLE,
+                                "El servicio meteorológico no está disponible temporalmente. Inténtalo de nuevo en unos minutos."
+                        );
+                    })
+                    .body(OpenMeteoResponse.class);
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Open-Meteo client error: {}", e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo obtener el forecast meteorológico."
+            );
+        }
     }
-
-
-
 }
