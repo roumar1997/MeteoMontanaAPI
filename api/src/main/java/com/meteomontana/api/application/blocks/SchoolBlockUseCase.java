@@ -6,6 +6,7 @@ import com.meteomontana.api.domain.model.BlockLine;
 import com.meteomontana.api.domain.model.SchoolBlock;
 import com.meteomontana.api.domain.port.SchoolBlockRepository;
 import com.meteomontana.api.domain.port.SchoolRepository;
+import com.meteomontana.api.domain.port.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,10 +44,14 @@ public class SchoolBlockUseCase {
 
     private final SchoolBlockRepository blockRepository;
     private final SchoolRepository schoolRepository;
+    private final UserRepository userRepository;
 
-    public SchoolBlockUseCase(SchoolBlockRepository blockRepository, SchoolRepository schoolRepository) {
+    public SchoolBlockUseCase(SchoolBlockRepository blockRepository,
+                              SchoolRepository schoolRepository,
+                              UserRepository userRepository) {
         this.blockRepository = blockRepository;
         this.schoolRepository = schoolRepository;
+        this.userRepository = userRepository;
     }
 
     public List<BlockDto> listBySchool(String schoolId) {
@@ -95,8 +100,12 @@ public class SchoolBlockUseCase {
     public BlockDto update(String editorUid, String blockId, CreateBlockRequest req) {
         SchoolBlock current = blockRepository.findById(blockId)
                 .orElseThrow(() -> new SchoolNotFoundException(blockId));
-        if (!current.getCreatedByUid().equals(editorUid))
-            throw new ForbiddenException("No es tu bloque");
+        boolean isOwner = current.getCreatedByUid().equals(editorUid);
+        boolean isAdmin = userRepository.findByUid(editorUid)
+                .map(u -> u.isAdmin()).orElse(false);
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("Solo el creador o un admin pueden editar este bloque");
+        }
 
         SchoolBlock.Type type = req.type() != null ? SchoolBlock.Type.valueOf(req.type()) : current.getType();
         List<BlockLine> lines = req.lines() == null ? current.getLines() :
@@ -124,12 +133,20 @@ public class SchoolBlockUseCase {
         return toDto(blockRepository.save(updated));
     }
 
+    /**
+     * Borra un bloque. Permitido si es el creador O si es admin.
+     * La BD borra las líneas en cascada (FK con ON DELETE CASCADE).
+     */
     @Transactional
-    public void delete(String adminUid, String blockId) {
+    public void delete(String requesterUid, String blockId) {
         SchoolBlock b = blockRepository.findById(blockId)
                 .orElseThrow(() -> new SchoolNotFoundException(blockId));
-        if (!b.getCreatedByUid().equals(adminUid))
-            throw new ForbiddenException("No es tu bloque");
+        boolean isOwner = b.getCreatedByUid().equals(requesterUid);
+        boolean isAdmin = userRepository.findByUid(requesterUid)
+                .map(u -> u.isAdmin()).orElse(false);
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("Solo el creador o un admin pueden borrar este bloque");
+        }
         blockRepository.deleteById(blockId);
     }
 

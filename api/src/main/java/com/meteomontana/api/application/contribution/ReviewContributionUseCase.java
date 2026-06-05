@@ -1,9 +1,13 @@
 package com.meteomontana.api.application.contribution;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.meteomontana.api.domain.model.BlockLine;
 import com.meteomontana.api.domain.model.PendingContribution;
 import com.meteomontana.api.domain.model.SchoolBlock;
 import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.infrastructure.persistence.SpringDataContributionRepository;
+import com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolRepository;
@@ -50,7 +54,15 @@ public class ReviewContributionUseCase {
         switch (c.getType()) {
 
             case PARKING -> createBlock(c, SchoolBlock.Type.PARKING, admin.uid());
-            case BOULDER -> createBlock(c, SchoolBlock.Type.BLOCK,   admin.uid());
+            case BOULDER -> {
+                // Si tiene targetBlockId, NO crea piedra nueva: añade las líneas
+                // (vías) al bloque existente. Útil para el flujo "+ AÑADIR VÍAS".
+                if (c.getTargetBlockId() != null) {
+                    addLinesToExistingBlock(c);
+                } else {
+                    createBlock(c, SchoolBlock.Type.BLOCK, admin.uid());
+                }
+            }
             case SECTOR  -> createBlock(c, SchoolBlock.Type.ZONE,    admin.uid());
 
             case POSITION_CORRECTION -> {
@@ -123,6 +135,101 @@ public class ReviewContributionUseCase {
                 adminUid,
                 LocalDateTime.now()
         );
+
+        // Para BOULDER: parsear bloquesJson y crear las líneas (vías) del bloque.
+        // Cascade ALL del @OneToMany hace que se persistan al guardar el SchoolBlockJpaEntity.
+        if (type == SchoolBlock.Type.BLOCK && c.getBloquesJson() != null
+                && !c.getBloquesJson().isBlank()) {
+            parseAndAttachLines(block, c.getBloquesJson());
+        }
+
         blockRepo.save(block);
+    }
+
+    /** Parsea el JSON `bloquesJson` y añade BlockLineJpaEntity al bloque. */
+    private void parseAndAttachLines(SchoolBlockJpaEntity block, String bloquesJson) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode arr = mapper.readTree(bloquesJson);
+            if (!arr.isArray()) return;
+
+            int sortOrder = 0;
+            for (JsonNode node : arr) {
+                String name = node.path("name").asText("").trim();
+                String grade = node.path("grade").isNull() ? null
+                        : node.path("grade").asText("").trim();
+                if (grade != null && grade.isEmpty()) grade = null;
+
+                // App envía PIE/SIT/LANCE/TRAV; BD acepta STAND/SIT/JUMP/TRAV.
+                String rawStart = node.path("startType").isNull() ? null
+                        : node.path("startType").asText("").trim();
+                BlockLine.StartType startType = mapStartType(rawStart);
+
+                String linePath = node.path("linePath").asText(null);
+
+                BlockLineJpaEntity line = new BlockLineJpaEntity(
+                        UUID.randomUUID().toString(),
+                        name.isEmpty() ? String.valueOf(sortOrder + 1) : name,
+                        grade,
+                        startType,
+                        linePath,
+                        sortOrder++
+                );
+                block.addLine(line);
+            }
+        } catch (Exception e) {
+            // Si el JSON está mal, simplemente no creamos líneas pero la piedra sí.
+        }
+    }
+
+    /** Añade líneas (vías) al bloque existente identificado por targetBlockId. */
+    private void addLinesToExistingBlock(PendingContribution c) {
+        var blockOpt = blockRepo.findById(c.getTargetBlockId());
+        if (blockOpt.isEmpty()) return;
+        var block = blockOpt.get();
+        // Calcular el siguiente sortOrder a partir de las líneas existentes
+        int baseSort = block.getLines().stream()
+                .mapToInt(BlockLineJpaEntity::getSortOrder).max().orElse(-1) + 1;
+        parseAndAttachLinesWithOffset(block, c.getBloquesJson(), baseSort);
+        blockRepo.save(block);
+    }
+
+    /** Variante que respeta un offset inicial para sortOrder. */
+    private void parseAndAttachLinesWithOffset(SchoolBlockJpaEntity block,
+                                                String bloquesJson, int baseSort) {
+        if (bloquesJson == null || bloquesJson.isBlank()) return;
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode arr = mapper.readTree(bloquesJson);
+            if (!arr.isArray()) return;
+            int sortOrder = baseSort;
+            for (JsonNode node : arr) {
+                String name = node.path("name").asText("").trim();
+                String grade = node.path("grade").isNull() ? null
+                        : node.path("grade").asText("").trim();
+                if (grade != null && grade.isEmpty()) grade = null;
+                String rawStart = node.path("startType").isNull() ? null
+                        : node.path("startType").asText("").trim();
+                BlockLine.StartType startType = mapStartType(rawStart);
+                String linePath = node.path("linePath").asText(null);
+                BlockLineJpaEntity line = new BlockLineJpaEntity(
+                        UUID.randomUUID().toString(),
+                        name.isEmpty() ? String.valueOf(sortOrder + 1) : name,
+                        grade, startType, linePath, sortOrder++
+                );
+                block.addLine(line);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private static BlockLine.StartType mapStartType(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        return switch (raw.toUpperCase()) {
+            case "PIE", "STAND" -> BlockLine.StartType.STAND;
+            case "SIT"          -> BlockLine.StartType.SIT;
+            case "LANCE", "JUMP" -> BlockLine.StartType.JUMP;
+            case "TRAV"         -> BlockLine.StartType.TRAV;
+            default             -> null;
+        };
     }
 }
