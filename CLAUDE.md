@@ -663,6 +663,61 @@ consciente).
 
 (Las últimas 5-10 sesiones aproximadamente. Las más antiguas se podan.)
 
+### Sesión actual — Materialización de líneas + admin gestión de bloques
+
+**Migración V13** (`db/migration/V13__boulder_fields.sql`): añade tres columnas
+TEXT a `pending_contributions` para el flujo BOULDER del front:
+- `photo_url` — URL de Firebase Storage de la foto de la piedra propuesta
+- `bloques_json` — JSON con la lista de bloques/vías `[{name, grade,
+  startType, linePath}]` (lo que el usuario dibujó en la app)
+- `topo_lines_json` — reservado (redundante, no usado actualmente)
+
+**Dominio extendido** (`PendingContribution`): nuevos campos
+`photoUrl`, `bloquesJson`, `topoLinesJson`. Constructor + getters actualizados.
+`PendingContributionJpaEntity` mapea las nuevas columnas con `columnDefinition
+= "TEXT"`. `ContributionRequest` y `ContributionResponse` exponen los nuevos
+campos. `ContributionResponse` además expone `targetBlockId` (ya estaba en el
+dominio) para que el admin en el front distinga propuestas de "añadir vías".
+
+**`ReviewContributionUseCase` — materialización completa de BOULDER al aprobar**:
+
+1. `createBlock(c, type, adminUid)` ahora pasa `c.getPhotoUrl()` como
+   `photoPath` al `SchoolBlockJpaEntity` (antes era siempre `null` — error que
+   dejaba los bloques aprobados sin foto).
+2. **Nuevo `parseAndAttachLines(block, bloquesJson)`**: usa Jackson
+   `ObjectMapper` para parsear el JSON enviado por el front; crea un
+   `BlockLineJpaEntity` por cada bloque con UUID nuevo, nombre, grado,
+   `startType` mapeado y `linePath` (string JSON de puntos normalizados);
+   lo añade con `block.addLine(line)` y guarda el `SchoolBlockJpaEntity` —
+   el cascade `@OneToMany(cascade = ALL)` persiste las filas en `block_lines`.
+3. **Nuevo `addLinesToExistingBlock(c)`**: cuando la contribución BOULDER
+   tiene `targetBlockId != null` (caso "+ AÑADIR VÍAS" desde el front),
+   busca el bloque existente, calcula el siguiente `sortOrder` continuando
+   desde las líneas existentes, y añade las nuevas. NO crea piedra nueva.
+4. **Mapeo de `startType`**: `mapStartType()` convierte los valores que
+   envía la app (`PIE/SIT/LANCE/TRAV`) a los del enum del backend
+   (`STAND/SIT/JUMP/TRAV`). El front al editar un block del backend hace la
+   conversión inversa.
+
+**Admin puede editar/borrar bloques de cualquier usuario** — `SchoolBlockUseCase`:
+
+- `delete(requesterUid, blockId)`: antes requería `b.getCreatedByUid().equals(adminUid)`
+  (solo el creador). Ahora también permite admins consultando
+  `userRepository.findByUid(uid).map(u -> u.isAdmin())`. Sin esto el admin no
+  podía gestionar bloques propuestos por usuarios. Las líneas se borran en
+  cascada por el FK `block_lines.block_id ON DELETE CASCADE`.
+- `update(editorUid, blockId, req)`: mismo cambio — creador OR admin.
+  Permite que el panel admin del front cambie nombre, coords, descripción y
+  líneas de cualquier bloque via `PUT /api/blocks/{blockId}`.
+- Constructor de `SchoolBlockUseCase` ahora recibe también `UserRepository`
+  (inyectado por Spring) — sin acoplarse a `AdminGuard`, solo lee el flag.
+
+**Compatibilidad**: las migraciones V13 son aditivas (`ADD COLUMN ... TEXT`),
+no afectan a propuestas ni bloques antiguos. Pero los bloques aprobados
+**antes** de los fixes de `parseAndAttachLines` y `c.getPhotoUrl()` están en
+BD sin foto ni líneas en `block_lines`. Si hace falta limpiar, se pueden
+borrar desde el panel admin del front (tab GESTIONAR).
+
 - **Fase 1 completa**: filtros region/style/rock(lista)/distance funcionando
   en `GET /api/escuelas`. `GeoDistance` con Haversine creado.
 - Decisión de stack: Postgres + JPA + Spring Security; Firebase Auth y FCM
