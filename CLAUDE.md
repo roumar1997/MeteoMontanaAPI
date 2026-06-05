@@ -613,45 +613,63 @@ consciente).
 ## Estado actual
 
 **TODAS LAS FASES DEL PLAN ORIGINAL ESTÁN COMPLETAS (1-11).**
+**Migraciones Flyway hasta V12 aplicadas.**
 
-Pendiente: verificación end-to-end de Fases 9, 10, 11 con token Firebase real.
+**Endpoints implementados (resumen completo):**
 
-**Endpoints implementados (resumen):**
-- `GET /api/schools[?region&style&rockType&lat&lon&radioKm]` (público)
-- `GET /api/schools/{id}` (público)
-- `GET /api/schools/{id}/notes` (público)
-- `GET /api/schools/{id}/photos` (público) | `POST` (auth) | `DELETE /api/photos/{id}` (auth)
-- `GET /api/schools/{id}/forecast` (público, cache)
-- `GET /api/me` (auth, JIT provisioning) | `PUT /api/me` | `PUT /api/me/fcm-token`
-- `GET /api/users/{uid o username}` (público, oculta perfiles privados)
-- `POST /api/submissions` (auth) | `GET /api/submissions/me` (auth)
-- `GET /api/admin/submissions` | `POST .../approve|reject` (admin)
-- `GET /api/admin/logs` | `POST /api/admin/push` (admin)
-- `GET /actuator/health` (público, healthcheck)
+*Públicos:*
+- `GET /api/schools[?region&style&rockType&lat&lon&radioKm]`
+- `GET /api/schools/{id}`
+- `GET /api/schools/{id}/notes`
+- `GET /api/schools/{id}/photos`
+- `GET /api/schools/{id}/forecast` (cache; expone `weatherCode` WMO por hora)
+- `GET /api/schools/{id}/blocks`
+- `GET /api/users/{uid o username}`
+- `GET /actuator/health`
+
+*Auth (Bearer Firebase):*
+- `GET /api/me` (JIT provisioning) | `PUT /api/me` | `PUT /api/me/fcm-token`
+- `POST /api/schools/{id}/photos` | `DELETE /api/photos/{id}`
+- `POST /api/submissions` | `GET /api/submissions/me`
+- `POST /api/schools/{id}/contributions` — body: `{type, name?, lat, lon, notes?,
+  description?, proposedLat?, proposedLon?, correctionReason?, targetBlockId?}`
+  Tipos: `PARKING | BOULDER | SECTOR | POSITION_CORRECTION`
+- `GET /api/contributions/me`
+- `POST /api/schools/{id}/notes`
+- `POST /api/journal` | `GET /api/journal/me` | `GET /api/journal/me/stats`
+
+*Admin (`is_admin=true` en BD):*
+- `GET /api/admin/submissions` | `POST .../approve|reject`
+- `GET /api/admin/contributions` | `POST .../approve` | `POST .../reject`
+- `GET /api/admin/logs` | `POST /api/admin/push`
+
+**Materialización al aprobar contribución** (`ReviewContributionUseCase`):
+- `PARKING` → crea `school_block` tipo `PARKING`
+- `BOULDER` → crea `school_block` tipo `BLOCK`
+- `SECTOR`  → crea `school_block` tipo `ZONE`
+- `POSITION_CORRECTION` + `targetBlockId != null` → mueve ese bloque a `proposedLat/Lon`
+- `POSITION_CORRECTION` + `targetBlockId = null`  → mueve la escuela entera
 
 **TODOs técnicos acumulados** (mejoras, no bloqueantes):
 - TTL en la caché del forecast (Caffeine con `expireAfterWrite=30m`).
-- `POST /api/me/photo` para subir foto de perfil (actualiza `users.photo_path`).
-- Endpoint de búsqueda de usuarios (`GET /api/users/search?q=...`).
-- Follows entre usuarios (tabla `follows`, endpoints, counts denormalizados).
-- Diario personal (`POST/GET /api/journal`, `GET /api/users/{uid}/journal`).
-- Notas: `POST /api/schools/{id}/notes` (crear) y votos (tabla `note_votes`).
+- `POST /api/me/photo` para subir foto de perfil.
+- `GET /api/users/search?q=...` — búsqueda de usuarios.
+- Follows entre usuarios (tabla `follows`, endpoints, counts).
+- Notas: votos (tabla `note_votes`).
 - Migrar `FirebaseConfig` para leer `serviceAccountKey.json` desde filesystem
   cuando esté disponible (necesario en prod con volúmenes montados).
 
 **Despliegue (Fase 11)**:
-- Dockerfile y CI listos. Elegir proveedor (Railway/Render/Fly.io) y crear
-  cuenta. Ver `DEPLOY.md`.
+- Dockerfile y CI listos. Elegir proveedor (Railway/Render/Fly.io). Ver `DEPLOY.md`.
 
 **Notas operativas para el siguiente Claude**:
 - Contraseña Postgres en `.env` (no commit). Arranque: `docker compose up -d`
   desde raíz, luego `cd api && ./mvnw spring-boot:run`.
-- 191 escuelas + 4 notas en Postgres.
-- Spring Security activo: GET /api/schools/** es público. Todo lo demás
+- 191 escuelas + notas + bloques/parkings en Postgres.
+- Spring Security activo: GET `/api/schools/**`, `/api/users/**`,
+  `/api/schools/*/blocks`, `/actuator/health` son públicos. Todo lo demás
   requiere `Authorization: Bearer <firebase-id-token>`.
 - CORS configurado para localhost:5173, localhost:3000, 127.0.0.1:5500
   y climbingteams.com.
-- `serviceAccountKey.json` en `api/src/main/resources/` Y en raíz (para el
-  script de migración). Ambos excluidos de git.
-- El usuario aprende paso a paso. JUnit y tests son terreno nuevo — explicar
-  desde cero cuando aparezcan.
+- `serviceAccountKey.json` en `api/src/main/resources/` Y en raíz. Excluidos de git.
+- El usuario aprende paso a paso. Explica cada concepto desde cero.

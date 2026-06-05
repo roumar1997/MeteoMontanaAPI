@@ -68,8 +68,9 @@ public class GetForecastUseCase {
             double wind     = h.windSpeed().get(i);
             double precip   = h.precipitation().get(i);
             int    prob     = h.precipitationProbability().get(i);
-            int    cloud    = h.cloudCover() != null ? h.cloudCover().get(i) : 50;
-            Double dewPoint = h.dewPoint()   != null ? h.dewPoint().get(i)   : null;
+            int    cloud       = h.cloudCover()   != null ? h.cloudCover().get(i)   : 50;
+            Double dewPoint    = h.dewPoint()     != null ? h.dewPoint().get(i)     : null;
+            int    weatherCode = h.weatherCode()  != null ? h.weatherCode().get(i)  : 0;
 
             int score = ClimbScoreCalculator.calculate(
                     temp, humidity, wind, precip, prob, cloud, recentRain, dewPoint, rockType);
@@ -77,7 +78,7 @@ public class GetForecastUseCase {
             result.add(new ForecastResponse.HourForecast(
                     h.time().get(i),
                     temp, humidity, wind, precip, prob, cloud, dewPoint,
-                    score, ClimbScoreCalculator.label(score)
+                    score, ClimbScoreCalculator.label(score), weatherCode
             ));
         }
         return result;

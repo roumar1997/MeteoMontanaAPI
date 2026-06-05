@@ -49,7 +49,8 @@ public record ForecastResponse(
             int cloudCover,
             Double dewPoint,
             int score,
-            String scoreLabel
+            String scoreLabel,
+            int weatherCode
     ) {}
 
     public record DayForecast(

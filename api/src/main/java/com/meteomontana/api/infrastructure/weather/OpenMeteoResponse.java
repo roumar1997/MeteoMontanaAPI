@@ -34,6 +34,9 @@ public record OpenMeteoResponse (
             List<Integer> cloudCover,
 
             @JsonProperty("dew_point_2m")
-            List<Double> dewPoint
+            List<Double> dewPoint,
+
+            @JsonProperty("weather_code")
+            List<Integer> weatherCode
     ){}
 }

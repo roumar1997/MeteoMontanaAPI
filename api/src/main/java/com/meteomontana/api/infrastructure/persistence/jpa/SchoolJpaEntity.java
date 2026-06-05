@@ -45,14 +45,16 @@ public class SchoolJpaEntity {
         this.source = source;
     }
 
-    public String getId() {return id; }
-    public String getName() {return name; }
-    public String getLocation() {return location; }
-    public String getRegion() {return region; }
-    public String getStyle() {return style; }
-    public String getRockType() {return rockType; }
-    public double getLat() {return  lat; }
-    public double getLon() {return lon; }
-    public String getSource() {return source; }
+    public String getId()       { return id; }
+    public String getName()     { return name; }
+    public String getLocation() { return location; }
+    public String getRegion()   { return region; }
+    public String getStyle()    { return style; }
+    public String getRockType() { return rockType; }
+    public double getLat()      { return lat; }
+    public double getLon()      { return lon; }
+    public String getSource()   { return source; }
 
+    public void setLat(double lat) { this.lat = lat; }
+    public void setLon(double lon) { this.lon = lon; }
 }

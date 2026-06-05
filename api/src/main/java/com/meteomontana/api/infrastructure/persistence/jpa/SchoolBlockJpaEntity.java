@@ -77,6 +77,9 @@ public class SchoolBlockJpaEntity {
     public LocalDateTime getCreatedAt(){ return createdAt; }
     public List<BlockLineJpaEntity> getLines() { return lines; }
 
+    public void setLat(double lat) { this.lat = lat; }
+    public void setLon(double lon) { this.lon = lon; }
+
     public void addLine(BlockLineJpaEntity line) {
         line.setBlock(this);
         lines.add(line);

@@ -25,7 +25,7 @@ public class OpenMeteoClient {
     private static final String BASE_URL = "https://api.open-meteo.com/v1/forecast";
     private static final String HOURLY_VARS =
             "temperature_2m,relative_humidity_2m,precipitation,"
-                    + "precipitation_probability,wind_speed_10m,cloud_cover,dew_point_2m";
+                    + "precipitation_probability,wind_speed_10m,cloud_cover,dew_point_2m,weather_code";
 
     private final RestClient restClient;
 
