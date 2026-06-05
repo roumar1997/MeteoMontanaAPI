@@ -11,5 +11,8 @@ public record ContributionRequest(
         Double proposedLat,     // POSITION_CORRECTION: nueva lat propuesta
         Double proposedLon,     // POSITION_CORRECTION: nueva lon propuesta
         String correctionReason,
-        String targetBlockId    // POSITION_CORRECTION: id del school_block a mover (null = la escuela)
+        String targetBlockId,   // POSITION_CORRECTION: id del school_block a mover (null = la escuela)
+        String photoUrl,        // BOULDER: URL de Firebase Storage (null si sin foto)
+        String bloquesJson,     // BOULDER: JSON array [{name,grade,startType,linePath}]
+        String topoLinesJson    // BOULDER: líneas normalizadas
 ) {}

@@ -118,9 +118,9 @@ public class ReviewContributionUseCase {
                 c.getName() != null ? c.getName() : type.name().toLowerCase(),
                 c.getLat(),
                 c.getLon(),
-                null,          // photoPath
-                c.getNotes(),  // description
-                adminUid,      // creado por el admin que aprueba
+                c.getPhotoUrl(), // foto de Firebase Storage (null para PARKING/SECTOR)
+                c.getNotes(),    // description
+                adminUid,
                 LocalDateTime.now()
         );
         blockRepo.save(block);

@@ -18,7 +18,10 @@ public record ContributionResponse(
         String submittedByName,
         String reviewReason,
         LocalDateTime createdAt,
-        LocalDateTime reviewedAt
+        LocalDateTime reviewedAt,
+        String photoUrl,
+        String bloquesJson,
+        String topoLinesJson
 ) {
     public static ContributionResponse from(PendingContribution c) {
         return new ContributionResponse(
@@ -26,7 +29,8 @@ public record ContributionResponse(
                 c.getSchoolId(), c.getSchoolName(), c.getName(),
                 c.getLat(), c.getLon(), c.getNotes(), c.getDescription(),
                 c.getSubmittedByName(), c.getReviewReason(),
-                c.getCreatedAt(), c.getReviewedAt()
+                c.getCreatedAt(), c.getReviewedAt(),
+                c.getPhotoUrl(), c.getBloquesJson(), c.getTopoLinesJson()
         );
     }
 }

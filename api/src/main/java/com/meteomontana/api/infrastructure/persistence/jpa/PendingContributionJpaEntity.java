@@ -52,6 +52,15 @@ public class PendingContributionJpaEntity {
     @Column(name = "target_block_id")
     private String targetBlockId;
 
+    @Column(name = "photo_url", columnDefinition = "TEXT")
+    private String photoUrl;
+
+    @Column(name = "bloques_json", columnDefinition = "TEXT")
+    private String bloquesJson;
+
+    @Column(name = "topo_lines_json", columnDefinition = "TEXT")
+    private String topoLinesJson;
+
     @Column(name = "submitted_by_uid", nullable = false)
     private String submittedByUid;
 
@@ -88,6 +97,9 @@ public class PendingContributionJpaEntity {
         e.proposedLon = c.getProposedLon();
         e.correctionReason = c.getCorrectionReason();
         e.targetBlockId = c.getTargetBlockId();
+        e.photoUrl = c.getPhotoUrl();
+        e.bloquesJson = c.getBloquesJson();
+        e.topoLinesJson = c.getTopoLinesJson();
         e.submittedByUid = c.getSubmittedByUid();
         e.submittedByName = c.getSubmittedByName();
         e.reviewedByUid = c.getReviewedByUid();
@@ -100,11 +112,13 @@ public class PendingContributionJpaEntity {
     public PendingContribution toDomain() {
         return new PendingContribution(id, type, status, schoolId, schoolName, name,
                 lat, lon, notes, description, proposedLat, proposedLon, correctionReason,
-                targetBlockId, submittedByUid, submittedByName, reviewedByUid, reviewReason,
+                targetBlockId, photoUrl, bloquesJson, topoLinesJson,
+                submittedByUid, submittedByName, reviewedByUid, reviewReason,
                 createdAt, reviewedAt);
     }
 
     public String getTargetBlockId() { return targetBlockId; }
+    public String getPhotoUrl()      { return photoUrl; }
 
     // Setters para JPA
     public void setStatus(SubmissionStatus status)       { this.status = status; }

@@ -21,6 +21,9 @@ public class PendingContribution {
     private final Double proposedLon;
     private final String correctionReason;
     private final String targetBlockId;  // POSITION_CORRECTION: bloque a mover (null = la escuela)
+    private final String photoUrl;       // BOULDER: URL de Firebase Storage
+    private final String bloquesJson;    // BOULDER: JSON array [{name,grade,startType,linePath}]
+    private final String topoLinesJson;  // BOULDER: líneas normalizadas (redundante para admin)
     private final String submittedByUid;
     private final String submittedByName;
     private final String reviewedByUid;
@@ -33,6 +36,7 @@ public class PendingContribution {
                                double lat, double lon, String notes, String description,
                                Double proposedLat, Double proposedLon, String correctionReason,
                                String targetBlockId,
+                               String photoUrl, String bloquesJson, String topoLinesJson,
                                String submittedByUid, String submittedByName,
                                String reviewedByUid, String reviewReason,
                                LocalDateTime createdAt, LocalDateTime reviewedAt) {
@@ -50,6 +54,9 @@ public class PendingContribution {
         this.proposedLon = proposedLon;
         this.correctionReason = correctionReason;
         this.targetBlockId = targetBlockId;
+        this.photoUrl = photoUrl;
+        this.bloquesJson = bloquesJson;
+        this.topoLinesJson = topoLinesJson;
         this.submittedByUid = submittedByUid;
         this.submittedByName = submittedByName;
         this.reviewedByUid = reviewedByUid;
@@ -72,6 +79,9 @@ public class PendingContribution {
     public Double getProposedLon()       { return proposedLon; }
     public String getCorrectionReason()  { return correctionReason; }
     public String getTargetBlockId()     { return targetBlockId; }
+    public String getPhotoUrl()          { return photoUrl; }
+    public String getBloquesJson()       { return bloquesJson; }
+    public String getTopoLinesJson()     { return topoLinesJson; }
     public String getSubmittedByUid()    { return submittedByUid; }
     public String getSubmittedByName()   { return submittedByName; }
     public String getReviewedByUid()     { return reviewedByUid; }
