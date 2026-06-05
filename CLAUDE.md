@@ -1,9 +1,141 @@
 # MeteoMontanaAPI — contexto para Claude
 
-Backend Spring Boot (Java) que está absorbiendo el frontend MeteoMontana
-(`C:\Users\rouma\Desktop\MeteoMontana`). Migración por fases, sin big bang —
-strangler fig: cada endpoint nuevo convive con el código viejo hasta que el
-frontend deja de usarlo.
+Backend Spring Boot (Java) que sirve datos a la app Android y a la PWA
+MeteoMontana.
+
+---
+
+## 🗺️ Mapa de repos — LEER PRIMERO
+
+| Repo | Ruta local | GitHub |
+|---|---|---|
+| **Backend** (este repo) | `C:\Users\rouma\MeteoMontanaAPI` | `roumar1997/MeteoMontanaAPI` |
+| **Android** | `C:\Users\rouma\MeteoMontanaAndroid` | `roumar1997/MeteoMontanaAndroid` |
+| **PWA** JS (referencia) | `C:\Users\rouma\Desktop\MeteoMontana` | — |
+
+**Los tres repos se trabajan juntos.** Cuando añades un endpoint aquí,
+actualiza también el DTO y la interfaz Retrofit en `MeteoMontanaAndroid`.
+
+---
+
+## ⚡ Arranque rápido
+
+```powershell
+# Desde la raíz de este repo:
+docker compose up -d          # levanta Postgres 16 en puerto 5432
+cd api
+./mvnw spring-boot:run        # arranca el back en http://localhost:8080
+                              # Flyway aplica migraciones V1..V12 automáticamente
+```
+
+**Variables de entorno** (en `.env`, excluido de git):
+```
+POSTGRES_PASSWORD=<tu_password>
+```
+
+**Verificar:**
+```
+GET http://localhost:8080/actuator/health   →  {"status":"UP"}
+GET http://localhost:8080/api/schools       →  191 escuelas
+```
+
+---
+
+## 📁 Ficheros clave — dónde tocar qué
+
+```
+api/src/main/java/com/meteomontana/api/
+  domain/
+    model/       → entidades puras (School, PendingContribution, SchoolBlock...)
+    port/        → interfaces de repositorio (SchoolRepository, etc.)
+    exception/   → excepciones de dominio
+    score/       → ClimbScoreCalculator, RockDryingProfile
+    util/        → GeoDistance (Haversine)
+
+  application/
+    forecast/    → GetForecastUseCase, GetForecastByLocationUseCase,
+                   ForecastResponse (expone weatherCode por hora)
+    contribution/→ SubmitContributionUseCase, ReviewContributionUseCase,
+                   ContributionRequest, ContributionResponse
+                   ⚠️ ReviewContributionUseCase materializa la aprobación:
+                   PARKING→BLOCK tipo PARKING, BOULDER→BLOCK, SECTOR→ZONE,
+                   POSITION_CORRECTION→mueve bloque o escuela
+    admin/       → AdminGuard: usar ensureAdmin(uid), NO check(user)
+    submission/  → ApproveSubmissionUseCase (escuelas nuevas, diferente de contributions)
+    [otros]      → favorites, follow, journal, notes, photos, profile, push...
+
+  infrastructure/
+    persistence/
+      jpa/       → entidades JPA + SpringData repos
+                   SpringDataSchoolBlockRepository — bloques del mapa
+                   SpringDataContributionRepository — pending_contributions
+                   SpringDataSchoolRepository — escuelas
+    web/         → controllers REST
+                   ContributionController → /api/schools/{id}/contributions
+                   SchoolController, ForecastController, AdminController...
+    weather/     → OpenMeteoClient (pide weatherCode entre otros campos)
+                   OpenMeteoResponse (HourlyData con weatherCode)
+    security/    → FirebaseTokenFilter, FirebaseUser record(uid, email, name)
+
+  resources/
+    db/migration/
+      V1  — schools
+      V2  — notes
+      V3  — school_photos
+      V4  — users
+      V5  — school_submissions + admin_logs
+      V6  — fcm_token en users
+      V7  — journal
+      V8  — favorites
+      V9  — follows + notifications
+      V10 — school_blocks (BLOCK/PARKING/ZONE) + block_lines
+      V11 — pending_contributions (propuestas de mejora de escuelas existentes)
+      V12 — target_block_id en pending_contributions
+    serviceAccountKey.json  → Firebase credentials (NUNCA subir a git)
+    application.yaml        → datasource, JPA, Flyway, caché
+```
+
+---
+
+## 🔧 Patrones del proyecto (seguirlos siempre)
+
+### Añadir un endpoint nuevo
+1. Migración Flyway nueva (`V13__...sql`) si hay tabla nueva.
+2. Modelo de dominio en `domain/model/`.
+3. Puerto en `domain/port/` si hay repositorio.
+4. Entidad JPA en `infrastructure/persistence/jpa/`.
+5. SpringData repo en `infrastructure/persistence/`.
+6. Use case en `application/`.
+7. Controller en `infrastructure/web/`.
+8. Actualizar `SecurityConfig` si el endpoint es público o necesita rol.
+9. En Android: nuevo DTO en `data/api/dto/`, método en `SchoolApi`/`AdminApi`.
+
+### AdminGuard
+```java
+// CORRECTO:
+adminGuard.ensureAdmin(user.uid());
+// INCORRECTO (no existe):
+adminGuard.check(user);
+```
+
+### FirebaseUser
+```java
+// Los tres campos disponibles:
+user.uid()    // String
+user.email()  // String
+user.name()   // String (displayName de Firebase)
+```
+
+### Compilar y verificar
+```powershell
+cd api
+./mvnw compile          # solo compila
+./mvnw spring-boot:run  # compila + arranca
+```
+Los errores de Flyway (`V_already_applied`) se resuelven con una migración
+nueva, **nunca editando una ya aplicada**.
+
+---
 
 ## Workflow de cada sesión (importante)
 
