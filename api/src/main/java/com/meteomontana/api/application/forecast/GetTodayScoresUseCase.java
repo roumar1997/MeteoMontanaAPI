@@ -23,7 +23,9 @@ public class GetTodayScoresUseCase {
             String id,
             int todayScore,
             List<Integer> hourlyScores,   // próximas 10 horas
-            boolean dryRock
+            boolean dryRock,
+            double rainMm,                // mm de lluvia ahora (current)
+            int rainProb                  // probabilidad % ahora (current)
     ) {}
 
     private final SchoolRepository schoolRepository;
@@ -40,7 +42,7 @@ public class GetTodayScoresUseCase {
     public List<SchoolScoreDto> forIds(List<String> ids) {
         if (ids == null || ids.isEmpty()) return List.of();
         List<SchoolScoreDto> out = new ArrayList<>();
-        for (String id : ids.stream().limit(30).toList()) {
+        for (String id : ids.stream().limit(50).toList()) {
             School s = schoolRepository.findById(id).orElse(null);
             if (s == null) continue;
             try {
@@ -49,9 +51,11 @@ public class GetTodayScoresUseCase {
                 List<Integer> hourly = fc.hours().stream()
                         .limit(10).map(h -> h.score()).toList();
                 boolean dry = fc.current() != null && fc.current().dryRock();
-                out.add(new SchoolScoreDto(id, today, hourly, dry));
+                double mm = fc.current() != null ? fc.current().precipitation() : 0.0;
+                int prob = fc.current() != null ? fc.current().precipitationProbability() : 0;
+                out.add(new SchoolScoreDto(id, today, hourly, dry, mm, prob));
             } catch (Exception e) {
-                out.add(new SchoolScoreDto(id, 0, Collections.emptyList(), false));
+                out.add(new SchoolScoreDto(id, 0, Collections.emptyList(), false, 0.0, 0));
             }
         }
         return out;
