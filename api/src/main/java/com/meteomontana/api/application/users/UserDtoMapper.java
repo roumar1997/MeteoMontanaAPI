@@ -25,7 +25,21 @@ public class UserDtoMapper {
                 u.getDisplayName(),
                 resolvePhotoUrl(u.getPhotoPath()),
                 u.getBio(),
-                u.getTopGrade()
+                u.getTopGrade(),
+                false
+        );
+    }
+
+    /** Vista de un perfil privado para alguien que NO es seguidor: solo datos básicos, sin bio/topGrade. */
+    public PublicProfileDto toPublicLocked(User u) {
+        return new PublicProfileDto(
+                u.getUid(),
+                u.getUsername(),
+                u.getDisplayName(),
+                resolvePhotoUrl(u.getPhotoPath()),
+                null,
+                null,
+                true
         );
     }
 

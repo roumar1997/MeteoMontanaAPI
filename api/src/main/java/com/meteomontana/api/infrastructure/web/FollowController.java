@@ -52,4 +52,21 @@ public class FollowController {
     public List<PublicProfileDto> following(@PathVariable String uid) {
         return useCase.listFollowing(uid);
     }
+
+    @GetMapping("/me/follow-requests")
+    public List<PublicProfileDto> myPendingRequests(@AuthenticationPrincipal FirebaseUser me) {
+        return useCase.listPendingRequests(me.uid());
+    }
+
+    @PostMapping("/me/follow-requests/{requesterUid}/accept")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void acceptRequest(@AuthenticationPrincipal FirebaseUser me, @PathVariable String requesterUid) {
+        useCase.acceptRequest(me.uid(), requesterUid);
+    }
+
+    @PostMapping("/me/follow-requests/{requesterUid}/reject")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void rejectRequest(@AuthenticationPrincipal FirebaseUser me, @PathVariable String requesterUid) {
+        useCase.rejectRequest(me.uid(), requesterUid);
+    }
 }

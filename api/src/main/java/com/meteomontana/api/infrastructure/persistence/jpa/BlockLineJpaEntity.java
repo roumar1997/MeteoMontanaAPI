@@ -48,8 +48,12 @@ public class BlockLineJpaEntity {
     public SchoolBlockJpaEntity getBlock() { return block; }
     public void setBlock(SchoolBlockJpaEntity b) { this.block = b; }
     public String getName()           { return name; }
+    public void setName(String name)  { this.name = name; }
     public String getGrade()          { return grade; }
+    public void setGrade(String grade){ this.grade = grade; }
     public BlockLine.StartType getStartType() { return startType; }
+    public void setStartType(BlockLine.StartType s) { this.startType = s; }
     public String getLinePath()       { return linePath; }
+    public void setLinePath(String p) { this.linePath = p; }
     public int getSortOrder()         { return sortOrder; }
 }

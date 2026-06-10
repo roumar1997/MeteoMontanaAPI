@@ -12,6 +12,8 @@ public record ContributionRequest(
         Double proposedLon,     // POSITION_CORRECTION: nueva lon propuesta
         String correctionReason,
         String targetBlockId,   // POSITION_CORRECTION: id del school_block a mover (null = la escuela)
+                                // BOULDER: id del bloque al que añadir vías (null = piedra nueva)
+        String targetLineId,    // BOULDER: id de la línea existente a corregir (null = añadir vías)
         String photoUrl,        // BOULDER: URL de Firebase Storage (null si sin foto)
         String bloquesJson,     // BOULDER: JSON array [{name,grade,startType,linePath}]
         String topoLinesJson    // BOULDER: líneas normalizadas

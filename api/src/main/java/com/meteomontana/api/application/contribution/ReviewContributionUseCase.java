@@ -89,9 +89,12 @@ public class ReviewContributionUseCase {
 
             case PARKING -> createBlock(c, SchoolBlock.Type.PARKING, admin.uid());
             case BOULDER -> {
-                // Si tiene targetBlockId, NO crea piedra nueva: añade las líneas
-                // (vías) al bloque existente. Útil para el flujo "+ AÑADIR VÍAS".
-                if (c.getTargetBlockId() != null) {
+                if (c.getTargetBlockId() != null && c.getTargetLineId() != null) {
+                    // Corrección de una vía concreta: actualiza la línea existente
+                    // con los datos del primer bloque del JSON.
+                    updateExistingLine(c);
+                } else if (c.getTargetBlockId() != null) {
+                    // Añadir vías al bloque existente.
                     addLinesToExistingBlock(c);
                 } else {
                     createBlock(c, SchoolBlock.Type.BLOCK, admin.uid());
@@ -216,6 +219,43 @@ public class ReviewContributionUseCase {
         } catch (Exception e) {
             // Si el JSON está mal, simplemente no creamos líneas pero la piedra sí.
         }
+    }
+
+    /**
+     * Actualiza una línea existente con los datos del primer bloque del JSON.
+     * Usado para correcciones de vía (targetBlockId + targetLineId != null).
+     */
+    private void updateExistingLine(PendingContribution c) {
+        var blockOpt = blockRepo.findById(c.getTargetBlockId());
+        if (blockOpt.isEmpty()) return;
+        var block = blockOpt.get();
+        var lineOpt = block.getLines().stream()
+                .filter(l -> l.getId().equals(c.getTargetLineId()))
+                .findFirst();
+        if (lineOpt.isEmpty()) return;
+        var line = lineOpt.get();
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode arr = mapper.readTree(c.getBloquesJson());
+            if (!arr.isArray() || arr.size() == 0) return;
+            JsonNode node = arr.get(0);
+
+            String name = node.path("name").asText("").trim();
+            String grade = node.path("grade").isNull() ? null
+                    : node.path("grade").asText("").trim();
+            if (grade != null && grade.isEmpty()) grade = null;
+            String rawStart = node.path("startType").isNull() ? null
+                    : node.path("startType").asText("").trim();
+            BlockLine.StartType startType = mapStartType(rawStart);
+            String linePath = node.path("linePath").asText(null);
+
+            if (!name.isEmpty()) line.setName(name);
+            line.setGrade(grade);
+            line.setStartType(startType);
+            if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
+            blockRepo.save(block);
+        } catch (Exception ignored) {}
     }
 
     /** Añade líneas (vías) al bloque existente identificado por targetBlockId. */

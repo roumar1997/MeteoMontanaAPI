@@ -21,7 +21,8 @@ public class FollowUseCase {
             long followers,
             long following,
             boolean iFollowThem,
-            boolean theyFollowMe
+            boolean theyFollowMe,
+            boolean requestPending
     ) {}
 
     private final FollowRepository followRepository;
@@ -47,35 +48,60 @@ public class FollowUseCase {
         if (followerUid.equals(followedUid)) throw new ForbiddenException("No puedes seguirte a ti mismo");
         User target = userRepository.findByUid(followedUid)
                 .orElseThrow(() -> new UserNotFoundException(followedUid));
+        // Si ya existe la relación (aceptada o pendiente), no hacemos nada.
         if (followRepository.isFollowing(followerUid, followedUid)) return;
+        if (followRepository.hasPendingRequest(followerUid, followedUid)) return;
 
-        followRepository.add(followerUid, followedUid);
+        boolean targetIsPublic = target.isPublic();
+        String status = targetIsPublic ? "ACCEPTED" : "PENDING";
+        followRepository.add(followerUid, followedUid, status);
 
-        // Notificación + push al seguido
         User me = userRepository.findByUid(followerUid).orElse(null);
         String myName = me != null
                 ? (me.getUsername() != null ? "@" + me.getUsername() : me.getDisplayName())
                 : "Alguien";
-        notificationService.create(
-                followedUid, "NEW_FOLLOWER",
-                "Nuevo seguidor",
-                myName + " te ha empezado a seguir",
-                "user", followerUid
-        );
-        if (target.getFcmToken() != null) {
-            // Data payload con targetType/Id para que el cliente Android haga deep link
-            // al perfil público del seguidor al pulsar la notificación.
-            fcmService.sendToToken(
-                    target.getFcmToken(),
-                    myName + " te sigue ahora",
-                    "Pulsa para ver su perfil",
-                    Map.of(
-                        "targetType", "user",
-                        "targetId", followerUid,
-                        "title", myName + " te sigue ahora",
-                        "body", "Pulsa para ver su perfil"
-                    )
+
+        if (targetIsPublic) {
+            notificationService.create(
+                    followedUid, "NEW_FOLLOWER",
+                    "Nuevo seguidor",
+                    myName + " te ha empezado a seguir",
+                    "user", followerUid
             );
+            if (target.getFcmToken() != null) {
+                fcmService.sendToToken(
+                        target.getFcmToken(),
+                        myName + " te sigue ahora",
+                        "Pulsa para ver su perfil",
+                        Map.of(
+                            "targetType", "user",
+                            "targetId", followerUid,
+                            "title", myName + " te sigue ahora",
+                            "body", "Pulsa para ver su perfil"
+                        )
+                );
+            }
+        } else {
+            // Perfil privado → solicitud pendiente.
+            notificationService.create(
+                    followedUid, "FOLLOW_REQUEST",
+                    "Solicitud de seguimiento",
+                    myName + " quiere seguirte",
+                    "follow_request", followerUid
+            );
+            if (target.getFcmToken() != null) {
+                fcmService.sendToToken(
+                        target.getFcmToken(),
+                        myName + " quiere seguirte",
+                        "Pulsa para aceptar o rechazar",
+                        Map.of(
+                            "targetType", "follow_request",
+                            "targetId", followerUid,
+                            "title", myName + " quiere seguirte",
+                            "body", "Pulsa para aceptar o rechazar"
+                        )
+                );
+            }
         }
     }
 
@@ -84,12 +110,55 @@ public class FollowUseCase {
         followRepository.remove(followerUid, followedUid);
     }
 
+    @Transactional
+    public void acceptRequest(String myUid, String requesterUid) {
+        if (!followRepository.hasPendingRequest(requesterUid, myUid)) {
+            throw new UserNotFoundException(requesterUid);
+        }
+        followRepository.acceptRequest(requesterUid, myUid);
+
+        User me = userRepository.findByUid(myUid).orElse(null);
+        String myName = me != null
+                ? (me.getUsername() != null ? "@" + me.getUsername() : me.getDisplayName())
+                : "Alguien";
+        User requester = userRepository.findByUid(requesterUid).orElse(null);
+
+        notificationService.create(
+                requesterUid, "FOLLOW_ACCEPTED",
+                "Solicitud aceptada",
+                myName + " ha aceptado tu solicitud",
+                "user", myUid
+        );
+        if (requester != null && requester.getFcmToken() != null) {
+            fcmService.sendToToken(
+                    requester.getFcmToken(),
+                    myName + " ha aceptado tu solicitud",
+                    "Ya puedes ver su perfil",
+                    Map.of(
+                        "targetType", "user",
+                        "targetId", myUid,
+                        "title", myName + " ha aceptado tu solicitud",
+                        "body", "Ya puedes ver su perfil"
+                    )
+            );
+        }
+    }
+
+    @Transactional
+    public void rejectRequest(String myUid, String requesterUid) {
+        followRepository.remove(requesterUid, myUid);
+    }
+
     public FollowStatusDto statusFor(String currentUid, String targetUid) {
+        boolean iFollowThem = currentUid != null && followRepository.isFollowing(currentUid, targetUid);
+        boolean theyFollowMe = currentUid != null && followRepository.isFollowing(targetUid, currentUid);
+        boolean pending = currentUid != null && followRepository.hasPendingRequest(currentUid, targetUid);
         return new FollowStatusDto(
                 followRepository.countFollowers(targetUid),
                 followRepository.countFollowing(targetUid),
-                followRepository.isFollowing(currentUid, targetUid),
-                followRepository.isFollowing(targetUid, currentUid)
+                iFollowThem,
+                theyFollowMe,
+                pending
         );
     }
 
@@ -99,6 +168,10 @@ public class FollowUseCase {
 
     public List<PublicProfileDto> listFollowing(String uid) {
         return resolveProfiles(followRepository.followingOf(uid));
+    }
+
+    public List<PublicProfileDto> listPendingRequests(String uid) {
+        return resolveProfiles(followRepository.pendingRequestsFor(uid));
     }
 
     private List<PublicProfileDto> resolveProfiles(List<String> uids) {

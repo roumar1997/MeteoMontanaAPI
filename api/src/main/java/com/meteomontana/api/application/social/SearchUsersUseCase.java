@@ -21,13 +21,12 @@ public class SearchUsersUseCase {
         this.mapper = mapper;
     }
 
-    /** Devuelve hasta 20 usuarios públicos cuyo username/displayName contenga la query. */
+    /** Devuelve hasta 20 usuarios cuyo username/displayName contenga la query.
+     *  Los privados aparecen pero con locked=true. */
     public List<PublicProfileDto> search(String query, int limit) {
         if (query == null || query.trim().isBlank()) return List.of();
         String needle = normalize(query.trim());
-        // Trae todos los públicos (pequeño en BD inicial) y filtra in-memory.
         return jpa.findAll().stream()
-                .filter(UserJpaEntity::isPublic)
                 .filter(u -> {
                     String hay = normalize(
                             (u.getUsername() != null ? u.getUsername() : "") + " " +
@@ -36,13 +35,15 @@ public class SearchUsersUseCase {
                     return hay.contains(needle);
                 })
                 .limit(limit > 0 ? limit : 20)
-                .map(e -> new User(
-                        e.getUid(), e.getEmail(), e.getUsername(), e.getDisplayName(),
-                        e.getPhotoPath(), e.getBio(), e.isPublic(), e.getTopGrade(),
-                        e.isAdmin(), e.isPremium(), e.getFcmToken(),
-                        e.getCreatedAt(), e.getUpdatedAt()
-                ))
-                .map(mapper::toPublic)
+                .map(e -> {
+                    User user = new User(
+                            e.getUid(), e.getEmail(), e.getUsername(), e.getDisplayName(),
+                            e.getPhotoPath(), e.getBio(), e.isPublic(), e.getTopGrade(),
+                            e.isAdmin(), e.isPremium(), e.getFcmToken(),
+                            e.getCreatedAt(), e.getUpdatedAt()
+                    );
+                    return user.isPublic() ? mapper.toPublic(user) : mapper.toPublicLocked(user);
+                })
                 .toList();
     }
 

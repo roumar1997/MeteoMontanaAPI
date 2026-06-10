@@ -20,15 +20,21 @@ public class FollowJpaEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "status", nullable = false, length = 20)
+    private String status;
+
     protected FollowJpaEntity() {}
 
-    public FollowJpaEntity(String followerUid, String followedUid, LocalDateTime createdAt) {
+    public FollowJpaEntity(String followerUid, String followedUid, LocalDateTime createdAt, String status) {
         this.id = new FollowId(followerUid, followedUid);
         this.createdAt = createdAt;
+        this.status = status;
     }
 
     public FollowId getId() { return id; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     @Embeddable
     public static class FollowId implements Serializable {

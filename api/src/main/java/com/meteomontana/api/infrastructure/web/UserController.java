@@ -75,7 +75,9 @@ public class UserController {
     }
 
     @GetMapping("/users/{identifier}")
-    public PublicProfileDto getPublic(@PathVariable String identifier) {
-        return getPublicProfile.execute(identifier);
+    public PublicProfileDto getPublic(@PathVariable String identifier,
+                                      @AuthenticationPrincipal FirebaseUser user) {
+        String currentUid = (user != null) ? user.uid() : null;
+        return getPublicProfile.execute(identifier, currentUid);
     }
 }

@@ -21,6 +21,8 @@ public class PendingContribution {
     private final Double proposedLon;
     private final String correctionReason;
     private final String targetBlockId;  // POSITION_CORRECTION: bloque a mover (null = la escuela)
+                                         // BOULDER: bloque al que añadir vías (null = nueva piedra)
+    private final String targetLineId;   // BOULDER: vía existente a corregir (null = añadir vías nuevas)
     private final String photoUrl;       // BOULDER: URL de Firebase Storage
     private final String bloquesJson;    // BOULDER: JSON array [{name,grade,startType,linePath}]
     private final String topoLinesJson;  // BOULDER: líneas normalizadas (redundante para admin)
@@ -35,7 +37,7 @@ public class PendingContribution {
                                String schoolId, String schoolName, String name,
                                double lat, double lon, String notes, String description,
                                Double proposedLat, Double proposedLon, String correctionReason,
-                               String targetBlockId,
+                               String targetBlockId, String targetLineId,
                                String photoUrl, String bloquesJson, String topoLinesJson,
                                String submittedByUid, String submittedByName,
                                String reviewedByUid, String reviewReason,
@@ -54,6 +56,7 @@ public class PendingContribution {
         this.proposedLon = proposedLon;
         this.correctionReason = correctionReason;
         this.targetBlockId = targetBlockId;
+        this.targetLineId = targetLineId;
         this.photoUrl = photoUrl;
         this.bloquesJson = bloquesJson;
         this.topoLinesJson = topoLinesJson;
@@ -79,6 +82,7 @@ public class PendingContribution {
     public Double getProposedLon()       { return proposedLon; }
     public String getCorrectionReason()  { return correctionReason; }
     public String getTargetBlockId()     { return targetBlockId; }
+    public String getTargetLineId()      { return targetLineId; }
     public String getPhotoUrl()          { return photoUrl; }
     public String getBloquesJson()       { return bloquesJson; }
     public String getTopoLinesJson()     { return topoLinesJson; }
