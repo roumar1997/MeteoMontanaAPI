@@ -1,78 +1,185 @@
 # Despliegue de MeteoMontanaAPI
 
-## Resumen
+Guía para hostear el backend Spring Boot + Postgres en **Railway** (recomendado),
+Render o Fly.io. Una vez desplegado tendrás una URL HTTPS estable tipo
+`https://api.climbingteams.com` que tu app Android/iOS consume en producción.
 
-- **Imagen**: multi-stage Dockerfile en `api/Dockerfile` con JDK 21 build + JRE
-  21 runtime.
-- **Healthcheck**: `GET /actuator/health` (público).
-- **Base de datos**: Postgres 16. URL inyectada vía `DATABASE_URL`.
-- **Secrets requeridos**: `POSTGRES_PASSWORD`, `serviceAccountKey.json` (Firebase).
+---
 
-## Variables de entorno
+## 📋 Variables de entorno
 
 | Variable | Requerida | Default | Descripción |
 |---|---|---|---|
-| `DATABASE_URL` | sí en prod | `jdbc:postgresql://localhost:5432/meteomontana` | URL JDBC completa |
-| `DATABASE_USERNAME` | sí en prod | `meteomontana` | Usuario de Postgres |
-| `POSTGRES_PASSWORD` | sí | — | Contraseña de Postgres |
+| `DATABASE_URL` | sí prod | `jdbc:postgresql://localhost:5432/meteomontana` | URL JDBC completa |
+| `DATABASE_USERNAME` | dev | `meteomontana` | Usuario Postgres (Railway: `PGUSER` auto) |
+| `POSTGRES_PASSWORD` | sí | — | Password Postgres (Railway: `PGPASSWORD` auto) |
 | `PORT` | no | `8080` | Puerto HTTP |
-| `JPA_SHOW_SQL` | no | `true` (dev) | Poner `false` en prod |
+| `FIREBASE_SA_JSON` | sí prod | — | **JSON entero** de `serviceAccountKey.json` |
+| `FIREBASE_STORAGE_BUCKET` | no | `climbingteams.firebasestorage.app` | Bucket Storage |
+| `RESEND_API_KEY` | opcional | — | API key de resend.com para emails |
+| `RESEND_FROM` | opcional | `MeteoMontana <noreply@climbingteams.com>` | Remitente |
+| `JPA_SHOW_SQL` | no | `false` | Dejar `false` en prod |
+| `DB_POOL_SIZE` | no | `5` | Pool Hikari |
 
-## Service account de Firebase
+---
 
-El archivo `serviceAccountKey.json` **no se incluye en la imagen** por
-seguridad. Hay que inyectarlo en runtime de una de estas formas:
+## 🔑 Credenciales Firebase
 
-1. **Volumen** (Docker, Fly.io): montar el archivo en
-   `/app/serviceAccountKey.json` y usar la env var
-   `GOOGLE_APPLICATION_CREDENTIALS=/app/serviceAccountKey.json`.
-2. **Variable Base64** (Railway/Render): codificar el JSON en base64 y
-   meterlo como `FIREBASE_SERVICE_ACCOUNT_B64`. Habrá que añadir al arranque
-   un paso que lo decodifique al filesystem.
+`FirebaseConfig.java` busca en este orden:
 
-Por ahora `FirebaseConfig` carga el archivo desde el classpath, así que en
-prod lo más fácil es **mapear como volumen** y modificar `FirebaseConfig`
-para leer también desde una ruta del filesystem cuando exista.
+1. **Env var `FIREBASE_SA_JSON`** con el contenido JSON pegado tal cual → producción.
+2. **Fichero `resources/serviceAccountKey.json`** → desarrollo local.
 
-## Opciones de hosting recomendadas
+### Cómo pegar el JSON en Railway/Render
 
-### Railway (más sencillo)
+1. Abre `api/src/main/resources/serviceAccountKey.json`.
+2. Copia su contenido entero (con `{` y `}`).
+3. Panel Railway/Render → Variables → New variable:
+   - Nombre: `FIREBASE_SA_JSON`
+   - Valor: pega el JSON entero (acepta multilínea sin escapar).
+4. Save → el servicio reinicia automáticamente.
 
-1. Crear proyecto en railway.app, conectar este repo.
-2. Añadir servicio Postgres → Railway lo aprovisiona y rellena
-   `DATABASE_URL` automáticamente.
-3. Variables de entorno: `POSTGRES_PASSWORD`, `JPA_SHOW_SQL=false`.
-4. Subir `serviceAccountKey.json` como volumen.
-5. Railway detecta el Dockerfile y construye.
-6. Healthcheck: `/actuator/health`.
+⚠️ **NUNCA** subas el JSON al repo. Está en `.gitignore`.
 
-### Render
+---
 
-Similar a Railway. `render.yaml` opcional para infra como código.
+## 🚀 Railway (recomendado)
 
-### Fly.io
+### Setup inicial (5 minutos)
 
-Más control y red privada para Postgres. `fly launch` desde `api/`.
+1. https://railway.app → crear cuenta con GitHub.
+2. **New Project → Deploy from GitHub repo** → `MeteoMontanaAPI`.
+3. Railway detecta `api/Dockerfile` y empieza a buildar.
+4. Mientras builda, añade Postgres:
+   - **+ New → Database → Add PostgreSQL**.
+   - Railway crea la BD e inyecta `DATABASE_URL`, `PGUSER`, `PGPASSWORD`
+     automáticamente al servicio.
+5. Cuando el build acabe (~3-5 min), Railway expone la URL pública. Verifica:
+   ```
+   curl https://meteomontana-api.up.railway.app/actuator/health
+   → {"status":"UP"}
+   ```
 
-## CI/CD
+### Variables de entorno extra
 
-`.github/workflows/ci.yml` ya configurado:
-- Corre tests con Postgres real (service container).
-- Compila el JAR.
-- En PR: bloquea merge si falla.
-- En push a `main`: corre la build.
+Variables → New variable:
 
-**Pendiente**: añadir job de build + push de imagen Docker al registry
-del proveedor cuando esté decidido.
+```
+FIREBASE_SA_JSON       = <pega el JSON>
+RESEND_API_KEY         = re_xxxxxxxxxxxx  (opcional)
+RESEND_FROM            = ClimbingTeams <noreply@climbingteams.com>
+```
 
-## Local con Docker (test del Dockerfile)
+### Migrar datos dev → producción
+
+En dev:
+
+```powershell
+docker exec -t meteomontanaapi_db_1 pg_dump -U meteomontana -d meteomontana > backup.sql
+```
+
+Conecta a Railway Postgres (cliente DBeaver/pgAdmin con las credenciales del
+panel) y restaura:
 
 ```bash
-cd api
-docker build -t meteomontana-api .
-docker run --rm -p 8080:8080 \
-  -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
-  -e DATABASE_URL=jdbc:postgresql://host.docker.internal:5432/meteomontana \
-  -v /ruta/a/serviceAccountKey.json:/app/serviceAccountKey.json:ro \
-  meteomontana-api
+psql "<connection_string_railway>" < backup.sql
 ```
+
+O con la CLI:
+
+```bash
+npm i -g @railway/cli
+railway login
+railway link
+railway run psql < backup.sql
+```
+
+### Dominio custom — `api.climbingteams.com`
+
+1. Railway → Settings → Custom Domain → `api.climbingteams.com`.
+2. Te da un CNAME a configurar en el panel de tu registrador:
+   ```
+   Tipo:   CNAME
+   Nombre: api
+   Valor:  <meteomontana-api.up.railway.app>
+   TTL:    300
+   ```
+3. Esperar 5-30 min a la propagación. Railway emite HTTPS automático.
+4. En Android `app/build.gradle.kts`:
+   ```kotlin
+   release {
+       buildConfigField("String", "API_BASE_URL",
+                        "\"https://api.climbingteams.com/api/\"")
+   }
+   ```
+
+### Coste estimado
+
+- Backend always-on (512MB RAM): ~$3-5/mes
+- Postgres (1 GB storage): ~$5/mes
+- **Total** ~$8-10/mes con tráfico bajo
+
+---
+
+## 🔄 Render (alternativa)
+
+1. https://render.com → New → Web Service → conectar repo.
+2. Root directory: `api/`. Render detecta `Dockerfile`.
+3. + New → PostgreSQL → plan Starter ($7/mo).
+4. Web Service → Environment → mismas env vars de arriba.
+
+⚠️ Plan Free duerme tras 15 min sin tráfico. Para producción → Starter ($7/mo).
+Total ~$14/mes (más caro que Railway).
+
+---
+
+## ✈️ Fly.io (más técnico, más barato)
+
+```bash
+brew install flyctl
+fly launch                # detecta Dockerfile
+fly secrets set FIREBASE_SA_JSON="$(cat api/src/main/resources/serviceAccountKey.json)"
+fly secrets set RESEND_API_KEY="re_xxx"
+fly postgres create
+fly postgres attach
+fly deploy
+```
+
+Free tier real, no caduca BD.
+
+---
+
+## ✅ Checklist pre-deploy
+
+- [ ] `serviceAccountKey.json` NO commiteado: `git ls-files | grep serviceAccount` no devuelve nada.
+- [ ] `application.yaml` lee env vars con fallback a `localhost` para dev.
+- [ ] `FirebaseConfig.java` lee `FIREBASE_SA_JSON` primero.
+- [ ] Dockerfile builda local: `cd api && docker build -t api .`
+- [ ] `/actuator/health` público (verificar `SecurityConfig.java`).
+- [ ] Migraciones Flyway listas para BD vacía.
+- [ ] Backup Postgres dev hecho con `pg_dump`.
+
+## 🆘 Troubleshooting
+
+### "DATABASE_URL not found"
+En Railway, el Postgres tiene que estar en el mismo proyecto.
+
+### "Firebase credentials missing"
+Falta `FIREBASE_SA_JSON`. Pégalo en Variables.
+
+### Cold start lento
+Spring Boot tarda ~30s en arrancar. Con plan Starter Railway es always-on
+así que solo pasa una vez tras el deploy.
+
+### Móvil no llega al backend
+- Comprobar `network_security_config.xml` en Android no bloquea HTTPS.
+- Comprobar `SecurityConfig.corsConfigurationSource()` permite tu origen.
+
+---
+
+## Tras el deploy
+
+1. Verifica `https://api.climbingteams.com/actuator/health` desde el móvil/navegador.
+2. Build release del Android apuntando al dominio nuevo y probar login + propuesta end-to-end.
+3. Monitoriza logs en Railway → tab "Logs" durante los primeros días.
+4. Cuando todo OK → Play Console Internal Testing.

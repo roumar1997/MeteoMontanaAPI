@@ -3,30 +3,70 @@ package com.meteomontana.api.infrastructure.firebase;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import jakarta.annotation.PostConstruct;
+
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
+/**
+ * Inicializa Firebase Admin SDK.
+ *
+ * Estrategia de credenciales (en orden de prioridad):
+ *  1. Variable de entorno FIREBASE_SA_JSON con el contenido del JSON.
+ *     Útil en producción (Railway/Render/Fly) para no subir el fichero a git.
+ *  2. Fichero en resources/serviceAccountKey.json. Útil para desarrollo local.
+ *
+ * El bucket de Storage también es configurable por env var FIREBASE_STORAGE_BUCKET.
+ */
 @Configuration
 public class FirebaseConfig {
 
-    // Bucket por defecto de Firebase Storage del proyecto climbingteams.
-    // Necesario para que StorageClient.getInstance().bucket() funcione.
-    private static final String STORAGE_BUCKET = "climbingteams.firebasestorage.app";
+    private static final Logger log = LoggerFactory.getLogger(FirebaseConfig.class);
+    private static final String DEFAULT_BUCKET = "climbingteams.firebasestorage.app";
+
+    @Value("${FIREBASE_SA_JSON:}")
+    private String serviceAccountJson;
+
+    @Value("${FIREBASE_STORAGE_BUCKET:" + DEFAULT_BUCKET + "}")
+    private String storageBucket;
 
     @PostConstruct
-    public void intialize() throws IOException {
-        InputStream serviceAccount =
-                getClass().getClassLoader().getResourceAsStream("serviceAccountKey.json");
+    public void initialize() throws IOException {
+        if (!FirebaseApp.getApps().isEmpty()) return;
+
+        InputStream credentialsStream = resolveCredentials();
+        if (credentialsStream == null) {
+            log.error("No se encontraron credenciales Firebase. Configura FIREBASE_SA_JSON " +
+                "o pon serviceAccountKey.json en resources/.");
+            throw new IllegalStateException("Firebase credentials missing");
+        }
 
         FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                .setStorageBucket(STORAGE_BUCKET)
+                .setCredentials(GoogleCredentials.fromStream(credentialsStream))
+                .setStorageBucket(storageBucket)
                 .build();
 
-        if (FirebaseApp.getApps().isEmpty()) {
-            FirebaseApp.initializeApp(options);
+        FirebaseApp.initializeApp(options);
+        log.info("Firebase Admin SDK inicializado (bucket={})", storageBucket);
+    }
+
+    private InputStream resolveCredentials() {
+        // 1) Env var con el JSON entero (producción).
+        if (serviceAccountJson != null && !serviceAccountJson.isBlank()) {
+            log.info("Cargando credenciales Firebase desde env var FIREBASE_SA_JSON");
+            return new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8));
         }
+        // 2) Fichero local (desarrollo).
+        InputStream file = getClass().getClassLoader().getResourceAsStream("serviceAccountKey.json");
+        if (file != null) {
+            log.info("Cargando credenciales Firebase desde resources/serviceAccountKey.json");
+        }
+        return file;
     }
 }

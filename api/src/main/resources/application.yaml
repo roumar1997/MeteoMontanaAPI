@@ -4,18 +4,21 @@ spring:
   config:
     import: optional:file:../.env[.properties]
   datasource:
-    # En prod estas vars vienen del entorno (Railway/Render/Fly).
-    # En dev, del .env de la raíz.
+    # En prod (Railway/Render/Fly) inyectan DATABASE_URL como JDBC URL completa.
+    # En dev, del .env de la raíz con las vars individuales.
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/meteomontana}
-    username: ${DATABASE_USERNAME:meteomontana}
-    password: ${POSTGRES_PASSWORD}
+    username: ${DATABASE_USERNAME:${PGUSER:meteomontana}}
+    password: ${POSTGRES_PASSWORD:${PGPASSWORD:}}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      connection-timeout: 30000
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: ${JPA_SHOW_SQL:true}
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
 server:
   port: ${PORT:8080}
