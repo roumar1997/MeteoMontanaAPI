@@ -57,6 +57,7 @@ public class ReviewContributionUseCase {
         String typeLabel = switch (c.getType()) {
             case PARKING -> "parking"; case BOULDER -> "piedra";
             case SECTOR -> "sector"; case POSITION_CORRECTION -> "corrección de posición";
+            case ASSIGN_SECTOR -> "asignación de sector";
         };
         String subject = approved
             ? "✅ Tu propuesta ha sido aprobada"
@@ -122,6 +123,15 @@ public class ReviewContributionUseCase {
                     });
                 }
             }
+
+            case ASSIGN_SECTOR -> {
+                if (c.getTargetBlockId() != null && c.getSectorBlockId() != null) {
+                    blockRepo.findById(c.getTargetBlockId()).ifPresent(block -> {
+                        block.setSectorBlockId(c.getSectorBlockId());
+                        blockRepo.save(block);
+                    });
+                }
+            }
         }
 
         // ── Marcar como aprobada ──────────────────────────────────────────────
@@ -172,7 +182,8 @@ public class ReviewContributionUseCase {
                 c.getPhotoUrl(), // foto de Firebase Storage (null para PARKING/SECTOR)
                 c.getNotes(),    // description
                 adminUid,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                type == SchoolBlock.Type.BLOCK ? c.getSectorBlockId() : null
         );
 
         // Para BOULDER: parsear bloquesJson y crear las líneas (vías) del bloque.

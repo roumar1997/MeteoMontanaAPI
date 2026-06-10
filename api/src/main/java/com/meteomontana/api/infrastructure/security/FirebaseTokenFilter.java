@@ -67,6 +67,8 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
 
         } catch (Exception e) {
             // Token inválido, expirado o de otro proyecto → limpiar contexto
+            logger.warn("Firebase token rechazado para " + request.getMethod() + " "
+                    + request.getRequestURI() + ": " + e.getMessage());
             SecurityContextHolder.clearContext();
         }
 

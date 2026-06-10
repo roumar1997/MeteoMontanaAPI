@@ -17,14 +17,23 @@ public class SchoolBlock {
     private final String createdByUid;
     private final LocalDateTime createdAt;
     private final List<BlockLine> lines;
+    private final String sectorBlockId;   // null si la piedra no está asignada a un sector
+
+    public SchoolBlock(String id, String schoolId, Type type, String name,
+                       double lat, double lon, String photoPath, String description,
+                       String createdByUid, LocalDateTime createdAt, List<BlockLine> lines,
+                       String sectorBlockId) {
+        this.id = id; this.schoolId = schoolId; this.type = type; this.name = name;
+        this.lat = lat; this.lon = lon; this.photoPath = photoPath;
+        this.description = description; this.createdByUid = createdByUid;
+        this.createdAt = createdAt; this.lines = lines; this.sectorBlockId = sectorBlockId;
+    }
 
     public SchoolBlock(String id, String schoolId, Type type, String name,
                        double lat, double lon, String photoPath, String description,
                        String createdByUid, LocalDateTime createdAt, List<BlockLine> lines) {
-        this.id = id; this.schoolId = schoolId; this.type = type; this.name = name;
-        this.lat = lat; this.lon = lon; this.photoPath = photoPath;
-        this.description = description; this.createdByUid = createdByUid;
-        this.createdAt = createdAt; this.lines = lines;
+        this(id, schoolId, type, name, lat, lon, photoPath, description,
+             createdByUid, createdAt, lines, null);
     }
 
     public String getId()             { return id; }
@@ -38,4 +47,5 @@ public class SchoolBlock {
     public String getCreatedByUid()   { return createdByUid; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
     public List<BlockLine> getLines() { return lines; }
+    public String getSectorBlockId()  { return sectorBlockId; }
 }

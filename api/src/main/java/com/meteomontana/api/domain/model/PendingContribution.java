@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 /** Propuesta de mejora de una escuela existente (parking, piedra, sector, corrección). */
 public class PendingContribution {
 
-    public enum Type { PARKING, BOULDER, SECTOR, POSITION_CORRECTION }
+    public enum Type { PARKING, BOULDER, SECTOR, POSITION_CORRECTION, ASSIGN_SECTOR }
 
     private final String id;
     private final Type type;
@@ -22,7 +22,10 @@ public class PendingContribution {
     private final String correctionReason;
     private final String targetBlockId;  // POSITION_CORRECTION: bloque a mover (null = la escuela)
                                          // BOULDER: bloque al que añadir vías (null = nueva piedra)
+                                         // ASSIGN_SECTOR: piedra a la que asignar sector
     private final String targetLineId;   // BOULDER: vía existente a corregir (null = añadir vías nuevas)
+    private final String sectorBlockId;  // BOULDER: sector al que pertenece la nueva piedra (opcional)
+                                         // ASSIGN_SECTOR: sector que se asigna a la piedra existente
     private final String photoUrl;       // BOULDER: URL de Firebase Storage
     private final String bloquesJson;    // BOULDER: JSON array [{name,grade,startType,linePath}]
     private final String topoLinesJson;  // BOULDER: líneas normalizadas (redundante para admin)
@@ -37,7 +40,7 @@ public class PendingContribution {
                                String schoolId, String schoolName, String name,
                                double lat, double lon, String notes, String description,
                                Double proposedLat, Double proposedLon, String correctionReason,
-                               String targetBlockId, String targetLineId,
+                               String targetBlockId, String targetLineId, String sectorBlockId,
                                String photoUrl, String bloquesJson, String topoLinesJson,
                                String submittedByUid, String submittedByName,
                                String reviewedByUid, String reviewReason,
@@ -57,6 +60,7 @@ public class PendingContribution {
         this.correctionReason = correctionReason;
         this.targetBlockId = targetBlockId;
         this.targetLineId = targetLineId;
+        this.sectorBlockId = sectorBlockId;
         this.photoUrl = photoUrl;
         this.bloquesJson = bloquesJson;
         this.topoLinesJson = topoLinesJson;
@@ -83,6 +87,7 @@ public class PendingContribution {
     public String getCorrectionReason()  { return correctionReason; }
     public String getTargetBlockId()     { return targetBlockId; }
     public String getTargetLineId()      { return targetLineId; }
+    public String getSectorBlockId()     { return sectorBlockId; }
     public String getPhotoUrl()          { return photoUrl; }
     public String getBloquesJson()       { return bloquesJson; }
     public String getTopoLinesJson()     { return topoLinesJson; }

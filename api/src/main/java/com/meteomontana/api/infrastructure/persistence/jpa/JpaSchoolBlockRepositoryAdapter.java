@@ -22,7 +22,7 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
         SchoolBlockJpaEntity e = new SchoolBlockJpaEntity(
                 b.getId(), b.getSchoolId(), b.getType(), b.getName(),
                 b.getLat(), b.getLon(), b.getPhotoPath(), b.getDescription(),
-                b.getCreatedByUid(), b.getCreatedAt()
+                b.getCreatedByUid(), b.getCreatedAt(), b.getSectorBlockId()
         );
         // Líneas
         b.getLines().forEach(line -> {
@@ -56,7 +56,7 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
         return new SchoolBlock(
                 e.getId(), e.getSchoolId(), e.getType(), e.getName(),
                 e.getLat(), e.getLon(), e.getPhotoPath(), e.getDescription(),
-                e.getCreatedByUid(), e.getCreatedAt(), lines
+                e.getCreatedByUid(), e.getCreatedAt(), lines, e.getSectorBlockId()
         );
     }
 }

@@ -28,13 +28,15 @@ public class SchoolBlockUseCase {
             Double lon,
             String photoPath,
             String description,
-            List<CreateBlockLineRequest> lines
+            List<CreateBlockLineRequest> lines,
+            String sectorBlockId    // BLOCK: id del sector (ZONE) al que pertenece (opcional)
     ) {}
 
     public record BlockDto(
             String id, String schoolId, String type, String name,
             double lat, double lon, String photoPath, String description,
-            String createdByUid, String createdAt, List<BlockLineDto> lines
+            String createdByUid, String createdAt, List<BlockLineDto> lines,
+            String sectorBlockId
     ) {}
 
     public record BlockLineDto(
@@ -91,7 +93,8 @@ public class SchoolBlockUseCase {
                 req.lat(), req.lon(),
                 req.photoPath(),
                 req.description(),
-                creatorUid, LocalDateTime.now(), lines
+                creatorUid, LocalDateTime.now(), lines,
+                type == SchoolBlock.Type.BLOCK ? req.sectorBlockId() : null
         );
         return toDto(blockRepository.save(block));
     }
@@ -126,7 +129,8 @@ public class SchoolBlockUseCase {
                 req.lon() != null ? req.lon() : current.getLon(),
                 req.photoPath() != null ? req.photoPath() : current.getPhotoPath(),
                 req.description() != null ? req.description() : current.getDescription(),
-                current.getCreatedByUid(), current.getCreatedAt(), lines
+                current.getCreatedByUid(), current.getCreatedAt(), lines,
+                req.sectorBlockId() != null ? req.sectorBlockId() : current.getSectorBlockId()
         );
         // Borramos el viejo y guardamos nuevo (cascade eliminará líneas viejas)
         blockRepository.deleteById(blockId);
@@ -159,7 +163,8 @@ public class SchoolBlockUseCase {
                         l.getId(), l.getName(), l.getGrade(),
                         l.getStartType() != null ? l.getStartType().name() : null,
                         l.getLinePath(), l.getSortOrder()
-                )).toList()
+                )).toList(),
+                b.getSectorBlockId()
         );
     }
 }

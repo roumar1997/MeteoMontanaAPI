@@ -2,7 +2,7 @@ package com.meteomontana.api.application.contribution;
 
 /** Body del POST /api/schools/{id}/contributions */
 public record ContributionRequest(
-        String type,            // PARKING | BOULDER | SECTOR | POSITION_CORRECTION
+        String type,            // PARKING | BOULDER | SECTOR | POSITION_CORRECTION | ASSIGN_SECTOR
         String name,            // opcional
         double lat,             // coordenada propuesta (o posición actual del elemento a corregir)
         double lon,
@@ -13,7 +13,10 @@ public record ContributionRequest(
         String correctionReason,
         String targetBlockId,   // POSITION_CORRECTION: id del school_block a mover (null = la escuela)
                                 // BOULDER: id del bloque al que añadir vías (null = piedra nueva)
+                                // ASSIGN_SECTOR: id de la piedra a la que asignar sector
         String targetLineId,    // BOULDER: id de la línea existente a corregir (null = añadir vías)
+        String sectorBlockId,   // BOULDER: sector al que pertenece la nueva piedra (opcional)
+                                // ASSIGN_SECTOR: sector a asignar a la piedra
         String photoUrl,        // BOULDER: URL de Firebase Storage (null si sin foto)
         String bloquesJson,     // BOULDER: JSON array [{name,grade,startType,linePath}]
         String topoLinesJson    // BOULDER: líneas normalizadas

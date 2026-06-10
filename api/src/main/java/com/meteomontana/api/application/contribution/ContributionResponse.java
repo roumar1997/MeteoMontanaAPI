@@ -24,6 +24,7 @@ public record ContributionResponse(
         String topoLinesJson,
         String targetBlockId,
         String targetLineId,
+        String sectorBlockId,
         Double proposedLat,
         Double proposedLon,
         String correctionReason
@@ -36,7 +37,7 @@ public record ContributionResponse(
                 c.getSubmittedByName(), c.getReviewReason(),
                 c.getCreatedAt(), c.getReviewedAt(),
                 c.getPhotoUrl(), c.getBloquesJson(), c.getTopoLinesJson(),
-                c.getTargetBlockId(), c.getTargetLineId(),
+                c.getTargetBlockId(), c.getTargetLineId(), c.getSectorBlockId(),
                 c.getProposedLat(), c.getProposedLon(), c.getCorrectionReason()
         );
     }

@@ -55,6 +55,9 @@ public class PendingContributionJpaEntity {
     @Column(name = "target_line_id")
     private String targetLineId;
 
+    @Column(name = "sector_block_id")
+    private String sectorBlockId;
+
     @Column(name = "photo_url", columnDefinition = "TEXT")
     private String photoUrl;
 
@@ -101,6 +104,7 @@ public class PendingContributionJpaEntity {
         e.correctionReason = c.getCorrectionReason();
         e.targetBlockId = c.getTargetBlockId();
         e.targetLineId = c.getTargetLineId();
+        e.sectorBlockId = c.getSectorBlockId();
         e.photoUrl = c.getPhotoUrl();
         e.bloquesJson = c.getBloquesJson();
         e.topoLinesJson = c.getTopoLinesJson();
@@ -116,13 +120,15 @@ public class PendingContributionJpaEntity {
     public PendingContribution toDomain() {
         return new PendingContribution(id, type, status, schoolId, schoolName, name,
                 lat, lon, notes, description, proposedLat, proposedLon, correctionReason,
-                targetBlockId, targetLineId, photoUrl, bloquesJson, topoLinesJson,
+                targetBlockId, targetLineId, sectorBlockId,
+                photoUrl, bloquesJson, topoLinesJson,
                 submittedByUid, submittedByName, reviewedByUid, reviewReason,
                 createdAt, reviewedAt);
     }
 
     public String getTargetBlockId() { return targetBlockId; }
     public String getTargetLineId()  { return targetLineId; }
+    public String getSectorBlockId() { return sectorBlockId; }
     public String getPhotoUrl()      { return photoUrl; }
 
     // Setters para JPA

@@ -51,6 +51,9 @@ public class SchoolBlockJpaEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "sector_block_id")
+    private String sectorBlockId;
+
     @OneToMany(mappedBy = "block", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("sortOrder ASC")
     private List<BlockLineJpaEntity> lines = new ArrayList<>();
@@ -60,9 +63,16 @@ public class SchoolBlockJpaEntity {
     public SchoolBlockJpaEntity(String id, String schoolId, SchoolBlock.Type type, String name,
                                 double lat, double lon, String photoPath, String description,
                                 String createdByUid, LocalDateTime createdAt) {
+        this(id, schoolId, type, name, lat, lon, photoPath, description, createdByUid, createdAt, null);
+    }
+
+    public SchoolBlockJpaEntity(String id, String schoolId, SchoolBlock.Type type, String name,
+                                double lat, double lon, String photoPath, String description,
+                                String createdByUid, LocalDateTime createdAt, String sectorBlockId) {
         this.id = id; this.schoolId = schoolId; this.type = type; this.name = name;
         this.lat = lat; this.lon = lon; this.photoPath = photoPath;
         this.description = description; this.createdByUid = createdByUid; this.createdAt = createdAt;
+        this.sectorBlockId = sectorBlockId;
     }
 
     public String getId()             { return id; }
@@ -76,9 +86,11 @@ public class SchoolBlockJpaEntity {
     public String getCreatedByUid()   { return createdByUid; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
     public List<BlockLineJpaEntity> getLines() { return lines; }
+    public String getSectorBlockId() { return sectorBlockId; }
 
     public void setLat(double lat) { this.lat = lat; }
     public void setLon(double lon) { this.lon = lon; }
+    public void setSectorBlockId(String sectorBlockId) { this.sectorBlockId = sectorBlockId; }
 
     public void addLine(BlockLineJpaEntity line) {
         line.setBlock(this);
