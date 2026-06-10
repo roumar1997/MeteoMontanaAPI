@@ -183,3 +183,38 @@ así que solo pasa una vez tras el deploy.
 2. Build release del Android apuntando al dominio nuevo y probar login + propuesta end-to-end.
 3. Monitoriza logs en Railway → tab "Logs" durante los primeros días.
 4. Cuando todo OK → Play Console Internal Testing.
+
+---
+
+## ✅ Estado actual (2026-06-10)
+
+**Producción operativa**:
+- Backend en `https://api.climbingteams.com` (Railway, plan trial $5 saldo).
+- Postgres gestionada Railway con 191 escuelas migradas vía pg_dump --data-only.
+- Contraseña Postgres **rotada** después del setup (la inicial se filtró en chat).
+- Cloudflare proxy DESACTIVADO para el CNAME (DNS only) → HTTPS directo Railway.
+- `serviceAccountKey.json` cargado via env var `FIREBASE_SA_JSON`.
+
+**Variables Railway configuradas**:
+```
+FIREBASE_SA_JSON       = <JSON entero del service account>
+DATABASE_URL           = jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+DATABASE_USERNAME      = ${{Postgres.PGUSER}}
+POSTGRES_PASSWORD      = ${{Postgres.PGPASSWORD}}
+```
+
+**Variables opcionales NO activadas todavía**:
+- `RESEND_API_KEY` + `RESEND_FROM` — sin esto los emails al aprobar/rechazar no se mandan.
+- `FIREBASE_STORAGE_BUCKET` — usa el default `climbingteams.firebasestorage.app`.
+
+**Pendiente backend**:
+- Activar Resend (sacar API key en resend.com con `climbingteams.com` verificado).
+- Activar Firebase Plan Blaze antes de Play Store (FCM ilimitado solo Blaze).
+- Endpoint cacheado de stats mensuales (mover lógica de Open-Meteo archive a backend).
+
+**Pendiente Android para publicar**:
+- Apuntar `API_BASE_URL` release a `https://api.climbingteams.com/api/`.
+- Keystore release + SHA-1 a Firebase Console.
+- Build firmado `.aab` y subir a Play Console.
+
+Detalle completo en `MeteoMontanaAndroid/DEPLOYMENT.md`.
