@@ -79,8 +79,9 @@ public class ReviewContributionUseCase {
                 + com.meteomontana.api.infrastructure.email.EmailTemplates.paragraph(
                         "Gracias por hacer crecer la guía entre todos. "
                         + "La comunidad escaladora te lo agradece. 🤘")
-                + com.meteomontana.api.infrastructure.email.EmailTemplates.button(
-                        "Ver en la app", "https://climbingteams.com")
+                // TODO: cuando la app Android esté publicada en Play Store, reactivar el botón
+                // "Ver en la app" con un Android App Link tipo https://climbingteams.com/schools/{schoolId}
+                // que abra la app si está instalada (requiere assetlinks.json en /.well-known/).
                 + com.meteomontana.api.infrastructure.email.EmailTemplates.signature();
         } else {
             subject = "Tu propuesta en Cumbre no se ha podido publicar";
