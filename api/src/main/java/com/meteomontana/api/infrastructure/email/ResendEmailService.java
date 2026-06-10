@@ -27,7 +27,7 @@ public class ResendEmailService {
     @Value("${RESEND_API_KEY:}")
     private String apiKey;
 
-    @Value("${RESEND_FROM:MeteoMontana <noreply@climbingteams.com>}")
+    @Value("${RESEND_FROM:Cumbre <noreply@climbingteams.com>}")
     private String from;
 
     private final RestTemplate http = new RestTemplate();

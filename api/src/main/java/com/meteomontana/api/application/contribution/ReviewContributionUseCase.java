@@ -59,25 +59,54 @@ public class ReviewContributionUseCase {
             case SECTOR -> "sector"; case POSITION_CORRECTION -> "corrección de posición";
             case ASSIGN_SECTOR -> "asignación de sector";
         };
-        String subject = approved
-            ? "✅ Tu propuesta ha sido aprobada"
-            : "❌ Tu propuesta no se ha aprobado";
-        String body = approved ?
-            "<h2>¡Buenas noticias!</h2><p>Tu propuesta de " + typeLabel +
-            " en <b>" + c.getSchoolName() + "</b>" +
-            (c.getName() != null ? " (<i>" + c.getName() + "</i>)" : "") +
-            " ya está publicada en la app. Gracias por colaborar con la comunidad escaladora.</p>" +
-            "<p>— Equipo ClimbingTeams</p>"
-          : "<h2>Tu propuesta no se ha aprobado</h2><p>Hemos revisado tu " +
-            "propuesta de " + typeLabel + " en <b>" + c.getSchoolName() + "</b>" +
-            (c.getName() != null ? " (<i>" + c.getName() + "</i>)" : "") +
-            " y no la hemos podido publicar.</p>" +
-            (reason != null && !reason.isBlank()
-                ? "<p><b>Motivo:</b> " + reason + "</p>"
-                : "") +
-            "<p>Si crees que es un error, puedes mandarnos un mensaje desde la app.</p>" +
-            "<p>— Equipo ClimbingTeams</p>";
-        emailService.send(user.getEmail(), subject, body);
+
+        // "parking de El Escorial · Parking principal"
+        String proposalLabel = typeLabel + " en " + c.getSchoolName()
+                + (c.getName() != null && !c.getName().isBlank() ? " · " + c.getName() : "");
+
+        String subject;
+        String inner;
+        if (approved) {
+            subject = "✅ Tu propuesta ya está publicada en Cumbre";
+            inner = com.meteomontana.api.infrastructure.email.EmailTemplates.eyebrow("Propuesta aprobada")
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.title("¡Ya está en el mapa!")
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.paragraph(
+                        "Hemos revisado tu propuesta y la hemos publicado. "
+                        + "Desde ahora cualquier escalador puede verla en la app.")
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.highlightBox(
+                        "Tu propuesta",
+                        com.meteomontana.api.infrastructure.email.EmailTemplates.escape(proposalLabel))
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.paragraph(
+                        "Gracias por hacer crecer la guía entre todos. "
+                        + "La comunidad escaladora te lo agradece. 🤘")
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.button(
+                        "Ver en la app", "https://climbingteams.com")
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.signature();
+        } else {
+            subject = "Tu propuesta en Cumbre no se ha podido publicar";
+            inner = com.meteomontana.api.infrastructure.email.EmailTemplates.eyebrow("Propuesta revisada")
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.title("Esta vez no ha podido ser")
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.paragraph(
+                        "Hemos revisado tu propuesta y no la hemos podido publicar.")
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.highlightBox(
+                        "Tu propuesta",
+                        com.meteomontana.api.infrastructure.email.EmailTemplates.escape(proposalLabel))
+                + (reason != null && !reason.isBlank()
+                        ? com.meteomontana.api.infrastructure.email.EmailTemplates.highlightBox(
+                                "Motivo",
+                                com.meteomontana.api.infrastructure.email.EmailTemplates.escape(reason))
+                        : "")
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.paragraph(
+                        "Si crees que es un error o quieres dar más detalles, "
+                        + "puedes volver a enviarla o escribirnos desde la app.")
+                + com.meteomontana.api.infrastructure.email.EmailTemplates.signature();
+        }
+
+        String preheader = approved
+                ? "Tu " + proposalLabel + " ya está publicada."
+                : "Hemos revisado tu " + proposalLabel + ".";
+        emailService.send(user.getEmail(), subject,
+                com.meteomontana.api.infrastructure.email.EmailTemplates.wrap(preheader, inner));
     }
 
     @Transactional
