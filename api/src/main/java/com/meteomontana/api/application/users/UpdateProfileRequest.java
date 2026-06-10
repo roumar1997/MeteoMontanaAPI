@@ -9,5 +9,6 @@ public record UpdateProfileRequest(
         String displayName,
         String bio,
         String topGrade,
-        Boolean isPublic
+        Boolean isPublic,
+        String photoUrl
 ) {}

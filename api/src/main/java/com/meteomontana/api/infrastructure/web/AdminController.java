@@ -8,11 +8,14 @@ import com.meteomontana.api.application.admin.RejectSubmissionUseCase;
 import com.meteomontana.api.application.admin.SendAdminPushUseCase;
 import com.meteomontana.api.application.submissions.SubmissionDto;
 import com.meteomontana.api.domain.model.AdminLog;
+import com.meteomontana.api.domain.model.School;
+import com.meteomontana.api.domain.port.SchoolRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,19 +33,41 @@ public class AdminController {
     private final ListAdminLogsUseCase listLogs;
     private final SendAdminPushUseCase sendPushUseCase;
     private final AdminStatsUseCase statsUseCase;
+    private final SchoolRepository schoolRepository;
 
     public AdminController(ListPendingSubmissionsUseCase listPending,
                            ApproveSubmissionUseCase approveUseCase,
                            RejectSubmissionUseCase rejectUseCase,
                            ListAdminLogsUseCase listLogs,
                            SendAdminPushUseCase sendPushUseCase,
-                           AdminStatsUseCase statsUseCase) {
+                           AdminStatsUseCase statsUseCase,
+                           SchoolRepository schoolRepository) {
         this.listPending = listPending;
         this.approveUseCase = approveUseCase;
         this.rejectUseCase = rejectUseCase;
         this.listLogs = listLogs;
         this.sendPushUseCase = sendPushUseCase;
         this.statsUseCase = statsUseCase;
+        this.schoolRepository = schoolRepository;
+    }
+
+    /** Mover una escuela directamente (admin). Body: {"lat": ..., "lon": ...}. */
+    public record MoveSchoolRequest(double lat, double lon) {}
+
+    @PutMapping("/schools/{id}/position")
+    public School moveSchool(
+            @AuthenticationPrincipal FirebaseUser user,
+            @PathVariable String id,
+            @RequestBody MoveSchoolRequest req) {
+        School current = schoolRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("School not found: " + id));
+        School moved = new School(
+                current.getId(), current.getName(), current.getLocation(), current.getRegion(),
+                current.getStyle(), current.getRockType(),
+                req.lat(), req.lon(),
+                current.getSource()
+        );
+        return schoolRepository.save(moved);
     }
 
     @GetMapping("/stats")

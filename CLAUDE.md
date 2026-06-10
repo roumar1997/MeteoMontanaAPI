@@ -31,6 +31,9 @@ cd api
 **Variables de entorno** (en `.env`, excluido de git):
 ```
 POSTGRES_PASSWORD=<tu_password>
+# Opcionales (si no están, esas features no operan pero no rompen):
+RESEND_API_KEY=re_xxxxxxxxxxxx          # email transaccional vía resend.com
+RESEND_FROM=ClimbingTeams <noreply@climbingteams.com>
 ```
 
 **Verificar:**

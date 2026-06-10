@@ -63,10 +63,18 @@ public class FollowUseCase {
                 "user", followerUid
         );
         if (target.getFcmToken() != null) {
+            // Data payload con targetType/Id para que el cliente Android haga deep link
+            // al perfil público del seguidor al pulsar la notificación.
             fcmService.sendToToken(
-                    target.getFcmToken(), "Nuevo seguidor",
+                    target.getFcmToken(),
                     myName + " te sigue ahora",
-                    Map.of("type", "NEW_FOLLOWER", "userUid", followerUid)
+                    "Pulsa para ver su perfil",
+                    Map.of(
+                        "targetType", "user",
+                        "targetId", followerUid,
+                        "title", myName + " te sigue ahora",
+                        "body", "Pulsa para ver su perfil"
+                    )
             );
         }
     }

@@ -20,6 +20,13 @@ spring:
 server:
   port: ${PORT:8080}
 
+# Cache Caffeine — TTL 30 min para no martillear Open-Meteo
+spring.cache:
+  type: caffeine
+  cache-names: forecast, today-scores
+  caffeine:
+    spec: maximumSize=500,expireAfterWrite=30m
+
 # Healthcheck endpoint para que Railway/Render sepan si la app está viva.
 management:
   endpoints:

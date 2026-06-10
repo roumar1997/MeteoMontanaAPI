@@ -36,13 +36,47 @@ public class ReviewContributionUseCase {
     private final SpringDataContributionRepository repo;
     private final SpringDataSchoolBlockRepository  blockRepo;
     private final SpringDataSchoolRepository       schoolRepo;
+    private final com.meteomontana.api.infrastructure.email.ResendEmailService emailService;
+    private final com.meteomontana.api.domain.port.UserRepository userRepository;
 
     public ReviewContributionUseCase(SpringDataContributionRepository repo,
                                      SpringDataSchoolBlockRepository blockRepo,
-                                     SpringDataSchoolRepository schoolRepo) {
+                                     SpringDataSchoolRepository schoolRepo,
+                                     com.meteomontana.api.infrastructure.email.ResendEmailService emailService,
+                                     com.meteomontana.api.domain.port.UserRepository userRepository) {
         this.repo       = repo;
         this.blockRepo  = blockRepo;
         this.schoolRepo = schoolRepo;
+        this.emailService = emailService;
+        this.userRepository = userRepository;
+    }
+
+    private void sendReviewEmail(PendingContribution c, boolean approved, String reason) {
+        var user = userRepository.findByUid(c.getSubmittedByUid()).orElse(null);
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) return;
+        String typeLabel = switch (c.getType()) {
+            case PARKING -> "parking"; case BOULDER -> "piedra";
+            case SECTOR -> "sector"; case POSITION_CORRECTION -> "corrección de posición";
+        };
+        String subject = approved
+            ? "✅ Tu propuesta ha sido aprobada"
+            : "❌ Tu propuesta no se ha aprobado";
+        String body = approved ?
+            "<h2>¡Buenas noticias!</h2><p>Tu propuesta de " + typeLabel +
+            " en <b>" + c.getSchoolName() + "</b>" +
+            (c.getName() != null ? " (<i>" + c.getName() + "</i>)" : "") +
+            " ya está publicada en la app. Gracias por colaborar con la comunidad escaladora.</p>" +
+            "<p>— Equipo ClimbingTeams</p>"
+          : "<h2>Tu propuesta no se ha aprobado</h2><p>Hemos revisado tu " +
+            "propuesta de " + typeLabel + " en <b>" + c.getSchoolName() + "</b>" +
+            (c.getName() != null ? " (<i>" + c.getName() + "</i>)" : "") +
+            " y no la hemos podido publicar.</p>" +
+            (reason != null && !reason.isBlank()
+                ? "<p><b>Motivo:</b> " + reason + "</p>"
+                : "") +
+            "<p>Si crees que es un error, puedes mandarnos un mensaje desde la app.</p>" +
+            "<p>— Equipo ClimbingTeams</p>";
+        emailService.send(user.getEmail(), subject, body);
     }
 
     @Transactional
@@ -94,6 +128,7 @@ public class ReviewContributionUseCase {
         entity.setReviewedAt(LocalDateTime.now());
         repo.save(entity);
 
+        sendReviewEmail(c, true, null);
         return ContributionResponse.from(entity.toDomain());
     }
 
@@ -105,6 +140,7 @@ public class ReviewContributionUseCase {
         entity.setReviewReason(reason);
         entity.setReviewedAt(LocalDateTime.now());
         repo.save(entity);
+        sendReviewEmail(entity.toDomain(), false, reason);
         return ContributionResponse.from(entity.toDomain());
     }
 

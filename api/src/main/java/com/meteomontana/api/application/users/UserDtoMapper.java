@@ -46,6 +46,11 @@ public class UserDtoMapper {
 
     private String resolvePhotoUrl(String photoPath) {
         if (photoPath == null || photoPath.isBlank()) return null;
+        // Si la app ya guardó una URL completa (Firebase Storage download URL),
+        // la devolvemos tal cual — no es un path interno que tengamos que firmar.
+        if (photoPath.startsWith("http://") || photoPath.startsWith("https://")) {
+            return photoPath;
+        }
         try {
             return storageService.signedReadUrl(photoPath, PHOTO_URL_TTL_MINUTES).toString();
         } catch (Exception e) {

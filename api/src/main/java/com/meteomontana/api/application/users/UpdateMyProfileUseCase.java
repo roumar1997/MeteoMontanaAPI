@@ -33,13 +33,14 @@ public class UpdateMyProfileUseCase {
         String newBio         = req.bio() != null         ? truncate(req.bio(), 150) : current.getBio();
         String newTopGrade    = req.topGrade() != null    ? req.topGrade() : current.getTopGrade();
         boolean newIsPublic   = req.isPublic() != null    ? req.isPublic() : current.isPublic();
+        String newPhotoPath   = req.photoUrl() != null    ? req.photoUrl() : current.getPhotoPath();
 
         User updated = new User(
                 current.getUid(),
                 current.getEmail(),
                 newUsername,
                 newDisplayName,
-                current.getPhotoPath(),   // foto se gestiona aparte
+                newPhotoPath,
                 newBio,
                 newIsPublic,
                 newTopGrade,
