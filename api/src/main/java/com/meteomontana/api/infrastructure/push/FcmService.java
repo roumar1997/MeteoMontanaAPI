@@ -34,9 +34,14 @@ public class FcmService {
             log.debug("FCM sent: {}", id);
             return true;
         } catch (FirebaseMessagingException e) {
-            log.warn("FCM send failed (token={}): {}", token, e.getMessage());
+            log.warn("FCM send failed (token={}…): {}", truncate(token), e.getMessage());
             return false;
         }
+    }
+
+    /** No volcamos el token FCM entero a los logs. */
+    private static String truncate(String token) {
+        return token.length() > 12 ? token.substring(0, 12) : token;
     }
 
     /**
@@ -53,7 +58,7 @@ public class FcmService {
             log.debug("FCM data sent: {}", id);
             return true;
         } catch (FirebaseMessagingException e) {
-            log.warn("FCM data send failed (token={}): {}", token, e.getMessage());
+            log.warn("FCM data send failed (token={}…): {}", truncate(token), e.getMessage());
             return false;
         }
     }

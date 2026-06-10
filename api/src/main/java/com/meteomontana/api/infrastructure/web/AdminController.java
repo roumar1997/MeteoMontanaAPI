@@ -1,5 +1,6 @@
 package com.meteomontana.api.infrastructure.web;
 
+import com.meteomontana.api.application.admin.AdminGuard;
 import com.meteomontana.api.application.admin.AdminStatsUseCase;
 import com.meteomontana.api.application.admin.ApproveSubmissionUseCase;
 import com.meteomontana.api.application.admin.ListAdminLogsUseCase;
@@ -34,6 +35,7 @@ public class AdminController {
     private final SendAdminPushUseCase sendPushUseCase;
     private final AdminStatsUseCase statsUseCase;
     private final SchoolRepository schoolRepository;
+    private final AdminGuard adminGuard;
 
     public AdminController(ListPendingSubmissionsUseCase listPending,
                            ApproveSubmissionUseCase approveUseCase,
@@ -41,7 +43,8 @@ public class AdminController {
                            ListAdminLogsUseCase listLogs,
                            SendAdminPushUseCase sendPushUseCase,
                            AdminStatsUseCase statsUseCase,
-                           SchoolRepository schoolRepository) {
+                           SchoolRepository schoolRepository,
+                           AdminGuard adminGuard) {
         this.listPending = listPending;
         this.approveUseCase = approveUseCase;
         this.rejectUseCase = rejectUseCase;
@@ -49,6 +52,7 @@ public class AdminController {
         this.sendPushUseCase = sendPushUseCase;
         this.statsUseCase = statsUseCase;
         this.schoolRepository = schoolRepository;
+        this.adminGuard = adminGuard;
     }
 
     /** Mover una escuela directamente (admin). Body: {"lat": ..., "lon": ...}. */
@@ -59,6 +63,9 @@ public class AdminController {
             @AuthenticationPrincipal FirebaseUser user,
             @PathVariable String id,
             @RequestBody MoveSchoolRequest req) {
+        // Este endpoint no pasa por un use case admin — el guard va aquí.
+        // Sin esto, cualquier usuario autenticado podía mover escuelas.
+        adminGuard.ensureAdmin(user.uid());
         School current = schoolRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("School not found: " + id));
         School moved = new School(
