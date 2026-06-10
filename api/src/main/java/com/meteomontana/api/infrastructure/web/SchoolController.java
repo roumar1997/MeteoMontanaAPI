@@ -7,6 +7,7 @@ import com.meteomontana.api.application.GetSchoolsUseCase;
 import com.meteomontana.api.application.SearchSchoolsUseCase;
 import com.meteomontana.api.application.forecast.ForecastResponse;
 import com.meteomontana.api.application.forecast.GetForecastUseCase;
+import com.meteomontana.api.application.forecast.GetMonthlyStatsUseCase;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.model.Note;
 import com.meteomontana.api.domain.model.School;
@@ -34,19 +35,22 @@ public class SchoolController {
     private final GetForecastUseCase getForecastUseCase;
     private final CreateNoteUseCase createNoteUseCase;
     private final SearchSchoolsUseCase searchSchoolsUseCase;
+    private final GetMonthlyStatsUseCase getMonthlyStatsUseCase;
 
     public SchoolController(GetSchoolsUseCase getSchoolsUseCase,
                             GetSchoolByIdUseCase getSchoolByIdUseCase,
                             GetNotesBySchoolUseCase getNotesBySchoolUseCase,
                             GetForecastUseCase getForecastUseCase,
                             CreateNoteUseCase createNoteUseCase,
-                            SearchSchoolsUseCase searchSchoolsUseCase) {
+                            SearchSchoolsUseCase searchSchoolsUseCase,
+                            GetMonthlyStatsUseCase getMonthlyStatsUseCase) {
         this.getSchoolsUseCase       = getSchoolsUseCase;
         this.getSchoolByIdUseCase    = getSchoolByIdUseCase;
         this.getNotesBySchoolUseCase = getNotesBySchoolUseCase;
         this.getForecastUseCase      = getForecastUseCase;
         this.createNoteUseCase       = createNoteUseCase;
         this.searchSchoolsUseCase    = searchSchoolsUseCase;
+        this.getMonthlyStatsUseCase  = getMonthlyStatsUseCase;
     }
 
     @GetMapping("/schools/search")
@@ -80,6 +84,12 @@ public class SchoolController {
     @GetMapping("/schools/{id}/forecast")
     public ForecastResponse getForecast(@PathVariable String id) {
         return getForecastUseCase.execute(id);
+    }
+
+    /** Scores mensuales históricos (12 valores 0-100) + mejor rango de meses. */
+    @GetMapping("/schools/{id}/monthly-stats")
+    public GetMonthlyStatsUseCase.MonthlyStatsResponse getMonthlyStats(@PathVariable String id) {
+        return getMonthlyStatsUseCase.execute(id);
     }
 
     @PostMapping("/schools/{id}/notes")
