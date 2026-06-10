@@ -39,6 +39,25 @@ public class FcmService {
         }
     }
 
+    /**
+     * Envía push SOLO con data (sin bloque notification). Así onMessageReceived
+     * de la app se ejecuta siempre — también con la app en background — y puede
+     * construir la notificación nativa con extras como el avatar del seguidor.
+     * El data map debe incluir "title" y "body".
+     */
+    public boolean sendDataToToken(String token, Map<String, String> data) {
+        if (token == null || token.isBlank()) return false;
+        try {
+            String id = FirebaseMessaging.getInstance().send(
+                    Message.builder().setToken(token).putAllData(data).build());
+            log.debug("FCM data sent: {}", id);
+            return true;
+        } catch (FirebaseMessagingException e) {
+            log.warn("FCM data send failed (token={}): {}", token, e.getMessage());
+            return false;
+        }
+    }
+
     /** Envía a todos los usuarios con token (broadcast simple, iterativo). */
     public int sendToTokens(Iterable<String> tokens, String title, String body, Map<String, String> data) {
         int ok = 0;

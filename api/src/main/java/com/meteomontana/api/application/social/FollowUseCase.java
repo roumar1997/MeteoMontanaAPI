@@ -60,6 +60,7 @@ public class FollowUseCase {
         String myName = me != null
                 ? (me.getUsername() != null ? "@" + me.getUsername() : me.getDisplayName())
                 : "Alguien";
+        String myAvatar = avatarUrlOf(me);
 
         if (targetIsPublic) {
             notificationService.create(
@@ -69,16 +70,11 @@ public class FollowUseCase {
                     "user", followerUid
             );
             if (target.getFcmToken() != null) {
-                fcmService.sendToToken(
+                fcmService.sendDataToToken(
                         target.getFcmToken(),
-                        myName + " te sigue ahora",
-                        "Pulsa para ver su perfil",
-                        Map.of(
-                            "targetType", "user",
-                            "targetId", followerUid,
-                            "title", myName + " te sigue ahora",
-                            "body", "Pulsa para ver su perfil"
-                        )
+                        pushData("user", followerUid,
+                                myName + " te sigue ahora",
+                                "Pulsa para ver su perfil", myAvatar)
                 );
             }
         } else {
@@ -90,19 +86,32 @@ public class FollowUseCase {
                     "follow_request", followerUid
             );
             if (target.getFcmToken() != null) {
-                fcmService.sendToToken(
+                fcmService.sendDataToToken(
                         target.getFcmToken(),
-                        myName + " quiere seguirte",
-                        "Pulsa para aceptar o rechazar",
-                        Map.of(
-                            "targetType", "follow_request",
-                            "targetId", followerUid,
-                            "title", myName + " quiere seguirte",
-                            "body", "Pulsa para aceptar o rechazar"
-                        )
+                        pushData("follow_request", followerUid,
+                                myName + " quiere seguirte",
+                                "Pulsa para aceptar o rechazar", myAvatar)
                 );
             }
         }
+    }
+
+    /** Data payload de las pushes sociales; avatarUrl solo si el usuario tiene foto. */
+    private Map<String, String> pushData(String targetType, String targetId,
+                                         String title, String body, String avatarUrl) {
+        Map<String, String> data = new java.util.HashMap<>();
+        data.put("targetType", targetType);
+        data.put("targetId", targetId);
+        data.put("title", title);
+        data.put("body", body);
+        if (avatarUrl != null && !avatarUrl.isBlank()) data.put("avatarUrl", avatarUrl);
+        return data;
+    }
+
+    /** URL (firmada si hace falta) de la foto de perfil, o null. */
+    private String avatarUrlOf(User u) {
+        if (u == null) return null;
+        return userDtoMapper.toPublic(u).photoUrl();
     }
 
     @Transactional
@@ -130,16 +139,11 @@ public class FollowUseCase {
                 "user", myUid
         );
         if (requester != null && requester.getFcmToken() != null) {
-            fcmService.sendToToken(
+            fcmService.sendDataToToken(
                     requester.getFcmToken(),
-                    myName + " ha aceptado tu solicitud",
-                    "Ya puedes ver su perfil",
-                    Map.of(
-                        "targetType", "user",
-                        "targetId", myUid,
-                        "title", myName + " ha aceptado tu solicitud",
-                        "body", "Ya puedes ver su perfil"
-                    )
+                    pushData("user", myUid,
+                            myName + " ha aceptado tu solicitud",
+                            "Ya puedes ver su perfil", avatarUrlOf(me))
             );
         }
     }
