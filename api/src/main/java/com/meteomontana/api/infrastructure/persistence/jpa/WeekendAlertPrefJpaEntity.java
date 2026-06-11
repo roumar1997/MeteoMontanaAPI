@@ -42,6 +42,10 @@ public class WeekendAlertPrefJpaEntity {
     @Column(name = "user_lon")
     private Double userLon;
 
+    /** CSV de días ISO-8601 a comparar (1=lunes .. 7=domingo). Default vie/sáb/dom. */
+    @Column(name = "alert_days", nullable = false, length = 20)
+    private String alertDays = "5,6,7";
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -73,6 +77,9 @@ public class WeekendAlertPrefJpaEntity {
     public void setRadiusKm(Integer radiusKm) { this.radiusKm = radiusKm; }
     public void setUserLat(Double userLat) { this.userLat = userLat; }
     public void setUserLon(Double userLon) { this.userLon = userLon; }
+
+    public String getAlertDays() { return alertDays; }
+    public void setAlertDays(String alertDays) { this.alertDays = alertDays; }
 
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
     public void setNotifyDay(int notifyDay) { this.notifyDay = notifyDay; }

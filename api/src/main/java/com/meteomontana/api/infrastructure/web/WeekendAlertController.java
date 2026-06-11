@@ -21,10 +21,14 @@ import java.util.List;
 @RequestMapping("/api/me/weekend-alert")
 public class WeekendAlertController {
 
-    /** mode: SCHOOLS (ids elegidos) o NEARBY (radio km desde lat/lon del usuario). */
+    /**
+     * mode: SCHOOLS (ids elegidos) o NEARBY (radio km desde lat/lon del usuario).
+     * alertDays: días ISO-8601 (1=lunes .. 7=domingo) que se comparan en el aviso.
+     */
     public record WeekendAlertDto(boolean enabled, int notifyDay, int notifyHour,
                                   List<String> schoolIds, String mode,
-                                  Integer radiusKm, Double lat, Double lon) {}
+                                  Integer radiusKm, Double lat, Double lon,
+                                  List<Integer> alertDays) {}
 
     private final SpringDataWeekendAlertRepository repository;
 
@@ -38,8 +42,10 @@ public class WeekendAlertController {
                 .map(e -> new WeekendAlertDto(e.isEnabled(), e.getNotifyDay(), e.getNotifyHour(),
                         e.getSchoolIds() == null ? List.of()
                             : Arrays.stream(e.getSchoolIds().split(",")).filter(s -> !s.isBlank()).toList(),
-                        e.getMode(), e.getRadiusKm(), e.getUserLat(), e.getUserLon()))
-                .orElse(new WeekendAlertDto(false, 4, 20, List.of(), "SCHOOLS", null, null, null));
+                        e.getMode(), e.getRadiusKm(), e.getUserLat(), e.getUserLon(),
+                        parseDays(e.getAlertDays())))
+                .orElse(new WeekendAlertDto(false, 4, 20, List.of(), "SCHOOLS", null, null, null,
+                        List.of(5, 6, 7)));
     }
 
     @PutMapping
@@ -55,6 +61,12 @@ public class WeekendAlertController {
             if (dto.schoolIds() == null || dto.schoolIds().isEmpty() || dto.schoolIds().size() > 3)
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Elige entre 1 y 3 escuelas");
         }
+        // Apps antiguas no mandan alertDays → seguimos con vie/sáb/dom.
+        List<Integer> days = (dto.alertDays() == null || dto.alertDays().isEmpty())
+                ? List.of(5, 6, 7)
+                : dto.alertDays().stream().distinct().sorted().toList();
+        if (days.stream().anyMatch(d -> d < 1 || d > 7))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "alertDays deben ser 1-7");
         if (dto.notifyDay() < 1 || dto.notifyDay() > 7)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "notifyDay debe ser 1-7");
         if (dto.notifyHour() < 0 || dto.notifyHour() > 23)
@@ -70,8 +82,16 @@ public class WeekendAlertController {
         entity.setUserLat(nearby ? dto.lat() : null);
         entity.setUserLon(nearby ? dto.lon() : null);
         entity.setSchoolIds(nearby ? null : String.join(",", dto.schoolIds()));
+        entity.setAlertDays(days.stream().map(String::valueOf)
+                .reduce((a, b) -> a + "," + b).orElse("5,6,7"));
         entity.setUpdatedAt(LocalDateTime.now());
         repository.save(entity);
         return dto;
+    }
+
+    public static List<Integer> parseDays(String csv) {
+        if (csv == null || csv.isBlank()) return List.of(5, 6, 7);
+        return Arrays.stream(csv.split(",")).filter(s -> !s.isBlank())
+                .map(String::trim).map(Integer::parseInt).toList();
     }
 }

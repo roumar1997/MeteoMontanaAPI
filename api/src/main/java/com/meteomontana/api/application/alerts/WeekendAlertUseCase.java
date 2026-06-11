@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -46,18 +45,26 @@ public class WeekendAlertUseCase {
         this.fcmService = fcmService;
     }
 
-    /** Resumen de una escuela para el finde. */
+    /** Resumen de una escuela para los días elegidos. */
     record SchoolWeekend(String schoolId, String name, int avgScore,
-                         List<Integer> dayScores, int rainDays, double maxRainMm) {}
+                         List<Integer> dayScores, List<DayOfWeek> days,
+                         int rainDays, double maxRainMm) {}
 
     public void evaluateAndSend(WeekendAlertPrefJpaEntity pref) {
         var user = userRepository.findByUid(pref.getUid()).orElse(null);
         if (user == null || user.getFcmToken() == null || user.getFcmToken().isBlank()) return;
 
-        // Próximo viernes (o hoy si es viernes) + sábado + domingo.
-        LocalDate friday = LocalDate.now(MADRID).with(TemporalAdjusters.nextOrSame(DayOfWeek.FRIDAY));
-        List<String> weekendDates = List.of(
-                friday.toString(), friday.plusDays(1).toString(), friday.plusDays(2).toString());
+        // Para cada día de la semana elegido, su próxima ocurrencia dentro de
+        // los 7 días empezando hoy (hoy cuenta si está elegido).
+        List<Integer> alertDays = com.meteomontana.api.infrastructure.web.WeekendAlertController
+                .parseDays(pref.getAlertDays());
+        LocalDate today = LocalDate.now(MADRID);
+        List<String> targetDates = new ArrayList<>();
+        for (int offset = 0; offset < 7; offset++) {
+            LocalDate d = today.plusDays(offset);
+            if (alertDays.contains(d.getDayOfWeek().getValue())) targetDates.add(d.toString());
+        }
+        if (targetDates.isEmpty()) return;
 
         List<String> schoolIds = resolveSchoolIds(pref);
         List<SchoolWeekend> results = new ArrayList<>();
@@ -66,11 +73,13 @@ public class WeekendAlertUseCase {
             try {
                 ForecastResponse fc = getForecast.execute(schoolId.trim());
                 List<Integer> scores = new ArrayList<>();
+                List<DayOfWeek> daysFound = new ArrayList<>();
                 int rainDays = 0;
                 double maxRain = 0;
                 for (ForecastResponse.DayForecast d : fc.days()) {
-                    if (!weekendDates.contains(d.date())) continue;
+                    if (!targetDates.contains(d.date())) continue;
                     scores.add(d.avgScore());
+                    daysFound.add(LocalDate.parse(d.date()).getDayOfWeek());
                     if (d.precipitationTotal() >= RAIN_DAY_MM) {
                         rainDays++;
                         maxRain = Math.max(maxRain, d.precipitationTotal());
@@ -78,7 +87,7 @@ public class WeekendAlertUseCase {
                 }
                 if (scores.isEmpty()) continue;
                 int avg = (int) Math.round(scores.stream().mapToInt(Integer::intValue).average().orElse(0));
-                results.add(new SchoolWeekend(schoolId.trim(), fc.schoolName(), avg, scores, rainDays, maxRain));
+                results.add(new SchoolWeekend(schoolId.trim(), fc.schoolName(), avg, scores, daysFound, rainDays, maxRain));
             } catch (Exception e) {
                 log.warn("weekend alert: forecast failed for school {}: {}", schoolId, e.getMessage());
             }
@@ -90,7 +99,7 @@ public class WeekendAlertUseCase {
         if (results.size() > 3) results = new ArrayList<>(results.subList(0, 3));
         SchoolWeekend winner = results.get(0);
 
-        String title = "⛰ Tu finde: gana " + winner.name() + " (" + winner.avgScore() + ")";
+        String title = "⛰ Tus días: gana " + winner.name() + " (" + winner.avgScore() + ")";
         StringBuilder body = new StringBuilder();
         String[] medals = {"🥇", "🥈", "🥉"};
         for (int i = 0; i < results.size(); i++) {
@@ -98,7 +107,7 @@ public class WeekendAlertUseCase {
             if (i > 0) body.append('\n');
             body.append(medals[Math.min(i, 2)]).append(' ')
                 .append(s.name()).append(' ').append(s.avgScore())
-                .append(" — ").append(dayBreakdown(s.dayScores()))
+                .append(" — ").append(dayBreakdown(s.dayScores(), s.days()))
                 .append(", ").append(rainSummary(s));
         }
 
@@ -147,19 +156,21 @@ public class WeekendAlertUseCase {
         return 2 * r * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    private static String dayBreakdown(List<Integer> scores) {
-        String[] labels = {"V", "S", "D"};
+    /** Etiquetas L M X J V S D en orden ISO (1=lunes .. 7=domingo). */
+    private static final String[] DAY_LABELS = {"L", "M", "X", "J", "V", "S", "D"};
+
+    private static String dayBreakdown(List<Integer> scores, List<DayOfWeek> days) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < scores.size(); i++) {
             if (i > 0) sb.append(" · ");
-            sb.append(labels[Math.min(i, 2)]).append(' ').append(scores.get(i));
+            sb.append(DAY_LABELS[days.get(i).getValue() - 1]).append(' ').append(scores.get(i));
         }
         return sb.toString();
     }
 
     private static String rainSummary(SchoolWeekend s) {
         if (s.rainDays() == 0) return "sin lluvia";
-        return "llueve " + s.rainDays() + " de 3 días (máx "
+        return "llueve " + s.rainDays() + " de " + s.dayScores().size() + " días (máx "
                 + Math.round(s.maxRainMm()) + " mm)";
     }
 }
