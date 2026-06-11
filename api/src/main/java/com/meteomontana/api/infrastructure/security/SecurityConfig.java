@@ -49,6 +49,10 @@ public class SecurityConfig {
 
             // Reglas de autorización por endpoint
             .authorizeHttpRequests(auth -> auth
+                // El dispatch interno a /error también pasa por Security: sin esto,
+                // cualquier excepción en un endpoint anónimo sale como 403 vacío
+                // en vez del error real (p.ej. 503 si Open-Meteo falla).
+                .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                 // Endpoints públicos de lectura — cualquiera puede llamarlos
                 .requestMatchers(HttpMethod.GET, "/api/schools").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/schools/**").permitAll()
