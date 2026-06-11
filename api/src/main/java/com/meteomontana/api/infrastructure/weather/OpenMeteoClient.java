@@ -33,8 +33,8 @@ public class OpenMeteoClient {
         // Timeouts holgados: Open-Meteo responde lento cuando estrangula la IP
         // (Railway comparte IP de salida con otras apps).
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout((int) Duration.ofSeconds(8).toMillis());
-        factory.setReadTimeout((int) Duration.ofSeconds(15).toMillis());
+        factory.setConnectTimeout((int) Duration.ofSeconds(10).toMillis());
+        factory.setReadTimeout((int) Duration.ofSeconds(25).toMillis());
         this.restClient = RestClient.builder()
                 .baseUrl(BASE_URL)
                 .requestFactory(factory)
