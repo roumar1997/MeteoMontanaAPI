@@ -41,17 +41,39 @@ public class OpenMeteoClient {
                 .build();
     }
 
+    /** Si Open-Meteo devuelve 429, dejamos de llamar hasta este instante (epoch ms). */
+    private volatile long cooldownUntil = 0;
+
     @Cacheable(value = "forecast", key = "#lat + ',' + #lon")
     public OpenMeteoResponse fetchForecast(double lat, double lon) {
+        if (System.currentTimeMillis() < cooldownUntil) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "El servicio meteorológico está limitando las peticiones (429). "
+                            + "Reintentando automáticamente en unos minutos.");
+        }
         try {
             return doFetch(lat, lon);
+        } catch (RateLimitedException e) {
+            // 429: martillear solo lo empeora — paramos 10 min para que el límite se recupere.
+            cooldownUntil = System.currentTimeMillis() + Duration.ofMinutes(10).toMillis();
+            log.warn("Open-Meteo 429: cooldown de 10 min activado");
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "El servicio meteorológico está limitando las peticiones (429). "
+                            + "Reintentando automáticamente en unos minutos.");
         } catch (ResponseStatusException first) {
-            // Un único reintento: los cortes de conexión de Open-Meteo suelen ser
-            // intermitentes cuando estrangula la IP.
+            // Otros errores (timeout, corte de conexión) suelen ser intermitentes: un reintento.
             try { Thread.sleep(800); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-            return doFetch(lat, lon);
+            try {
+                return doFetch(lat, lon);
+            } catch (RateLimitedException e) {
+                cooldownUntil = System.currentTimeMillis() + Duration.ofMinutes(10).toMillis();
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "El servicio meteorológico está limitando las peticiones (429).");
+            }
         }
     }
+
+    private static class RateLimitedException extends RuntimeException {}
 
     private OpenMeteoResponse doFetch(double lat, double lon) {
         try {
@@ -66,6 +88,7 @@ public class OpenMeteoClient {
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, (req, resp) -> {
                         log.warn("Open-Meteo error: HTTP {} for lat={} lon={}", resp.getStatusCode(), lat, lon);
+                        if (resp.getStatusCode().value() == 429) throw new RateLimitedException();
                         throw new ResponseStatusException(
                                 HttpStatus.SERVICE_UNAVAILABLE,
                                 "El servicio meteorológico no está disponible temporalmente (upstream HTTP "
@@ -73,7 +96,7 @@ public class OpenMeteoClient {
                         );
                     })
                     .body(OpenMeteoResponse.class);
-        } catch (ResponseStatusException e) {
+        } catch (RateLimitedException | ResponseStatusException e) {
             throw e;
         } catch (Exception e) {
             log.error("Open-Meteo client error: {}", e.getMessage());
