@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "weekend_alert_prefs")
@@ -30,12 +30,12 @@ public class WeekendAlertPrefJpaEntity {
     private String schoolIds;
 
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private LocalDateTime updatedAt;
 
     protected WeekendAlertPrefJpaEntity() {}
 
     public WeekendAlertPrefJpaEntity(String uid, boolean enabled, int notifyDay,
-                                     int notifyHour, String schoolIds, Instant updatedAt) {
+                                     int notifyHour, String schoolIds, LocalDateTime updatedAt) {
         this.uid = uid;
         this.enabled = enabled;
         this.notifyDay = notifyDay;
@@ -49,11 +49,11 @@ public class WeekendAlertPrefJpaEntity {
     public int getNotifyDay() { return notifyDay; }
     public int getNotifyHour() { return notifyHour; }
     public String getSchoolIds() { return schoolIds; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
     public void setNotifyDay(int notifyDay) { this.notifyDay = notifyDay; }
     public void setNotifyHour(int notifyHour) { this.notifyHour = notifyHour; }
     public void setSchoolIds(String schoolIds) { this.schoolIds = schoolIds; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

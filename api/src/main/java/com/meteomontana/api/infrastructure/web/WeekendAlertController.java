@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -48,12 +48,12 @@ public class WeekendAlertController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "notifyHour debe ser 0-23");
 
         var entity = repository.findById(user.uid())
-                .orElse(new WeekendAlertPrefJpaEntity(user.uid(), true, 4, 20, "", Instant.now()));
+                .orElse(new WeekendAlertPrefJpaEntity(user.uid(), true, 4, 20, "", LocalDateTime.now()));
         entity.setEnabled(dto.enabled());
         entity.setNotifyDay(dto.notifyDay());
         entity.setNotifyHour(dto.notifyHour());
         entity.setSchoolIds(String.join(",", dto.schoolIds()));
-        entity.setUpdatedAt(Instant.now());
+        entity.setUpdatedAt(LocalDateTime.now());
         repository.save(entity);
         return dto;
     }
