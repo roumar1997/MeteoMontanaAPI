@@ -22,6 +22,10 @@ spring:
 
 server:
   port: ${PORT:8080}
+  error:
+    # Mostrar el message de ResponseStatusException en el JSON de error
+    # (la app lo enseña al usuario; sin esto solo llega "Service Unavailable").
+    include-message: always
 
 # Cache Caffeine — TTL 30 min para no martillear Open-Meteo
 spring.cache:
