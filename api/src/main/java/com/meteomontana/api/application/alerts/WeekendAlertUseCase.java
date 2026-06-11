@@ -33,13 +33,16 @@ public class WeekendAlertUseCase {
 
     private final GetForecastUseCase getForecast;
     private final UserRepository userRepository;
+    private final com.meteomontana.api.domain.port.SchoolRepository schoolRepository;
     private final FcmService fcmService;
 
     public WeekendAlertUseCase(GetForecastUseCase getForecast,
                                UserRepository userRepository,
+                               com.meteomontana.api.domain.port.SchoolRepository schoolRepository,
                                FcmService fcmService) {
         this.getForecast = getForecast;
         this.userRepository = userRepository;
+        this.schoolRepository = schoolRepository;
         this.fcmService = fcmService;
     }
 
@@ -56,8 +59,9 @@ public class WeekendAlertUseCase {
         List<String> weekendDates = List.of(
                 friday.toString(), friday.plusDays(1).toString(), friday.plusDays(2).toString());
 
+        List<String> schoolIds = resolveSchoolIds(pref);
         List<SchoolWeekend> results = new ArrayList<>();
-        for (String schoolId : pref.getSchoolIds().split(",")) {
+        for (String schoolId : schoolIds) {
             if (schoolId.isBlank()) continue;
             try {
                 ForecastResponse fc = getForecast.execute(schoolId.trim());
@@ -82,6 +86,8 @@ public class WeekendAlertUseCase {
         if (results.isEmpty()) return;
 
         results.sort(Comparator.comparingInt(SchoolWeekend::avgScore).reversed());
+        // En modo NEARBY se evalúan más escuelas pero solo comparamos las 3 mejores.
+        if (results.size() > 3) results = new ArrayList<>(results.subList(0, 3));
         SchoolWeekend winner = results.get(0);
 
         String title = "⛰ Tu finde: gana " + winner.name() + " (" + winner.avgScore() + ")";
@@ -106,6 +112,39 @@ public class WeekendAlertUseCase {
                 "targetType", "compare",
                 "targetId", idsCsv));
         log.info("weekend alert para {} → {} ({} escuelas)", pref.getUid(), ok ? "enviada" : "FALLO", results.size());
+    }
+
+    /**
+     * SCHOOLS → los ids elegidos a mano. NEARBY → hasta 12 escuelas dentro del
+     * radio desde la última posición del usuario, las más cercanas primero
+     * (cap para no disparar demasiadas consultas de forecast por usuario).
+     */
+    private List<String> resolveSchoolIds(WeekendAlertPrefJpaEntity pref) {
+        if (!"NEARBY".equalsIgnoreCase(pref.getMode())) {
+            String csv = pref.getSchoolIds();
+            if (csv == null || csv.isBlank()) return List.of();
+            return List.of(csv.split(","));
+        }
+        if (pref.getUserLat() == null || pref.getUserLon() == null || pref.getRadiusKm() == null)
+            return List.of();
+        double lat = pref.getUserLat(), lon = pref.getUserLon();
+        return schoolRepository.findAll().stream()
+                .map(s -> Map.entry(s, haversineKm(lat, lon, s.getLat(), s.getLon())))
+                .filter(e -> e.getValue() <= pref.getRadiusKm())
+                .sorted(Comparator.comparingDouble(Map.Entry::getValue))
+                .limit(12)
+                .map(e -> e.getKey().getId())
+                .toList();
+    }
+
+    private static double haversineKm(double lat1, double lon1, double lat2, double lon2) {
+        double r = 6371.0;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 2 * r * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     private static String dayBreakdown(List<Integer> scores) {
