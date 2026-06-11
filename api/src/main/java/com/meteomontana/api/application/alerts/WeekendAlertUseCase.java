@@ -96,8 +96,15 @@ public class WeekendAlertUseCase {
                 .append(", ").append(rainSummary(s));
         }
 
-        boolean ok = fcmService.sendToToken(user.getFcmToken(), title, body.toString(),
-                Map.of("type", "weekend_alert", "schoolId", winner.schoolId()));
+        // Data-only: con bloque notification Android en background no ejecuta
+        // onMessageReceived y la notificación sale sin icono ni deep link.
+        String idsCsv = results.stream().map(SchoolWeekend::schoolId)
+                .reduce((a, b) -> a + "," + b).orElse(winner.schoolId());
+        boolean ok = fcmService.sendDataToToken(user.getFcmToken(), Map.of(
+                "title", title,
+                "body", body.toString(),
+                "targetType", "compare",
+                "targetId", idsCsv));
         log.info("weekend alert para {} → {} ({} escuelas)", pref.getUid(), ok ? "enviada" : "FALLO", results.size());
     }
 
