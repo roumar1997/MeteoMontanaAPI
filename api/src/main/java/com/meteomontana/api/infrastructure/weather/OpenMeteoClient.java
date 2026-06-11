@@ -56,7 +56,8 @@ public class OpenMeteoClient {
                         log.warn("Open-Meteo error: HTTP {} for lat={} lon={}", resp.getStatusCode(), lat, lon);
                         throw new ResponseStatusException(
                                 HttpStatus.SERVICE_UNAVAILABLE,
-                                "El servicio meteorológico no está disponible temporalmente. Inténtalo de nuevo en unos minutos."
+                                "El servicio meteorológico no está disponible temporalmente (upstream HTTP "
+                                        + resp.getStatusCode().value() + "). Inténtalo de nuevo en unos minutos."
                         );
                     })
                     .body(OpenMeteoResponse.class);
@@ -66,7 +67,8 @@ public class OpenMeteoClient {
             log.error("Open-Meteo client error: {}", e.getMessage());
             throw new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    "No se pudo obtener el forecast meteorológico."
+                    "No se pudo obtener el forecast meteorológico (" + e.getClass().getSimpleName()
+                            + ": " + e.getMessage() + ")."
             );
         }
     }
