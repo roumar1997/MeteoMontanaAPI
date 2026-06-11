@@ -30,10 +30,11 @@ public class OpenMeteoClient {
     private final RestClient restClient;
 
     public OpenMeteoClient() {
-        // Timeouts cortos para que el back no se cuelgue cuando Open-Meteo está down
+        // Timeouts holgados: Open-Meteo responde lento cuando estrangula la IP
+        // (Railway comparte IP de salida con otras apps).
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout((int) Duration.ofSeconds(4).toMillis());
-        factory.setReadTimeout((int) Duration.ofSeconds(6).toMillis());
+        factory.setConnectTimeout((int) Duration.ofSeconds(8).toMillis());
+        factory.setReadTimeout((int) Duration.ofSeconds(15).toMillis());
         this.restClient = RestClient.builder()
                 .baseUrl(BASE_URL)
                 .requestFactory(factory)
@@ -42,6 +43,17 @@ public class OpenMeteoClient {
 
     @Cacheable(value = "forecast", key = "#lat + ',' + #lon")
     public OpenMeteoResponse fetchForecast(double lat, double lon) {
+        try {
+            return doFetch(lat, lon);
+        } catch (ResponseStatusException first) {
+            // Un único reintento: los cortes de conexión de Open-Meteo suelen ser
+            // intermitentes cuando estrangula la IP.
+            try { Thread.sleep(800); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            return doFetch(lat, lon);
+        }
+    }
+
+    private OpenMeteoResponse doFetch(double lat, double lon) {
         try {
             return restClient.get()
                     .uri(uriBuilder -> uriBuilder
