@@ -11,9 +11,11 @@ public class Note {
     private final LocalDateTime createdAt;
     private final int upvotesCount;
     private final int downvotesCount;
+    private final String photoUrl; // nullable — foto opcional (Firebase Storage)
 
     public Note(String id, String schoolId, String text, String author, String uid,
-                LocalDateTime createdAt, int upvotesCount, int downvotesCount) {
+                LocalDateTime createdAt, int upvotesCount, int downvotesCount,
+                String photoUrl) {
         this.id = id;
         this.schoolId = schoolId;
         this.text = text;
@@ -22,6 +24,7 @@ public class Note {
         this.createdAt = createdAt;
         this.upvotesCount = upvotesCount;
         this.downvotesCount = downvotesCount;
+        this.photoUrl = photoUrl;
     }
 
     public String getId() { return id; }
@@ -32,4 +35,5 @@ public class Note {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public int getUpvotesCount() { return upvotesCount; }
     public int getDownvotesCount() { return downvotesCount; }
+    public String getPhotoUrl() { return photoUrl; }
 }

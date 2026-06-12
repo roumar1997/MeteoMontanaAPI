@@ -97,6 +97,6 @@ public class SchoolController {
     public Note createNote(@PathVariable String id,
                            @AuthenticationPrincipal FirebaseUser user,
                            @RequestBody CreateNoteUseCase.CreateNoteRequest req) {
-        return createNoteUseCase.execute(user.uid(), id, req.text());
+        return createNoteUseCase.execute(user.uid(), id, req.text(), req.photoUrl());
     }
 }
