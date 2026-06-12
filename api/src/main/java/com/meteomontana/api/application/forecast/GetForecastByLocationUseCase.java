@@ -103,7 +103,8 @@ public class GetForecastByLocationUseCase {
                 cur.time(), cur.temperature(), cur.humidity(), cur.windSpeed(),
                 cur.precipitation(), cur.precipitationProbability(), cur.cloudCover(),
                 cur.dewPoint(), round1(precip24h), round1(precip72h),
-                precip72h < 1.0, cur.score(), cur.scoreLabel(), factors
+                // Sin escuela no hay tipo de roca: no estimamos secado.
+                precip72h < 1.0, cur.score(), cur.scoreLabel(), factors, null
         );
 
         // best day

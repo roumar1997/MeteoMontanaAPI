@@ -33,11 +33,13 @@ public class NoteJpaEntity {
     private int  upvotesCount;
     @Column(name = "downvotes_count")
     private int  downvotesCount;
+    @Column(name = "photo_url", columnDefinition = "TEXT")
+    private String photoUrl;
 
     protected NoteJpaEntity(){}
 
     public NoteJpaEntity(String id, SchoolJpaEntity school, String text, String author, String uid, LocalDateTime createdAt,
-                         int upvotesCount, int downvotesCount){
+                         int upvotesCount, int downvotesCount, String photoUrl){
 
         this.id = id;
         this.school = school;
@@ -47,6 +49,7 @@ public class NoteJpaEntity {
         this.createdAt = createdAt;
         this.upvotesCount = upvotesCount;
         this.downvotesCount = downvotesCount;
+        this.photoUrl = photoUrl;
     }
     //GETTERSSSS
 
@@ -58,4 +61,5 @@ public class NoteJpaEntity {
     public LocalDateTime getCreatedAt() {return createdAt;}
     public int getUpvotesCount() {return upvotesCount;}
     public int getDownvotesCount() {return downvotesCount;}
+    public String getPhotoUrl() {return photoUrl;}
 }

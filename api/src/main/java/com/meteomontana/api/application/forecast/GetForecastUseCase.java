@@ -145,13 +145,47 @@ public class GetForecastUseCase {
         boolean dryRock = isDryRock(cur, precip72h, rockType);
 
         List<ForecastResponse.ScoreFactor> factors = buildFactors(cur, precip24h, precip72h);
+        ForecastResponse.RockDrying drying = buildDrying(rockType, precip72h);
 
         return new ForecastResponse.Current(
                 cur.time(), cur.temperature(), cur.humidity(), cur.windSpeed(),
                 cur.precipitation(), cur.precipitationProbability(), cur.cloudCover(),
                 cur.dewPoint(), round1(precip24h), round1(precip72h),
-                dryRock, cur.score(), cur.scoreLabel(), factors
+                dryRock, cur.score(), cur.scoreLabel(), factors, drying
         );
+    }
+
+    /**
+     * Tiempo de secado estimado tras lluvia, por tipo de roca. Usa el mismo
+     * proxy de lluvia 72h que isDryRock (no tenemos histórico real — TODO arriba)
+     * y deriva las horas del lookback del perfil: ~2/3 del lookback da los
+     * valores acordados (caliza 18h→12h, arenisca 72h→48h, granito 12h→8h).
+     * Con lluvia fuerte (≥2× el umbral del perfil) se alarga un 50%.
+     */
+    private ForecastResponse.RockDrying buildDrying(String rockType, double precip72h) {
+        RockDryingProfile profile = RockDryingProfile.forRockType(rockType);
+        double threshold = 6.0 * profile.capMult(); // mismo umbral que isDryRock
+        int baseHours = (int) Math.round(profile.lookbackHours() * 2.0 / 3.0);
+        boolean sandstone = rockType != null && rockType.toLowerCase().contains("arenisca");
+
+        boolean wet = precip72h >= threshold;
+        if (!wet) {
+            // La arenisca es frágil mojada por dentro: avisamos aunque "parezca" seca
+            // si ha caído algo de lluvia en la ventana.
+            if (sandstone && precip72h >= 1.0) {
+                return new ForecastResponse.RockDrying(false, baseHours,
+                        "Arenisca: evita escalar " + baseHours + " h tras lluvia");
+            }
+            return new ForecastResponse.RockDrying(false, null, null);
+        }
+
+        int hours = precip72h >= threshold * 2
+                ? (int) Math.round(baseHours * 1.5)
+                : baseHours;
+        String message = sandstone
+                ? "Arenisca: no escalar hasta ~" + hours + " h tras la lluvia"
+                : "Seca en ~" + hours + " h";
+        return new ForecastResponse.RockDrying(true, hours, message);
     }
 
     private double sumPrecip(OpenMeteoResponse.HourlyData h, int from, int len) {

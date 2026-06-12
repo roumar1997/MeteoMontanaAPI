@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -46,6 +47,18 @@ public class WeekendAlertPrefJpaEntity {
     @Column(name = "alert_days", nullable = false, length = 20)
     private String alertDays = "5,6,7";
 
+    /** Alerta "ventana óptima hoy": push si una favorita supera el umbral hoy. */
+    @Column(name = "optimal_enabled", nullable = false)
+    private boolean optimalEnabled = false;
+
+    /** Umbral de score (0-100) que tiene que superar la ventana óptima. */
+    @Column(name = "optimal_threshold", nullable = false)
+    private int optimalThreshold = 70;
+
+    /** Último día (Europe/Madrid) en que se envió: máximo un push al día. */
+    @Column(name = "optimal_last_sent")
+    private LocalDate optimalLastSent;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -80,6 +93,13 @@ public class WeekendAlertPrefJpaEntity {
 
     public String getAlertDays() { return alertDays; }
     public void setAlertDays(String alertDays) { this.alertDays = alertDays; }
+
+    public boolean isOptimalEnabled() { return optimalEnabled; }
+    public int getOptimalThreshold() { return optimalThreshold; }
+    public LocalDate getOptimalLastSent() { return optimalLastSent; }
+    public void setOptimalEnabled(boolean optimalEnabled) { this.optimalEnabled = optimalEnabled; }
+    public void setOptimalThreshold(int optimalThreshold) { this.optimalThreshold = optimalThreshold; }
+    public void setOptimalLastSent(LocalDate optimalLastSent) { this.optimalLastSent = optimalLastSent; }
 
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
     public void setNotifyDay(int notifyDay) { this.notifyDay = notifyDay; }
