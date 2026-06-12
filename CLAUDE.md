@@ -666,7 +666,30 @@ consciente).
 
 (Las últimas 5-10 sesiones aproximadamente. Las más antiguas se podan.)
 
-### Sesión actual — Materialización de líneas + admin gestión de bloques
+### Sesión 2026-06-12 (3) — ETag, secado, alerta con franja, fotos en notas
+
+- **ETag/304**: `WebConfig` registra `ShallowEtagHeaderFilter` para
+  `/api/schools` y `/api/schools/*` (solo GET). El cliente que repita con
+  `If-None-Match` recibe 304 sin body. Ahorra ancho de banda, no CPU.
+- **Lluvia pasada real + tiempo de secado**: `OpenMeteoClient` pide
+  `past_days=3`. `GetForecastUseCase` calcula `precip24h/72h` y `dryRock`
+  hacia atrás desde la hora actual REAL (saldado el TODO del proxy con horas
+  futuras) y expone `Current.hoursToDry` (0 = seca; null = >7 días) simulando
+  cuándo el acumulado de 72h cae bajo el umbral del tipo de roca. La
+  respuesta al cliente conserva su forma (hours/days desde hoy 00:00).
+  `current` pasa a ser la hora actual, no las 00:00. Lógica de ventana óptima
+  extraída a `bestWindowForDate(hours, date)` (estático, reutilizable).
+  `GetForecastByLocationUseCase` adaptado igual. Tests:
+  `GetForecastUseCaseTest` (5 casos con weather sintético + Mockito).
+- **Alerta de tiempo**: el push añade una línea final con la mejor franja de
+  4h del mejor día elegido de la escuela ganadora ("🕑 Mejor franja: S
+  12:00–15:00 (88)").
+- **Fotos en notas** (V23 `notes.photo_url` TEXT nullable): el POST de nota
+  acepta `photoUrl` opcional (la app sube la imagen a Firebase Storage en
+  `note-photos/` — ⚠️ revisar que las Storage rules lo permitan); el GET la
+  devuelve.
+
+### Sesión anterior — Materialización de líneas + admin gestión de bloques
 
 **Migración V13** (`db/migration/V13__boulder_fields.sql`): añade tres columnas
 TEXT a `pending_contributions` para el flujo BOULDER del front:
