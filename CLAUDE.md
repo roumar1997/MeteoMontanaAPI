@@ -666,6 +666,29 @@ consciente).
 
 (Las últimas 5-10 sesiones aproximadamente. Las más antiguas se podan.)
 
+### Sesión 2026-06-12 (4) — ETag, secado de roca, alerta ventana óptima, fotos en notas
+
+- **ETag/304 en `GET /api/schools`**: `SchoolController` calcula SHA-256 del
+  JSON del catálogo y usa `WebRequest.checkNotModified(etag)` → 304 sin body
+  si el cliente manda If-None-Match coincidente.
+- **Secado de roca en el forecast**: `ForecastResponse.Current` expone
+  `drying {wet, dryingHours, message}`. Heurística en `GetForecastUseCase`:
+  ~2/3 del lookback del `RockDryingProfile` (caliza 12h, arenisca 48h,
+  granito 8h), +50% si la lluvia 72h ≥ 2× el umbral del perfil; aviso
+  especial para arenisca aunque el umbral diga "seca".
+- **Alerta "ventana óptima hoy"** (V24): columnas `optimal_enabled`,
+  `optimal_threshold`, `optimal_last_sent` en `weekend_alert_prefs`.
+  `OptimalWindowAlertScheduler` (cron 7-11h Madrid) + `OptimalWindowAlertUseCase`:
+  evalúa hasta 6 favoritas del usuario y manda push data-only (targetType
+  school) si `bestWindow.avgScore ≥ umbral`; máximo un aviso al día.
+  `WeekendAlertController` acepta `optimalEnabled/optimalThreshold`
+  (nullables — apps viejas no los pisan) y ya no exige escuelas si la
+  alerta de tiempo está desactivada.
+- **Fotos en notas** (V23): `photo_url` TEXT en `notes`; `CreateNoteUseCase`
+  acepta `photoUrl` opcional (https, ≤1000 chars). La app sube la foto a
+  Firebase Storage y aquí solo se guarda la URL.
+- Migraciones Flyway hasta **V24**.
+
 ### Sesión actual — Materialización de líneas + admin gestión de bloques
 
 **Migración V13** (`db/migration/V13__boulder_fields.sql`): añade tres columnas
@@ -803,7 +826,7 @@ borrar desde el panel admin del front (tab GESTIONAR).
 ## Estado actual
 
 **TODAS LAS FASES DEL PLAN ORIGINAL ESTÁN COMPLETAS (1-11).**
-**Migraciones Flyway hasta V12 aplicadas.**
+**Migraciones Flyway hasta V24 aplicadas.**
 
 **Endpoints implementados (resumen completo):**
 

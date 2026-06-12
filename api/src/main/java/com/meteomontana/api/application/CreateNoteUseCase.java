@@ -13,7 +13,8 @@ import java.util.UUID;
 @Service
 public class CreateNoteUseCase {
 
-    public record CreateNoteRequest(String text) {}
+    /** photoUrl es opcional: URL pública de Firebase Storage si la nota lleva foto. */
+    public record CreateNoteRequest(String text, String photoUrl) {}
 
     private final NoteRepository noteRepository;
     private final SchoolRepository schoolRepository;
@@ -27,7 +28,7 @@ public class CreateNoteUseCase {
         this.userRepository = userRepository;
     }
 
-    public Note execute(String uid, String schoolId, String text) {
+    public Note execute(String uid, String schoolId, String text, String photoUrl) {
         schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new SchoolNotFoundException(schoolId));
 
@@ -36,6 +37,15 @@ public class CreateNoteUseCase {
         String trimmed = text.trim();
         if (trimmed.length() > 500)
             trimmed = trimmed.substring(0, 500);
+
+        // La foto se sube desde la app a Firebase Storage; aquí solo guardamos la URL.
+        String photo = (photoUrl == null || photoUrl.isBlank()) ? null : photoUrl.trim();
+        if (photo != null) {
+            if (!photo.startsWith("https://"))
+                throw new IllegalArgumentException("photoUrl must be an https URL");
+            if (photo.length() > 1000)
+                throw new IllegalArgumentException("photoUrl too long");
+        }
 
         String author = userRepository.findByUid(uid)
                 .map(u -> u.getDisplayName() != null ? u.getDisplayName() : u.getEmail())
@@ -48,7 +58,8 @@ public class CreateNoteUseCase {
                 author,
                 uid,
                 LocalDateTime.now(),
-                0, 0
+                0, 0,
+                photo
         );
         return noteRepository.save(note);
     }

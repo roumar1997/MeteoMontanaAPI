@@ -38,7 +38,8 @@ public class JpaNoteRepositoryAdapter implements NoteRepository {
                 .orElseThrow(() -> new SchoolNotFoundException(n.getSchoolId()));
         NoteJpaEntity e = new NoteJpaEntity(
                 n.getId(), school, n.getText(), n.getAuthor(), n.getUid(),
-                n.getCreatedAt(), n.getUpvotesCount(), n.getDownvotesCount()
+                n.getCreatedAt(), n.getUpvotesCount(), n.getDownvotesCount(),
+                n.getPhotoUrl()
         );
         return toNote(jpaRepo.save(e));
     }
@@ -57,7 +58,8 @@ public class JpaNoteRepositoryAdapter implements NoteRepository {
                 e.getUid(),
                 e.getCreatedAt(),
                 e.getUpvotesCount(),
-                e.getDownvotesCount()
+                e.getDownvotesCount(),
+                e.getPhotoUrl()
         );
     }
 }

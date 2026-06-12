@@ -36,8 +36,16 @@ public record ForecastResponse(
             boolean dryRock,
             int score,
             String scoreLabel,
-            List<ScoreFactor> factors
+            List<ScoreFactor> factors,
+            RockDrying drying
     ) {}
+
+    /**
+     * Estimación de secado tras lluvia según el tipo de roca.
+     * message es el texto listo para la sublínea del hero ("Seca en ~12 h",
+     * "Arenisca: evita escalar 48 h tras lluvia"). Null si no hay nada que avisar.
+     */
+    public record RockDrying(boolean wet, Integer dryingHours, String message) {}
 
     public record HourForecast(
             String time,

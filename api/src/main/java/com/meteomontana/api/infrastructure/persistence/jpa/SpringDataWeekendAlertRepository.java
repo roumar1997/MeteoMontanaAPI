@@ -8,4 +8,6 @@ public interface SpringDataWeekendAlertRepository
         extends JpaRepository<WeekendAlertPrefJpaEntity, String> {
 
     List<WeekendAlertPrefJpaEntity> findByEnabledTrueAndNotifyDayAndNotifyHour(int notifyDay, int notifyHour);
+
+    List<WeekendAlertPrefJpaEntity> findByOptimalEnabledTrue();
 }
