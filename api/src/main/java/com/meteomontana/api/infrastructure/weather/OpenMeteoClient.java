@@ -83,6 +83,9 @@ public class OpenMeteoClient {
                             .queryParam("longitude", lon)
                             .queryParam("hourly", HOURLY_VARS)
                             .queryParam("wind_speed_unit", "kmh")
+                            // 72h de lluvia pasada real para dryRock/hoursToDry
+                            // (antes se aproximaba con horas futuras).
+                            .queryParam("past_days", 3)
                             .queryParam("forecast_days", 7)
                             .build())
                     .retrieve()

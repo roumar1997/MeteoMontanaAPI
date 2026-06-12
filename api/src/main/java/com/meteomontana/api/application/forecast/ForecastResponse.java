@@ -34,6 +34,7 @@ public record ForecastResponse(
             double precip24h,
             double precip72h,
             boolean dryRock,
+            Integer hoursToDry, // 0 = seca ya; null = no se seca dentro del horizonte de 7 días
             int score,
             String scoreLabel,
             List<ScoreFactor> factors

@@ -34,7 +34,7 @@ public class GetForecastByLocationUseCase {
         // los métodos privados no son accesibles. Copiamos lo esencial.
         OpenMeteoResponse.HourlyData h = weather.hourly();
         int lookback = RockDryingProfile.forRockType(rock).lookbackHours();
-        List<ForecastResponse.HourForecast> hours = new ArrayList<>(h.time().size());
+        List<ForecastResponse.HourForecast> allHours = new ArrayList<>(h.time().size());
 
         for (int i = 0; i < h.time().size(); i++) {
             double recentRain = 0;
@@ -53,12 +53,17 @@ public class GetForecastByLocationUseCase {
             int score = ClimbScoreCalculator.calculate(
                     temp, humidity, wind, precip, prob, cloud, recentRain, dewPoint, rock);
 
-            hours.add(new ForecastResponse.HourForecast(
+            allHours.add(new ForecastResponse.HourForecast(
                     h.time().get(i),
                     temp, humidity, wind, precip, prob, cloud, dewPoint,
                     score, ClimbScoreCalculator.label(score), weatherCode
             ));
         }
+
+        // Open-Meteo incluye past_days=3 (lluvia pasada real para los
+        // acumulados); al cliente le devolvemos horas desde las 00:00 de hoy.
+        int todayStart = Math.max(0, allHours.size() - 7 * 24);
+        List<ForecastResponse.HourForecast> hours = List.copyOf(allHours.subList(todayStart, allHours.size()));
 
         // days
         Map<String, List<Integer>> byDay = new LinkedHashMap<>();
@@ -83,10 +88,18 @@ public class GetForecastByLocationUseCase {
             ));
         }
 
-        // current with simple factors
-        var cur = hours.get(0);
-        double precip24h = sumPrecip(h.precipitation(), 0, 24);
-        double precip72h = sumPrecip(h.precipitation(), 0, 72);
+        // current with simple factors — sobre la hora actual real, con
+        // acumulados de lluvia hacia atrás (el array incluye el pasado)
+        int nowIdx = todayStart;
+        java.time.LocalDateTime now = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC);
+        for (int i = todayStart; i < allHours.size(); i++) {
+            if (java.time.LocalDateTime.parse(allHours.get(i).time()).isAfter(now)) break;
+            nowIdx = i;
+        }
+        var cur = allHours.get(nowIdx);
+        double precip24h = sumPrecipBack(h.precipitation(), nowIdx, 24);
+        double precip72h = sumPrecipBack(h.precipitation(), nowIdx, 72);
+        double dryThreshold = 6.0 * RockDryingProfile.forRockType(rock).capMult();
         List<ForecastResponse.ScoreFactor> factors = List.of(
                 new ForecastResponse.ScoreFactor("TEMPERATURA", Math.round(cur.temperature()) + "°",
                         cur.temperature() >= 5 && cur.temperature() <= 22),
@@ -103,7 +116,9 @@ public class GetForecastByLocationUseCase {
                 cur.time(), cur.temperature(), cur.humidity(), cur.windSpeed(),
                 cur.precipitation(), cur.precipitationProbability(), cur.cloudCover(),
                 cur.dewPoint(), round1(precip24h), round1(precip72h),
-                precip72h < 1.0, cur.score(), cur.scoreLabel(), factors
+                precip72h < dryThreshold,
+                GetForecastUseCase.computeHoursToDry(h.precipitation(), nowIdx, dryThreshold),
+                cur.score(), cur.scoreLabel(), factors
         );
 
         // best day
@@ -117,27 +132,9 @@ public class GetForecastByLocationUseCase {
             best = new ForecastResponse.BestDay(d.date(), d.avgScore(), d.scoreLabel(), idx);
         }
 
-        // optimal window
-        String today = cur.time().substring(0, 10);
-        ForecastResponse.OptimalWindow win = null;
-        int windowSize = 4;
-        List<Integer> todayIdx = new ArrayList<>();
-        for (int i = 0; i < hours.size(); i++) {
-            if (hours.get(i).time().startsWith(today)) todayIdx.add(i);
-        }
-        if (todayIdx.size() >= windowSize) {
-            int bestStart = 0;
-            double bestAvg = -1;
-            for (int s = 0; s + windowSize <= todayIdx.size(); s++) {
-                double sum = 0;
-                for (int k = 0; k < windowSize; k++) sum += hours.get(todayIdx.get(s + k)).score();
-                double avg = sum / windowSize;
-                if (avg > bestAvg) { bestAvg = avg; bestStart = s; }
-            }
-            String startTime = hours.get(todayIdx.get(bestStart)).time().substring(11, 16);
-            String endTime = hours.get(todayIdx.get(bestStart + windowSize - 1)).time().substring(11, 16);
-            win = new ForecastResponse.OptimalWindow(startTime, endTime, (int) bestAvg);
-        }
+        // optimal window (lógica compartida con GetForecastUseCase)
+        ForecastResponse.OptimalWindow win =
+                GetForecastUseCase.bestWindowForDate(hours, cur.time().substring(0, 10));
 
         return new ForecastResponse(
                 "loc:" + lat + "," + lon, "Tu ubicación", lat, lon,
@@ -145,9 +142,10 @@ public class GetForecastByLocationUseCase {
         );
     }
 
-    private double sumPrecip(List<Double> list, int from, int len) {
+    /** Suma la precipitación de las `len` horas anteriores a `end` (exclusivo). */
+    private double sumPrecipBack(List<Double> list, int end, int len) {
         double sum = 0;
-        for (int i = from; i < Math.min(from + len, list.size()); i++) sum += list.get(i);
+        for (int i = Math.max(0, end - len); i < Math.min(end, list.size()); i++) sum += list.get(i);
         return sum;
     }
 

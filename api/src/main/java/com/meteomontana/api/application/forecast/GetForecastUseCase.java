@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -29,15 +30,26 @@ public class GetForecastUseCase {
         this.openMeteoClient = openMeteoClient;
     }
 
+    /** Debe coincidir con el queryParam forecast_days de OpenMeteoClient. */
+    private static final int FORECAST_DAYS = 7;
+
     public ForecastResponse execute(String schoolId) {
         School school = schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new SchoolNotFoundException(schoolId));
 
         OpenMeteoResponse weather = openMeteoClient.fetchForecast(school.getLat(), school.getLon());
 
-        List<ForecastResponse.HourForecast> hours = buildHourlyForecast(weather, school.getRockType());
+        // Open-Meteo nos da past_days=3 + forecast_days=7: las primeras 72
+        // entradas son lluvia pasada REAL (para dryRock/hoursToDry y para que
+        // recentRain de las primeras horas no se quede a cero). La respuesta
+        // al cliente mantiene la forma de siempre: horas desde las 00:00 de hoy.
+        List<ForecastResponse.HourForecast> allHours = buildHourlyForecast(weather, school.getRockType());
+        int todayStart = Math.max(0, allHours.size() - FORECAST_DAYS * 24);
+        List<ForecastResponse.HourForecast> hours = List.copyOf(allHours.subList(todayStart, allHours.size()));
+
         List<ForecastResponse.DayForecast>  days  = buildDailyForecast(weather, hours);
-        ForecastResponse.Current current          = buildCurrent(weather, hours, school.getRockType());
+        int nowIdx = todayStart + indexOfCurrentHour(hours);
+        ForecastResponse.Current current          = buildCurrent(weather, allHours, nowIdx, school.getRockType());
         ForecastResponse.BestDay bestDay          = pickBestDay(days);
         ForecastResponse.OptimalWindow window     = pickOptimalWindow(hours, current.time());
 
@@ -127,22 +139,24 @@ public class GetForecastUseCase {
 
     private ForecastResponse.Current buildCurrent(
             OpenMeteoResponse weather,
-            List<ForecastResponse.HourForecast> hours,
+            List<ForecastResponse.HourForecast> allHours,
+            int nowIdx,
             String rockType) {
 
-        // Índice 0 = "ahora" (Open-Meteo devuelve desde la hora actual redondeada).
-        var cur = hours.get(0);
+        var cur = allHours.get(nowIdx);
         OpenMeteoResponse.HourlyData h = weather.hourly();
 
-        // Lluvia acumulada 24h y 72h hacia atrás. Open-Meteo solo da forecast,
-        // así que aproximamos con las primeras N horas que ya pasaron del día
-        // (no es exacto, pero útil para el UI). En realidad la app debería
-        // tener un endpoint con histórico — TODO.
-        // De momento: usamos las próximas 24/72 como proxy (es mejor que nada).
-        double precip24h = sumPrecip(h, 0, 24);
-        double precip72h = sumPrecip(h, 0, 72);
+        // Lluvia acumulada REAL hacia atrás: el array incluye past_days=3,
+        // así que [nowIdx-72, nowIdx) son horas que ya han pasado.
+        double precip24h = sumPrecipBack(h, nowIdx, 24);
+        double precip72h = sumPrecipBack(h, nowIdx, 72);
 
-        boolean dryRock = isDryRock(cur, precip72h, rockType);
+        // Roca seca si lluvia 72h < cap por tipo de roca.
+        // Perfil "seca rápido" (granito, capMult 1.30) tolera más lluvia;
+        // "seca lento" (arenisca, capMult 0.45) tolera muy poca.
+        double dryThreshold = 6.0 * RockDryingProfile.forRockType(rockType).capMult(); // mm
+        boolean dryRock = precip72h < dryThreshold;
+        Integer hoursToDry = computeHoursToDry(h.precipitation(), nowIdx, dryThreshold);
 
         List<ForecastResponse.ScoreFactor> factors = buildFactors(cur, precip24h, precip72h);
 
@@ -150,25 +164,44 @@ public class GetForecastUseCase {
                 cur.time(), cur.temperature(), cur.humidity(), cur.windSpeed(),
                 cur.precipitation(), cur.precipitationProbability(), cur.cloudCover(),
                 cur.dewPoint(), round1(precip24h), round1(precip72h),
-                dryRock, cur.score(), cur.scoreLabel(), factors
+                dryRock, hoursToDry, cur.score(), cur.scoreLabel(), factors
         );
     }
 
-    private double sumPrecip(OpenMeteoResponse.HourlyData h, int from, int len) {
+    /** Última hora del array cuyo timestamp ya ha pasado (las horas vienen en GMT). */
+    private static int indexOfCurrentHour(List<ForecastResponse.HourForecast> hours) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        int idx = 0;
+        for (int i = 0; i < hours.size(); i++) {
+            if (LocalDateTime.parse(hours.get(i).time()).isAfter(now)) break;
+            idx = i;
+        }
+        return idx;
+    }
+
+    /** Suma la precipitación de las `len` horas anteriores a `end` (exclusivo). */
+    private double sumPrecipBack(OpenMeteoResponse.HourlyData h, int end, int len) {
         double sum = 0;
-        for (int i = from; i < Math.min(from + len, h.precipitation().size()); i++) {
+        for (int i = Math.max(0, end - len); i < Math.min(end, h.precipitation().size()); i++) {
             sum += h.precipitation().get(i);
         }
         return sum;
     }
 
-    /** Heurística simple: roca seca si lluvia 72h < cap por tipo de roca. */
-    private boolean isDryRock(ForecastResponse.HourForecast cur, double precip72h, String rockType) {
-        double mult = RockDryingProfile.forRockType(rockType).capMult();
-        // Si el perfil "seca rápido" (granito, capMult 1.30), tolera más lluvia.
-        // Si "seca lento" (arenisca, capMult 0.45), tolera muy poca.
-        double threshold = 6.0 * mult; // mm — ajustable
-        return precip72h < threshold;
+    /**
+     * Horas que faltan para que la roca se considere seca, con la MISMA métrica
+     * que dryRock: acumulado de las 72h anteriores < umbral del tipo de roca.
+     * Avanza hora a hora por el forecast — la roca "se seca" cuando la lluvia
+     * pasada va saliendo de la ventana de 72h sin que entre lluvia nueva.
+     * 0 = seca ya; null = sigue mojada al final del horizonte de 7 días.
+     */
+    static Integer computeHoursToDry(List<Double> precip, int nowIdx, double threshold) {
+        for (int t = nowIdx; t < precip.size(); t++) {
+            double sum = 0;
+            for (int j = Math.max(0, t - 72); j < t; j++) sum += precip.get(j);
+            if (sum < threshold) return t - nowIdx;
+        }
+        return null;
     }
 
     /**
@@ -231,29 +264,37 @@ public class GetForecastUseCase {
 
     private ForecastResponse.OptimalWindow pickOptimalWindow(
             List<ForecastResponse.HourForecast> hours, String currentTime) {
+        return bestWindowForDate(hours, currentTime.substring(0, 10));
+    }
 
-        String today = currentTime.substring(0, 10);
-        // Buscamos la ventana de 4h consecutivas con mejor score promedio del día actual.
+    /**
+     * Mejor ventana de 4h consecutivas (por score promedio) de la fecha dada
+     * (yyyy-MM-dd). Estático y público porque la alerta de tiempo lo reusa
+     * para anunciar la mejor franja del día ganador.
+     */
+    public static ForecastResponse.OptimalWindow bestWindowForDate(
+            List<ForecastResponse.HourForecast> hours, String date) {
+
         int windowSize = 4;
         int bestStart = -1;
         double bestAvg = -1;
 
-        List<Integer> todayIdx = new ArrayList<>();
+        List<Integer> dayIdx = new ArrayList<>();
         for (int i = 0; i < hours.size(); i++) {
-            if (hours.get(i).time().startsWith(today)) todayIdx.add(i);
+            if (hours.get(i).time().startsWith(date)) dayIdx.add(i);
         }
-        if (todayIdx.size() < windowSize) return null;
+        if (dayIdx.size() < windowSize) return null;
 
-        for (int s = 0; s + windowSize <= todayIdx.size(); s++) {
+        for (int s = 0; s + windowSize <= dayIdx.size(); s++) {
             double sum = 0;
-            for (int k = 0; k < windowSize; k++) sum += hours.get(todayIdx.get(s + k)).score();
+            for (int k = 0; k < windowSize; k++) sum += hours.get(dayIdx.get(s + k)).score();
             double avg = sum / windowSize;
             if (avg > bestAvg) { bestAvg = avg; bestStart = s; }
         }
         if (bestStart < 0) return null;
 
-        String startTime = hours.get(todayIdx.get(bestStart)).time().substring(11, 16);
-        String endTime   = hours.get(todayIdx.get(bestStart + windowSize - 1)).time().substring(11, 16);
+        String startTime = hours.get(dayIdx.get(bestStart)).time().substring(11, 16);
+        String endTime   = hours.get(dayIdx.get(bestStart + windowSize - 1)).time().substring(11, 16);
         return new ForecastResponse.OptimalWindow(startTime, endTime, (int) bestAvg);
     }
 
