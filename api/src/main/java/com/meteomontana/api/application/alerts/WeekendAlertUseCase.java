@@ -48,7 +48,8 @@ public class WeekendAlertUseCase {
     /** Resumen de una escuela para los días elegidos. */
     record SchoolWeekend(String schoolId, String name, int avgScore,
                          List<Integer> dayScores, List<DayOfWeek> days,
-                         int rainDays, double maxRainMm) {}
+                         int rainDays, double maxRainMm,
+                         String bestDate, ForecastResponse.OptimalWindow window) {}
 
     public void evaluateAndSend(WeekendAlertPrefJpaEntity pref) {
         var user = userRepository.findByUid(pref.getUid()).orElse(null);
@@ -76,10 +77,16 @@ public class WeekendAlertUseCase {
                 List<DayOfWeek> daysFound = new ArrayList<>();
                 int rainDays = 0;
                 double maxRain = 0;
+                String bestDate = null;
+                int bestDayScore = Integer.MIN_VALUE;
                 for (ForecastResponse.DayForecast d : fc.days()) {
                     if (!targetDates.contains(d.date())) continue;
                     scores.add(d.avgScore());
                     daysFound.add(LocalDate.parse(d.date()).getDayOfWeek());
+                    if (d.avgScore() > bestDayScore) {
+                        bestDayScore = d.avgScore();
+                        bestDate = d.date();
+                    }
                     if (d.precipitationTotal() >= RAIN_DAY_MM) {
                         rainDays++;
                         maxRain = Math.max(maxRain, d.precipitationTotal());
@@ -87,7 +94,11 @@ public class WeekendAlertUseCase {
                 }
                 if (scores.isEmpty()) continue;
                 int avg = (int) Math.round(scores.stream().mapToInt(Integer::intValue).average().orElse(0));
-                results.add(new SchoolWeekend(schoolId.trim(), fc.schoolName(), avg, scores, daysFound, rainDays, maxRain));
+                // Mejor franja de 4h del mejor día elegido — solo se anuncia para la ganadora.
+                ForecastResponse.OptimalWindow window =
+                        GetForecastUseCase.bestWindowForDate(fc.hours(), bestDate);
+                results.add(new SchoolWeekend(schoolId.trim(), fc.schoolName(), avg, scores, daysFound,
+                        rainDays, maxRain, bestDate, window));
             } catch (Exception e) {
                 log.warn("weekend alert: forecast failed for school {}: {}", schoolId, e.getMessage());
             }
@@ -109,6 +120,13 @@ public class WeekendAlertUseCase {
                 .append(s.name()).append(' ').append(s.avgScore())
                 .append(" — ").append(dayBreakdown(s.dayScores(), s.days()))
                 .append(", ").append(rainSummary(s));
+        }
+        if (winner.window() != null) {
+            body.append("\n🕑 Mejor franja: ")
+                .append(DAY_LABELS[LocalDate.parse(winner.bestDate()).getDayOfWeek().getValue() - 1])
+                .append(' ').append(winner.window().start())
+                .append('–').append(winner.window().end())
+                .append(" (").append(winner.window().avgScore()).append(')');
         }
 
         // Data-only: con bloque notification Android en background no ejecuta
