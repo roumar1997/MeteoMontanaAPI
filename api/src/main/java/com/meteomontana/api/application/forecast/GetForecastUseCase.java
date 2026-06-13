@@ -145,7 +145,7 @@ public class GetForecastUseCase {
         boolean dryRock = isDryRock(cur, precip72h, rockType);
 
         List<ForecastResponse.ScoreFactor> factors = buildFactors(cur, precip24h, precip72h);
-        ForecastResponse.RockDrying drying = buildDrying(rockType, precip72h);
+        ForecastResponse.RockDrying drying = buildDrying(rockType, precip72h, hours);
 
         return new ForecastResponse.Current(
                 cur.time(), cur.temperature(), cur.humidity(), cur.windSpeed(),
@@ -156,36 +156,86 @@ public class GetForecastUseCase {
     }
 
     /**
-     * Tiempo de secado estimado tras lluvia, por tipo de roca. Usa el mismo
-     * proxy de lluvia 72h que isDryRock (no tenemos histórico real — TODO arriba)
-     * y deriva las horas del lookback del perfil: ~2/3 del lookback da los
-     * valores acordados (caliza 18h→12h, arenisca 72h→48h, granito 12h→8h).
-     * Con lluvia fuerte (≥2× el umbral del perfil) se alarga un 50%.
+     * Tiempo de secado estimado tras lluvia. Combina cuatro cosas:
+     *  - Tipo de roca: base = ~2/3 del lookback del perfil (granito ~8h,
+     *    caliza ~12h, conglomerado ~32h, arenisca ~48h en condiciones medias).
+     *  - Lluvia reciente: con lluvia fuerte (≥2× el umbral) se alarga un 50%.
+     *  - Condiciones de la ventana de secado (viento, sol, temperatura,
+     *    humedad), promediadas sobre las próximas horas: más viento / más sol /
+     *    más calor / menos humedad → seca antes (ver adjustForConditions).
+     *  - Suelo de seguridad por roca: la arenisca pierde ~75% de resistencia
+     *    mojada y su interior sigue empapado aunque la superficie seque, así
+     *    que nunca baja de 36h por mucho buen tiempo que haga (regla de campo
+     *    de los escaladores); el conglomerado nunca baja de 18h.
+     *
+     * Sigue siendo una heurística (usamos el proxy de lluvia 72h, no histórico
+     * real — TODO arriba), pero ahora con los factores que de verdad mandan.
      */
-    private ForecastResponse.RockDrying buildDrying(String rockType, double precip72h) {
+    private ForecastResponse.RockDrying buildDrying(
+            String rockType, double precip72h, List<ForecastResponse.HourForecast> hours) {
+
         RockDryingProfile profile = RockDryingProfile.forRockType(rockType);
         double threshold = 6.0 * profile.capMult(); // mismo umbral que isDryRock
         int baseHours = (int) Math.round(profile.lookbackHours() * 2.0 / 3.0);
-        boolean sandstone = rockType != null && rockType.toLowerCase().contains("arenisca");
+        String key = rockType == null ? "" : rockType.toLowerCase();
+        boolean sandstone    = key.contains("arenisca");
+        boolean conglomerate = key.contains("conglomerado");
+        int floorHours = sandstone ? 36 : conglomerate ? 18 : 3;
 
         boolean wet = precip72h >= threshold;
         if (!wet) {
-            // La arenisca es frágil mojada por dentro: avisamos aunque "parezca" seca
-            // si ha caído algo de lluvia en la ventana.
+            // La arenisca es frágil mojada por dentro: avisamos aunque "parezca"
+            // seca si ha caído algo de lluvia en la ventana.
             if (sandstone && precip72h >= 1.0) {
-                return new ForecastResponse.RockDrying(false, baseHours,
-                        "Arenisca: evita escalar " + baseHours + " h tras lluvia");
+                int h = Math.max(adjustForConditions(baseHours, hours), floorHours);
+                return new ForecastResponse.RockDrying(false, h,
+                        "Arenisca: evita escalar " + h + " h tras lluvia");
             }
             return new ForecastResponse.RockDrying(false, null, null);
         }
 
-        int hours = precip72h >= threshold * 2
+        int rainBase = precip72h >= threshold * 2
                 ? (int) Math.round(baseHours * 1.5)
                 : baseHours;
+        int est = Math.max(adjustForConditions(rainBase, hours), floorHours);
         String message = sandstone
-                ? "Arenisca: no escalar hasta ~" + hours + " h tras la lluvia"
-                : "Seca en ~" + hours + " h";
-        return new ForecastResponse.RockDrying(true, hours, message);
+                ? "Arenisca: no escalar hasta ~" + est + " h tras la lluvia"
+                : "Seca en ~" + est + " h";
+        return new ForecastResponse.RockDrying(true, est, message);
+    }
+
+    /**
+     * Acorta o alarga las horas de secado según las condiciones de la ventana
+     * en la que la roca de verdad se seca — no el instante actual: si ahora es
+     * de noche no hay sol y engañaría. Promedia viento, nubes, temperatura y
+     * humedad sobre las próximas horas y multiplica un factor por cada uno,
+     * con tope [0.5, 1.8] para que ninguna combinación se desmadre.
+     */
+    private int adjustForConditions(int baseHours, List<ForecastResponse.HourForecast> hours) {
+        int window = Math.min(Math.min(Math.max(baseHours, 6), 24), hours.size());
+        if (window <= 0) return baseHours;
+
+        double wind = 0, cloud = 0, temp = 0, hum = 0;
+        for (int i = 0; i < window; i++) {
+            var hf = hours.get(i);
+            wind  += hf.windSpeed();
+            cloud += hf.cloudCover();
+            temp  += hf.temperature();
+            hum   += hf.humidity();
+        }
+        wind /= window; cloud /= window; temp /= window; hum /= window;
+
+        // Viento: gran acelerador de la evaporación. Calma → seca más lento.
+        double windF = wind >= 30 ? 0.70 : wind >= 20 ? 0.82 : wind >= 10 ? 0.92 : 1.10;
+        // Sol: cielo despejado seca rápido; cubierto retiene humedad.
+        double sunF  = cloud <= 20 ? 0.80 : cloud <= 50 ? 0.92 : cloud <= 80 ? 1.05 : 1.20;
+        // Temperatura: calor evapora; frío alarga.
+        double tempF = temp >= 25 ? 0.82 : temp >= 18 ? 0.92 : temp >= 10 ? 1.05 : 1.25;
+        // Humedad del aire: seca antes con aire seco; aire húmedo no deja evaporar.
+        double humF  = hum  <= 40 ? 0.85 : hum  <= 60 ? 0.95 : hum  <= 80 ? 1.08 : 1.25;
+
+        double mult = Math.max(0.5, Math.min(1.8, windF * sunF * tempF * humF));
+        return (int) Math.round(baseHours * mult);
     }
 
     private double sumPrecip(OpenMeteoResponse.HourlyData h, int from, int len) {
