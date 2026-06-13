@@ -666,6 +666,29 @@ consciente).
 
 (Las últimas 5-10 sesiones aproximadamente. Las más antiguas se podan.)
 
+### Sesión 2026-06-13 — secado de roca según viento/sol/temperatura/humedad
+
+- **Mejora del secado en `GetForecastUseCase`**: el secado ya no depende solo
+  de tipo de roca + lluvia 72h. Nuevo método `adjustForConditions(baseHours,
+  hours)` promedia **viento, nubes, temperatura y humedad** sobre la ventana
+  de secado (próximas horas, no el instante actual — de noche engañaría) y
+  multiplica un factor por cada uno (más viento/sol/calor/sequedad → seca
+  antes), con tope `[0.5, 1.8]` para que ninguna combinación se desmadre.
+- **Suelos de seguridad por roca** en `buildDrying`: la arenisca nunca baja de
+  **36h** (pierde ~75% de resistencia mojada y su interior sigue empapado
+  aunque la superficie seque) y el conglomerado de **18h**, por mucho buen
+  tiempo que haga. Basado en guías de escalada (Access Fund, Climbing.com,
+  Mountain Hardwear). `buildDrying` ahora recibe la lista de `hours`.
+- La base por tipo de roca (granito ~8h, caliza ~12h, conglomerado ~32h,
+  arenisca ~48h) y el +50% por lluvia fuerte se mantienen. Sigue siendo
+  heurística: usa el proxy de lluvia 72h, no histórico real (TODO sin tocar).
+- **Verificado en prod** (Railway): Albarracín (despejado) → 48h, Rozas
+  (cubierto + lluvia fuerte) → 73h. Antes daban lo mismo.
+- **Lado Android** (repo MeteoMontanaAndroid): el estado de la roca + secado
+  sube a una franja con color bajo el índice (`RockStatusBand` en
+  `ForecastBody.kt`), antes estaba al final en `BestDayBar`. También: rediseño
+  del widget Favoritas a tarjetas y fix de firma del APK de CI.
+
 ### Sesión 2026-06-12 (4) — ETag, secado de roca, alerta ventana óptima, fotos en notas
 
 - **ETag/304 en `GET /api/schools`**: `SchoolController` calcula SHA-256 del
@@ -835,7 +858,9 @@ borrar desde el panel admin del front (tab GESTIONAR).
 - `GET /api/schools/{id}`
 - `GET /api/schools/{id}/notes`
 - `GET /api/schools/{id}/photos`
-- `GET /api/schools/{id}/forecast` (cache; expone `weatherCode` WMO por hora)
+- `GET /api/schools/{id}/forecast` (cache; expone `weatherCode` WMO por hora;
+  `current.drying` estima horas de secado por roca + viento/sol/temp/humedad,
+  con suelo de 36h arenisca / 18h conglomerado)
 - `GET /api/schools/{id}/blocks`
 - `GET /api/users/{uid o username}`
 - `GET /actuator/health`
