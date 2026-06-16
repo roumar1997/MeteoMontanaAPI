@@ -299,16 +299,53 @@ public class ReviewContributionUseCase {
         } catch (Exception ignored) {}
     }
 
-    /** Añade líneas (vías) al bloque existente identificado por targetBlockId. */
+    /**
+     * Materializa una contribución BOULDER con targetBlockId (sin targetLineId
+     * a nivel de contribución). Cada entrada de bloquesJson puede llevar un
+     * `targetLineId`: si lo trae, CORRIGE esa vía existente; si no, AÑADE una
+     * nueva. Así una sola propuesta corrige varias vías y/o añade nuevas
+     * (editor unificado de iOS). Retrocompatible: las propuestas antiguas de
+     * solo-añadir no traen targetLineId y caen en el "añadir".
+     */
     private void addLinesToExistingBlock(PendingContribution c) {
         var blockOpt = blockRepo.findById(c.getTargetBlockId());
         if (blockOpt.isEmpty()) return;
         var block = blockOpt.get();
-        // Calcular el siguiente sortOrder a partir de las líneas existentes
-        int baseSort = block.getLines().stream()
-                .mapToInt(BlockLineJpaEntity::getSortOrder).max().orElse(-1) + 1;
-        parseAndAttachLinesWithOffset(block, c.getBloquesJson(), baseSort);
-        blockRepo.save(block);
+        if (c.getBloquesJson() == null || c.getBloquesJson().isBlank()) return;
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode arr = mapper.readTree(c.getBloquesJson());
+            if (!arr.isArray()) return;
+            int sortOrder = block.getLines().stream()
+                    .mapToInt(BlockLineJpaEntity::getSortOrder).max().orElse(-1) + 1;
+            for (JsonNode node : arr) {
+                final String name = node.path("name").asText("").trim();
+                String g = node.path("grade").isNull() ? null : node.path("grade").asText("").trim();
+                final String grade = (g != null && g.isEmpty()) ? null : g;
+                String rawStart = node.path("startType").isNull() ? null : node.path("startType").asText("").trim();
+                final BlockLine.StartType startType = mapStartType(rawStart);
+                final String linePath = node.path("linePath").asText(null);
+                String tId = node.path("targetLineId").isNull() ? null : node.path("targetLineId").asText(null);
+
+                if (tId != null && !tId.isBlank()) {
+                    // Corrige una vía existente de este mismo bloque.
+                    block.getLines().stream()
+                            .filter(l -> l.getId().equals(tId)).findFirst()
+                            .ifPresent(line -> {
+                                if (!name.isEmpty()) line.setName(name);
+                                line.setGrade(grade);
+                                line.setStartType(startType);
+                                if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
+                            });
+                } else {
+                    block.addLine(new BlockLineJpaEntity(
+                            UUID.randomUUID().toString(),
+                            name.isEmpty() ? String.valueOf(sortOrder + 1) : name,
+                            grade, startType, linePath, sortOrder++));
+                }
+            }
+            blockRepo.save(block);
+        } catch (Exception ignored) {}
     }
 
     /** Variante que respeta un offset inicial para sortOrder. */
