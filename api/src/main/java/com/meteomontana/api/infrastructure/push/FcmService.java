@@ -11,14 +11,16 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 /**
- * Envuelve FCM Admin SDK. Cualquier capa que quiera mandar push usa este service.
+ * Adaptador de {@link com.meteomontana.api.domain.port.PushSender} sobre el FCM
+ * Admin SDK. La capa de aplicación depende del puerto, no de esta clase.
  */
 @Service
-public class FcmService {
+public class FcmService implements com.meteomontana.api.domain.port.PushSender {
 
     private static final Logger log = LoggerFactory.getLogger(FcmService.class);
 
     /** Envía push a un dispositivo concreto. Si el token es inválido, lo logueamos. */
+    @Override
     public boolean sendToToken(String token, String title, String body, Map<String, String> data) {
         if (token == null || token.isBlank()) return false;
         try {
@@ -50,6 +52,7 @@ public class FcmService {
      * construir la notificación nativa con extras como el avatar del seguidor.
      * El data map debe incluir "title" y "body".
      */
+    @Override
     public boolean sendDataToToken(String token, Map<String, String> data) {
         if (token == null || token.isBlank()) return false;
         try {
@@ -64,6 +67,7 @@ public class FcmService {
     }
 
     /** Envía a todos los usuarios con token (broadcast simple, iterativo). */
+    @Override
     public int sendToTokens(Iterable<String> tokens, String title, String body, Map<String, String> data) {
         int ok = 0;
         for (String token : tokens) {

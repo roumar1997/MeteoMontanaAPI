@@ -5,7 +5,7 @@ import com.meteomontana.api.domain.model.AdminLog;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.AdminLogRepository;
 import com.meteomontana.api.domain.port.UserRepository;
-import com.meteomontana.api.infrastructure.push.FcmService;
+import com.meteomontana.api.domain.port.PushSender;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,11 +19,11 @@ public class SendAdminPushUseCase {
     public record AdminPushResponse(int sent, int recipients) {}
 
     private final UserRepository userRepository;
-    private final FcmService fcmService;
+    private final PushSender fcmService;
     private final AdminLogRepository adminLogRepository;
     private final AdminGuard adminGuard;
 
-    public SendAdminPushUseCase(UserRepository userRepository, FcmService fcmService,
+    public SendAdminPushUseCase(UserRepository userRepository, PushSender fcmService,
                                 AdminLogRepository adminLogRepository, AdminGuard adminGuard) {
         this.userRepository = userRepository;
         this.fcmService = fcmService;

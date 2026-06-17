@@ -6,7 +6,7 @@ import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFavoriteRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataWeekendAlertRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.WeekendAlertPrefJpaEntity;
-import com.meteomontana.api.infrastructure.push.FcmService;
+import com.meteomontana.api.domain.port.PushSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,13 +31,13 @@ public class OptimalWindowAlertUseCase {
     private final UserRepository userRepository;
     private final SpringDataFavoriteRepository favoriteRepository;
     private final SpringDataWeekendAlertRepository alertRepository;
-    private final FcmService fcmService;
+    private final PushSender fcmService;
 
     public OptimalWindowAlertUseCase(GetForecastUseCase getForecast,
                                      UserRepository userRepository,
                                      SpringDataFavoriteRepository favoriteRepository,
                                      SpringDataWeekendAlertRepository alertRepository,
-                                     FcmService fcmService) {
+                                     PushSender fcmService) {
         this.getForecast = getForecast;
         this.userRepository = userRepository;
         this.favoriteRepository = favoriteRepository;

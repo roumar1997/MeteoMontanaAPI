@@ -7,7 +7,7 @@ import com.meteomontana.api.domain.exception.UserNotFoundException;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.FollowRepository;
 import com.meteomontana.api.domain.port.UserRepository;
-import com.meteomontana.api.infrastructure.push.FcmService;
+import com.meteomontana.api.domain.port.PushSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,13 +28,13 @@ public class FollowUseCase {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
-    private final FcmService fcmService;
+    private final PushSender fcmService;
     private final UserDtoMapper userDtoMapper;
 
     public FollowUseCase(FollowRepository followRepository,
                          UserRepository userRepository,
                          NotificationService notificationService,
-                         FcmService fcmService,
+                         PushSender fcmService,
                          UserDtoMapper userDtoMapper) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;

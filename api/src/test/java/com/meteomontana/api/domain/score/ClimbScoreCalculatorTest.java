@@ -106,6 +106,36 @@ class ClimbScoreCalculatorTest {
     }
 
     @Test
+    void dryingCapOrderingByRockType() {
+        // Misma lluvia reciente: arenisca < conglomerado < granito (seca más lento → cap más bajo).
+        double recent = 5.0;
+        int granito      = ClimbScoreCalculator.calculate(TEMP_OPT, HUM_OPT, WIND_OPT, NO_RAIN, NO_PROB, CLOUD_50, recent, null, "Granito");
+        int conglomerado = ClimbScoreCalculator.calculate(TEMP_OPT, HUM_OPT, WIND_OPT, NO_RAIN, NO_PROB, CLOUD_50, recent, null, "Conglomerado");
+        int arenisca     = ClimbScoreCalculator.calculate(TEMP_OPT, HUM_OPT, WIND_OPT, NO_RAIN, NO_PROB, CLOUD_50, recent, null, "Arenisca");
+        System.out.println("[dryingOrder] 5mm reciente → Granito " + granito
+                + " · Conglomerado " + conglomerado + " · Arenisca " + arenisca);
+        assertTrue(arenisca <= conglomerado, "Arenisca debería capear <= conglomerado");
+        assertTrue(conglomerado <= granito, "Conglomerado debería capear <= granito");
+    }
+
+    @Test
+    void windAndHeatHelpRockDry() {
+        // Con lluvia reciente, viento fuerte + calor suben el cap (dryBoost).
+        int calmCold = ClimbScoreCalculator.calculate(10, HUM_OPT,  5, NO_RAIN, NO_PROB, CLOUD_50, 4.0, null, "Caliza");
+        int windyWarm = ClimbScoreCalculator.calculate(20, HUM_OPT, 25, NO_RAIN, NO_PROB, CLOUD_50, 4.0, null, "Caliza");
+        System.out.println("[dryBoost] calma/frío → " + calmCold + "  |  viento/calor → " + windyWarm);
+        assertTrue(windyWarm >= calmCold, "Viento + calor deberían secar antes (cap >=)");
+    }
+
+    @Test
+    void highProbabilityWithoutRainCaps() {
+        // Sin lluvia real pero 90% de probabilidad → cap en 55.
+        int score = ClimbScoreCalculator.calculate(TEMP_OPT, HUM_OPT, WIND_OPT, NO_RAIN, 90.0, CLOUD_50, NO_RECENT, null, null);
+        System.out.println("[highProb] 0mm + 90% prob → " + score + " (cap esperado <=55)");
+        assertTrue(score <= 55, "90% de probabilidad sin lluvia debería capear en 55, fue: " + score);
+    }
+
+    @Test
     void rockDryingProfileMatchesJS() {
         RockDryingProfile granito      = RockDryingProfile.forRockType("Granito");
         RockDryingProfile arenisca     = RockDryingProfile.forRockType("Arenisca");
