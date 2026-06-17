@@ -21,11 +21,15 @@ public class AdminGuard {
     }
 
     public void ensureAdmin(String uid) {
-        boolean isAdmin = userRepository.findByUid(uid)
-                .map(u -> u.isAdmin())
-                .orElse(false);
-        if (!isAdmin) {
+        if (!isAdmin(uid)) {
             throw new ForbiddenException("Admin role required");
         }
+    }
+
+    /** Comprobación no lanzante (para ramificar comportamiento, p.ej. auto-aprobar). */
+    public boolean isAdmin(String uid) {
+        return userRepository.findByUid(uid)
+                .map(u -> u.isAdmin())
+                .orElse(false);
     }
 }

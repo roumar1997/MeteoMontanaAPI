@@ -19,11 +19,17 @@ public class SubmitContributionUseCase {
 
     private final SpringDataContributionRepository repo;
     private final SchoolRepository schoolRepository;
+    private final com.meteomontana.api.application.admin.AdminGuard adminGuard;
+    private final ReviewContributionUseCase reviewUseCase;
 
     public SubmitContributionUseCase(SpringDataContributionRepository repo,
-                                     SchoolRepository schoolRepository) {
+                                     SchoolRepository schoolRepository,
+                                     com.meteomontana.api.application.admin.AdminGuard adminGuard,
+                                     ReviewContributionUseCase reviewUseCase) {
         this.repo = repo;
         this.schoolRepository = schoolRepository;
+        this.adminGuard = adminGuard;
+        this.reviewUseCase = reviewUseCase;
     }
 
     public ContributionResponse execute(String schoolId, ContributionRequest req,
@@ -53,6 +59,14 @@ public class SubmitContributionUseCase {
         );
 
         repo.save(PendingContributionJpaEntity.from(contribution));
+
+        // Si quien propone es ADMIN, se publica directamente (sin cola de
+        // revisión): materializamos al instante reutilizando la aprobación.
+        // Cubre crear piedra/parking/sector y corregir posición (incl. la
+        // escuela) en ambas apps, sin cambios de UI.
+        if (adminGuard.isAdmin(user.uid())) {
+            return reviewUseCase.approve(contribution.getId(), user);
+        }
         return ContributionResponse.from(contribution);
     }
 }
