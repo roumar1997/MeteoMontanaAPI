@@ -112,6 +112,12 @@ public class ReviewContributionUseCase {
 
     @Transactional
     public ContributionResponse approve(String id, FirebaseUser admin) {
+        return approve(id, admin, true);
+    }
+
+    /** @param notify si false, no manda email de "aprobada" (p.ej. el admin se
+     *  auto-aprueba su propia creación → no tiene sentido avisarse a sí mismo). */
+    public ContributionResponse approve(String id, FirebaseUser admin, boolean notify) {
         var entity = findPending(id);
 
         // ── Materializar según tipo ───────────────────────────────────────────
@@ -171,7 +177,7 @@ public class ReviewContributionUseCase {
         entity.setReviewedAt(LocalDateTime.now());
         repo.save(entity);
 
-        sendReviewEmail(c, true, null);
+        if (notify) sendReviewEmail(c, true, null);
         return ContributionResponse.from(entity.toDomain());
     }
 

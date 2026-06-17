@@ -65,7 +65,8 @@ public class SubmitContributionUseCase {
         // Cubre crear piedra/parking/sector y corregir posición (incl. la
         // escuela) en ambas apps, sin cambios de UI.
         if (adminGuard.isAdmin(user.uid())) {
-            return reviewUseCase.approve(contribution.getId(), user);
+            // notify=false: no avisar por email al propio admin de su creación.
+            return reviewUseCase.approve(contribution.getId(), user, false);
         }
         return ContributionResponse.from(contribution);
     }
