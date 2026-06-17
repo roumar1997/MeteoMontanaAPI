@@ -15,5 +15,6 @@ public record PublicProfileDto(
         String photoUrl,
         String bio,
         String topGrade,
-        boolean locked
+        boolean locked,
+        boolean isPublic
 ) {}

@@ -1,6 +1,7 @@
 package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.domain.model.User;
+import com.meteomontana.api.domain.port.ChatRepository;
 import com.meteomontana.api.domain.port.FollowRepository;
 import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.push.FcmService;
@@ -27,17 +28,52 @@ public class ChatPushController {
 
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final ChatRepository chatRepository;
     private final FcmService fcmService;
 
     public ChatPushController(UserRepository userRepository,
                               FollowRepository followRepository,
+                              ChatRepository chatRepository,
                               FcmService fcmService) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
+        this.chatRepository = chatRepository;
         this.fcmService = fcmService;
     }
 
     public record NotifyRequest(String toUid, String preview) {}
+
+    public record StartRequest(String toUid) {}
+
+    /**
+     * Inicia (o asegura) una conversación 1-a-1. Es la puerta de autorización del
+     * chat: solo el backend crea conversaciones en Firestore. Se permite si el
+     * receptor es público, o si hay relación de seguimiento aceptada en cualquier
+     * sentido. Una vez creada la conversación, las reglas de Firestore dejan a
+     * ambos participantes escribir mensajes (incluida la respuesta de un usuario
+     * privado al que le escribieron primero).
+     */
+    @PostMapping("/start")
+    public ResponseEntity<Void> start(
+            @AuthenticationPrincipal FirebaseUser me,
+            @RequestBody StartRequest req) {
+        if (req == null || req.toUid() == null || req.toUid().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        if (me.uid().equals(req.toUid())) return ResponseEntity.badRequest().build();
+
+        User to = userRepository.findByUid(req.toUid()).orElse(null);
+        if (to == null) return ResponseEntity.notFound().build();
+
+        boolean allowed = to.isPublic()
+                || followRepository.isFollowing(me.uid(), req.toUid())
+                || followRepository.isFollowing(req.toUid(), me.uid())
+                || chatRepository.conversationExists(me.uid(), req.toUid());
+        if (!allowed) return ResponseEntity.status(403).build();
+
+        chatRepository.ensureConversation(me.uid(), req.toUid());
+        return ResponseEntity.ok().build();
+    }
 
     @PostMapping("/notify")
     public ResponseEntity<Void> notify(
@@ -49,19 +85,24 @@ public class ChatPushController {
         // No mandes push a ti mismo
         if (sender.uid().equals(req.toUid())) return ResponseEntity.ok().build();
 
-        // Anti-spam: solo se permite avisar a alguien con quien hay relación de
-        // seguimiento (en cualquier sentido). Sin esto, cualquiera podía mandar
-        // notificaciones push con texto arbitrario a cualquier UID (que es
-        // público). Si no hay relación, se ignora silenciosamente (no se filtra
-        // si el otro existe o tiene token).
-        boolean related = followRepository.isFollowing(sender.uid(), req.toUid())
-                || followRepository.isFollowing(req.toUid(), sender.uid());
-        if (!related) return ResponseEntity.ok().build();
-
         User to = userRepository.findByUid(req.toUid()).orElse(null);
         if (to == null || to.getFcmToken() == null || to.getFcmToken().isBlank()) {
             return ResponseEntity.ok().build();   // sin token, simplemente no se manda
         }
+
+        // Modelo de privacidad del chat: se permite avisar al receptor si
+        //  - el receptor es PÚBLICO (cualquiera puede escribirle), o
+        //  - el emisor SIGUE (aceptado) al receptor —el privado aceptó su solicitud—, o
+        //  - el receptor sigue (aceptado) al emisor, o
+        //  - YA existe una conversación abierta entre ambos (entonces ambos pueden
+        //    seguir hablando aunque no haya follow y el receptor sea privado).
+        // Si no se cumple ninguna, se ignora silenciosamente (no se filtra si el
+        // otro existe o tiene token). El mensaje en sí vive en Firestore aparte.
+        boolean allowed = to.isPublic()
+                || followRepository.isFollowing(sender.uid(), req.toUid())
+                || followRepository.isFollowing(req.toUid(), sender.uid())
+                || chatRepository.conversationExists(sender.uid(), req.toUid());
+        if (!allowed) return ResponseEntity.ok().build();
         User from = userRepository.findByUid(sender.uid()).orElse(null);
         String fromName = (from != null && from.getDisplayName() != null)
                 ? from.getDisplayName()

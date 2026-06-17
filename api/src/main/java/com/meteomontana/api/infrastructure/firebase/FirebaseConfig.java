@@ -1,11 +1,14 @@
 package com.meteomontana.api.infrastructure.firebase;
 
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.cloud.FirestoreClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import jakarta.annotation.PostConstruct;
 
@@ -54,6 +57,18 @@ public class FirebaseConfig {
 
         FirebaseApp.initializeApp(options);
         log.info("Firebase Admin SDK inicializado (bucket={})", storageBucket);
+    }
+
+    /**
+     * Cliente Firestore para que el backend pueda leer el chat (que vive en
+     * Firestore). Se usa, p.ej., para comprobar si una conversación ya existe
+     * antes de decidir si mandar una push notification. Se inicializa de forma
+     * perezosa tras {@link #initialize()} (FirebaseApp ya estará listo cuando
+     * Spring resuelva este bean, porque @PostConstruct corre antes).
+     */
+    @Bean
+    public Firestore firestore() {
+        return FirestoreClient.getFirestore();
     }
 
     private InputStream resolveCredentials() {

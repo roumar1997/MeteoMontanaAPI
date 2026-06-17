@@ -26,7 +26,8 @@ public class UserDtoMapper {
                 resolvePhotoUrl(u.getPhotoPath()),
                 u.getBio(),
                 u.getTopGrade(),
-                false
+                false,
+                u.isPublic()
         );
     }
 
@@ -39,7 +40,8 @@ public class UserDtoMapper {
                 resolvePhotoUrl(u.getPhotoPath()),
                 null,
                 null,
-                true
+                true,
+                false
         );
     }
 
