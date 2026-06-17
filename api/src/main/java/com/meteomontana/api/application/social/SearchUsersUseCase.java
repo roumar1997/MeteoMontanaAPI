@@ -22,11 +22,17 @@ public class SearchUsersUseCase {
     }
 
     /** Devuelve hasta 20 usuarios cuyo username/displayName contenga la query.
-     *  Los privados aparecen pero con locked=true. */
+     *  Los privados aparecen pero con locked=true.
+     *
+     *  La consulta se acota en BD (LIKE + LIMIT 100) para no cargar toda la tabla
+     *  de usuarios en memoria (era un vector de DoS en un endpoint público). El
+     *  segundo filtro en Java mantiene la insensibilidad a acentos sobre ese
+     *  conjunto ya reducido. El cap final lo aplica el controller (máx 50). */
     public List<PublicProfileDto> search(String query, int limit) {
         if (query == null || query.trim().isBlank()) return List.of();
-        String needle = normalize(query.trim());
-        return jpa.findAll().stream()
+        String trimmed = query.trim();
+        String needle = normalize(trimmed);
+        return jpa.findTop100ByUsernameContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(trimmed, trimmed).stream()
                 .filter(u -> {
                     String hay = normalize(
                             (u.getUsername() != null ? u.getUsername() : "") + " " +

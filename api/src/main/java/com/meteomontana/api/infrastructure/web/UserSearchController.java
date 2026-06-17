@@ -22,6 +22,8 @@ public class UserSearchController {
     @GetMapping("/search")
     public List<PublicProfileDto> search(@RequestParam("q") String query,
                                          @RequestParam(value = "limit", defaultValue = "20") int limit) {
-        return useCase.search(query, limit);
+        // Cap del lado servidor: el cliente no puede pedir un límite arbitrario.
+        int safeLimit = Math.min(Math.max(limit, 1), 50);
+        return useCase.search(query, safeLimit);
     }
 }

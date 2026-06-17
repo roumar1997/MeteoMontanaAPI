@@ -1,5 +1,6 @@
 package com.meteomontana.api.infrastructure.web;
 
+import com.meteomontana.api.application.admin.AdminGuard;
 import com.meteomontana.api.application.blocks.SchoolBlockUseCase;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.http.HttpStatus;
@@ -21,9 +22,11 @@ import java.util.List;
 public class SchoolBlockController {
 
     private final SchoolBlockUseCase useCase;
+    private final AdminGuard adminGuard;
 
-    public SchoolBlockController(SchoolBlockUseCase useCase) {
+    public SchoolBlockController(SchoolBlockUseCase useCase, AdminGuard adminGuard) {
         this.useCase = useCase;
+        this.adminGuard = adminGuard;
     }
 
     /** Público: listar bloques de la escuela. */
@@ -38,14 +41,17 @@ public class SchoolBlockController {
         return useCase.findById(id);
     }
 
-    /** Auth: crear bloque (cualquier user; el admin lo creará directamente,
-     *  usuarios mandarán propuestas vía submissions en el futuro). */
+    /** Crear bloque directamente: SOLO admin. Los usuarios normales proponen
+     *  bloques vía /api/schools/{id}/contributions (cola de revisión), no aquí.
+     *  Sin esta restricción cualquier usuario autenticado podía insertar bloques
+     *  en producción sin revisión (spam). */
     @PostMapping("/schools/{id}/blocks")
     @ResponseStatus(HttpStatus.CREATED)
     public SchoolBlockUseCase.BlockDto create(
             @AuthenticationPrincipal FirebaseUser user,
             @PathVariable String id,
             @RequestBody SchoolBlockUseCase.CreateBlockRequest req) {
+        adminGuard.ensureAdmin(user.uid());
         return useCase.create(user.uid(), id, req);
     }
 

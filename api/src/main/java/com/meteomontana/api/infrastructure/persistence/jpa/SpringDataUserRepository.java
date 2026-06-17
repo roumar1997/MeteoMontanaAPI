@@ -10,4 +10,9 @@ public interface SpringDataUserRepository
 
     Optional<UserJpaEntity> findByUsernameIgnoreCase(String username);
     List<UserJpaEntity> findAllByFcmTokenIsNotNull();
+
+    /** Búsqueda acotada en BD (LIKE + LIMIT 100): evita cargar toda la tabla en
+     *  memoria en el endpoint público de búsqueda (riesgo de DoS). */
+    List<UserJpaEntity> findTop100ByUsernameContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(
+            String username, String displayName);
 }

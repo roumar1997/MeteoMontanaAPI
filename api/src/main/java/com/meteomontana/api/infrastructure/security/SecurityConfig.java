@@ -67,6 +67,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
 
+                // Zona admin: como mínimo autenticado a nivel de Security
+                // (defensa en profundidad). El rol admin lo verifica además
+                // AdminGuard.ensureAdmin() dentro de cada endpoint/use case.
+                .requestMatchers("/api/admin/**").authenticated()
+
                 // Todo lo demás requiere autenticación
                 .anyRequest().authenticated()
             )

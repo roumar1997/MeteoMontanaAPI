@@ -1,6 +1,7 @@
 package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.domain.model.User;
+import com.meteomontana.api.domain.port.FollowRepository;
 import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.push.FcmService;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
@@ -25,10 +26,14 @@ import java.util.Map;
 public class ChatPushController {
 
     private final UserRepository userRepository;
+    private final FollowRepository followRepository;
     private final FcmService fcmService;
 
-    public ChatPushController(UserRepository userRepository, FcmService fcmService) {
+    public ChatPushController(UserRepository userRepository,
+                              FollowRepository followRepository,
+                              FcmService fcmService) {
         this.userRepository = userRepository;
+        this.followRepository = followRepository;
         this.fcmService = fcmService;
     }
 
@@ -44,6 +49,15 @@ public class ChatPushController {
         // No mandes push a ti mismo
         if (sender.uid().equals(req.toUid())) return ResponseEntity.ok().build();
 
+        // Anti-spam: solo se permite avisar a alguien con quien hay relación de
+        // seguimiento (en cualquier sentido). Sin esto, cualquiera podía mandar
+        // notificaciones push con texto arbitrario a cualquier UID (que es
+        // público). Si no hay relación, se ignora silenciosamente (no se filtra
+        // si el otro existe o tiene token).
+        boolean related = followRepository.isFollowing(sender.uid(), req.toUid())
+                || followRepository.isFollowing(req.toUid(), sender.uid());
+        if (!related) return ResponseEntity.ok().build();
+
         User to = userRepository.findByUid(req.toUid()).orElse(null);
         if (to == null || to.getFcmToken() == null || to.getFcmToken().isBlank()) {
             return ResponseEntity.ok().build();   // sin token, simplemente no se manda
@@ -53,8 +67,11 @@ public class ChatPushController {
                 ? from.getDisplayName()
                 : (from != null && from.getUsername() != null ? from.getUsername() : "Mensaje nuevo");
 
-        String preview = req.preview() == null ? "" :
-                (req.preview().length() > 80 ? req.preview().substring(0, 80) + "…" : req.preview());
+        // Saneo: quita caracteres de control/formato (incl. overrides bidi) que
+        // podrían usarse para falsear la notificación, y recorta a 80.
+        String rawPreview = req.preview() == null ? "" :
+                req.preview().replaceAll("[\\p{Cc}\\p{Cf}]", "").strip();
+        String preview = rawPreview.length() > 80 ? rawPreview.substring(0, 80) + "…" : rawPreview;
 
         Map<String, String> data = new HashMap<>();
         data.put("targetType", "chat");
