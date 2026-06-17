@@ -2,6 +2,7 @@ package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.application.forecast.ForecastResponse;
 import com.meteomontana.api.application.forecast.GetForecastByLocationUseCase;
+import com.meteomontana.api.application.forecast.GetRangeScoresUseCase;
 import com.meteomontana.api.application.forecast.GetTodayScoresUseCase;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,17 +17,28 @@ public class ForecastController {
 
     private final GetForecastByLocationUseCase useCase;
     private final GetTodayScoresUseCase todayScoresUseCase;
+    private final GetRangeScoresUseCase rangeScoresUseCase;
 
     public ForecastController(GetForecastByLocationUseCase useCase,
-                              GetTodayScoresUseCase todayScoresUseCase) {
+                              GetTodayScoresUseCase todayScoresUseCase,
+                              GetRangeScoresUseCase rangeScoresUseCase) {
         this.useCase = useCase;
         this.todayScoresUseCase = todayScoresUseCase;
+        this.rangeScoresUseCase = rangeScoresUseCase;
     }
 
     @GetMapping("/forecast/today-scores")
     public List<GetTodayScoresUseCase.SchoolScoreDto> todayScores(
             @RequestParam("ids") List<String> ids) {
         return todayScoresUseCase.forIds(ids);
+    }
+
+    /** Score de un tramo de días elegidos (selector de días de la lista). */
+    @GetMapping("/forecast/range-scores")
+    public List<GetRangeScoresUseCase.RangeScoreDto> rangeScores(
+            @RequestParam("ids") List<String> ids,
+            @RequestParam("dates") List<String> dates) {
+        return rangeScoresUseCase.forIds(ids, dates);
     }
 
     @GetMapping("/forecast/by-location")
