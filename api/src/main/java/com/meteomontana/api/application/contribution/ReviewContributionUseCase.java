@@ -202,11 +202,18 @@ public class ReviewContributionUseCase {
     }
 
     private void createBlock(PendingContribution c, SchoolBlock.Type type, String adminUid) {
+        // Las PIEDRAS (BLOCK) no llevan nombre libre: se les asigna un NÚMERO
+        // secuencial único en la escuela en el momento de materializarse (al
+        // aprobar o al crear el admin). Así dos propuestas simultáneas nunca
+        // comparten número. PARKING/ZONE sí conservan su nombre propio.
+        String name = (type == SchoolBlock.Type.BLOCK)
+                ? nextBlockNumber(c.getSchoolId())
+                : (c.getName() != null ? c.getName() : type.name().toLowerCase());
         var block = new SchoolBlockJpaEntity(
                 UUID.randomUUID().toString(),
                 c.getSchoolId(),
                 type,
-                c.getName() != null ? c.getName() : type.name().toLowerCase(),
+                name,
                 c.getLat(),
                 c.getLon(),
                 c.getPhotoUrl(), // foto de Firebase Storage (null para PARKING/SECTOR)
@@ -224,6 +231,17 @@ public class ReviewContributionUseCase {
         }
 
         blockRepo.save(block);
+    }
+
+    /** Siguiente número de piedra libre en la escuela (máx número existente + 1). */
+    private String nextBlockNumber(String schoolId) {
+        int max = blockRepo.findBySchoolIdOrderByCreatedAtAsc(schoolId).stream()
+                .filter(b -> b.getType() == SchoolBlock.Type.BLOCK)
+                .map(SchoolBlockJpaEntity::getName)
+                .filter(n -> n != null && n.matches("\\d+"))
+                .mapToInt(Integer::parseInt)
+                .max().orElse(0);
+        return String.valueOf(max + 1);
     }
 
     /** Parsea el JSON `bloquesJson` y añade BlockLineJpaEntity al bloque. */

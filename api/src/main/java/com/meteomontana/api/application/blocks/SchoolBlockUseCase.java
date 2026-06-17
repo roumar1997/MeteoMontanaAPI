@@ -70,11 +70,19 @@ public class SchoolBlockUseCase {
         schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new SchoolNotFoundException(schoolId));
 
-        if (req.name() == null || req.name().isBlank())
-            throw new IllegalArgumentException("name required");
         if (req.lat() == null || req.lon() == null)
             throw new IllegalArgumentException("lat/lon required");
         SchoolBlock.Type type = SchoolBlock.Type.valueOf(req.type());
+        // PIEDRA (BLOCK): número automático único en la escuela (sin nombre libre).
+        // PARKING/ZONE: nombre propio (obligatorio).
+        String name;
+        if (type == SchoolBlock.Type.BLOCK) {
+            name = nextBlockNumber(schoolId);
+        } else {
+            if (req.name() == null || req.name().isBlank())
+                throw new IllegalArgumentException("name required");
+            name = req.name().trim();
+        }
 
         List<BlockLine> lines = req.lines() == null ? List.of() :
                 req.lines().stream().map(l -> new BlockLine(
@@ -89,7 +97,7 @@ public class SchoolBlockUseCase {
 
         SchoolBlock block = new SchoolBlock(
                 UUID.randomUUID().toString(),
-                schoolId, type, req.name().trim(),
+                schoolId, type, name,
                 req.lat(), req.lon(),
                 req.photoPath(),
                 req.description(),
@@ -97,6 +105,17 @@ public class SchoolBlockUseCase {
                 type == SchoolBlock.Type.BLOCK ? req.sectorBlockId() : null
         );
         return toDto(blockRepository.save(block));
+    }
+
+    /** Siguiente número de piedra libre en la escuela (máx número existente + 1). */
+    private String nextBlockNumber(String schoolId) {
+        int max = blockRepository.findBySchoolId(schoolId).stream()
+                .filter(b -> b.getType() == SchoolBlock.Type.BLOCK)
+                .map(SchoolBlock::getName)
+                .filter(n -> n != null && n.matches("\\d+"))
+                .mapToInt(Integer::parseInt)
+                .max().orElse(0);
+        return String.valueOf(max + 1);
     }
 
     @Transactional
