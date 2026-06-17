@@ -8,8 +8,17 @@ import java.util.List;
 
 /**
  * Score de un TRAMO de varios días (los que el usuario elige) para cada escuela.
- * Pensado para el selector de días de la lista de escuelas: combina el score
- * diario con una penalización por lluvia (mm/%) y dice en qué días llueve.
+ * Pensado para el selector de días de la lista de escuelas.
+ *
+ * IMPORTANTE sobre la lluvia: NO aplicamos una penalización propia por mm. El
+ * score diario ({@code avgScore}) YA modela la lluvia y el SECADO por tipo de
+ * roca: cada hora se calcula con la lluvia reciente de una ventana que depende
+ * de la piedra ({@link RockDryingProfile}: arenisca 72h, granito 12h…), así que
+ * un día posterior a la lluvia ya sale con score bajo en arenisca y se recupera
+ * antes en granito. Por eso el combinado es simplemente la media de los días
+ * elegidos; añadir un castigo por mm sería redundante e ignoraría la roca.
+ * Los campos de lluvia (rainy/rainDays/maxRainMm) son solo informativos para
+ * marcar en la UI qué días llueve.
  *
  * Reutiliza {@link GetForecastUseCase} (cacheado) — un forecast por escuela.
  * Cacheado por (ids, dates): como las fechas rotan cada día, la clave se
@@ -37,8 +46,8 @@ public class GetRangeScoresUseCase {
     /** Resumen del tramo para una escuela. */
     public record RangeScoreDto(
             String id,
-            int combinedScore,        // media de días − penalización por lluvia
-            int avgScore,             // media simple (sin penalizar), informativo
+            int combinedScore,        // media de los días (el score diario ya modela el secado por roca)
+            int avgScore,             // == combinedScore (se mantiene por compatibilidad del DTO)
             List<DayScoreDto> days,
             int rainDays,
             double maxRainMm
@@ -71,7 +80,7 @@ public class GetRangeScoresUseCase {
 
     private RangeScoreDto summarize(String id, ForecastResponse fc, List<String> dates) {
         List<DayScoreDto> days = new ArrayList<>();
-        int sumScore = 0, penalty = 0, rainDays = 0;
+        int sumScore = 0, rainDays = 0;
         double maxRainMm = 0;
 
         for (String date : dates) {
@@ -85,25 +94,17 @@ public class GetRangeScoresUseCase {
             boolean rainy = mm >= RAIN_DAY_MM || prob >= RAIN_PROB;
 
             sumScore += d.avgScore();
-            penalty += rainPenalty(mm, prob);
             if (rainy) { rainDays++; maxRainMm = Math.max(maxRainMm, mm); }
 
             days.add(new DayScoreDto(date, d.avgScore(), round1(mm), prob, rainy));
         }
 
         if (days.isEmpty()) return new RangeScoreDto(id, 0, 0, List.of(), 0, 0);
+        // Media de los días. El score diario ya penaliza la lluvia y el secado
+        // por roca (ventana de lluvia reciente por tipo de piedra) → no añadimos
+        // castigo propio (sería redundante e ignoraría la roca).
         int avg = Math.round((float) sumScore / days.size());
-        int combined = Math.max(0, avg - penalty);
-        return new RangeScoreDto(id, combined, avg, days, rainDays, round1(maxRainMm));
-    }
-
-    /** Penalización por la lluvia de UN día: escalada por mm y, en su defecto, por % de probabilidad. */
-    private static int rainPenalty(double mm, int prob) {
-        if (mm >= 8) return 25;
-        if (mm >= 3) return 15;
-        if (mm >= 1) return 8;
-        if (prob >= RAIN_PROB) return 6;   // poca cantidad pero alto riesgo
-        return 0;
+        return new RangeScoreDto(id, avg, avg, days, rainDays, round1(maxRainMm));
     }
 
     /** Probabilidad de precipitación máxima de las horas de ese día. */
