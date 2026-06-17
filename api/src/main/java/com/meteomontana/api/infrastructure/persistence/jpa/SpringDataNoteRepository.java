@@ -7,4 +7,7 @@ public interface SpringDataNoteRepository
         extends JpaRepository<NoteJpaEntity, String> {
 
     List<NoteJpaEntity> findBySchoolId(String schoolId);
+
+    /** Borrado de cuenta. */
+    void deleteByUid(String uid);
 }

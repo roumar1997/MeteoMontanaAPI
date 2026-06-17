@@ -10,4 +10,7 @@ public interface SpringDataSchoolSubmissionRepository
 
     List<SchoolSubmissionJpaEntity> findByStatusOrderByCreatedAtAsc(SubmissionStatus status);
     List<SchoolSubmissionJpaEntity> findBySubmittedByUidOrderByCreatedAtDesc(String uid);
+
+    /** Borrado de cuenta. */
+    void deleteBySubmittedByUid(String uid);
 }

@@ -1,5 +1,6 @@
 package com.meteomontana.api.infrastructure.web;
 
+import com.meteomontana.api.application.users.DeleteMyAccountUseCase;
 import com.meteomontana.api.application.users.GetOrCreateMyProfileUseCase;
 import com.meteomontana.api.application.users.GetPublicProfileUseCase;
 import com.meteomontana.api.application.users.PrivateProfileDto;
@@ -12,6 +13,7 @@ import com.meteomontana.api.application.users.UserDtoMapper;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +36,7 @@ public class UserController {
     private final UpdateMyProfileUseCase      updateMyProfile;
     private final UpdateFcmTokenUseCase       updateFcmToken;
     private final UpdateProfilePhotoUseCase   updateProfilePhoto;
+    private final DeleteMyAccountUseCase      deleteMyAccount;
     private final UserDtoMapper               userDtoMapper;
 
     public UserController(GetOrCreateMyProfileUseCase getOrCreateMyProfile,
@@ -41,12 +44,14 @@ public class UserController {
                           UpdateMyProfileUseCase updateMyProfile,
                           UpdateFcmTokenUseCase updateFcmToken,
                           UpdateProfilePhotoUseCase updateProfilePhoto,
+                          DeleteMyAccountUseCase deleteMyAccount,
                           UserDtoMapper userDtoMapper) {
         this.getOrCreateMyProfile = getOrCreateMyProfile;
         this.getPublicProfile     = getPublicProfile;
         this.updateMyProfile      = updateMyProfile;
         this.updateFcmToken       = updateFcmToken;
         this.updateProfilePhoto   = updateProfilePhoto;
+        this.deleteMyAccount      = deleteMyAccount;
         this.userDtoMapper        = userDtoMapper;
     }
 
@@ -66,6 +71,13 @@ public class UserController {
     public void updateFcmToken(@AuthenticationPrincipal FirebaseUser user,
                                @RequestBody UpdateFcmTokenUseCase.FcmTokenRequest req) {
         updateFcmToken.execute(user.uid(), req.token());
+    }
+
+    /** Borrado de cuenta (requisito de las tiendas): elimina datos + Firebase Auth. */
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMe(@AuthenticationPrincipal FirebaseUser user) {
+        deleteMyAccount.execute(user.uid());
     }
 
     @PostMapping("/me/photo")

@@ -8,4 +8,7 @@ public interface SpringDataJournalRepository
         extends JpaRepository<JournalSessionJpaEntity, String> {
 
     List<JournalSessionJpaEntity> findByUidOrderBySessionDateDesc(String uid);
+
+    /** Borrado de cuenta. */
+    void deleteByUid(String uid);
 }
