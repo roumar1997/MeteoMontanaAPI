@@ -107,15 +107,18 @@ public class SchoolBlockUseCase {
         return toDto(blockRepository.save(block));
     }
 
-    /** Siguiente número de piedra libre en la escuela (máx número existente + 1). */
+    /** Menor número de piedra LIBRE en la escuela (rellena huecos al borrar).
+     *  Único por escuela. */
     private String nextBlockNumber(String schoolId) {
-        int max = blockRepository.findBySchoolId(schoolId).stream()
+        java.util.Set<Integer> used = blockRepository.findBySchoolId(schoolId).stream()
                 .filter(b -> b.getType() == SchoolBlock.Type.BLOCK)
                 .map(SchoolBlock::getName)
                 .filter(n -> n != null && n.matches("\\d+"))
-                .mapToInt(Integer::parseInt)
-                .max().orElse(0);
-        return String.valueOf(max + 1);
+                .map(Integer::parseInt)
+                .collect(java.util.stream.Collectors.toSet());
+        int n = 1;
+        while (used.contains(n)) n++;
+        return String.valueOf(n);
     }
 
     @Transactional

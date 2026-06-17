@@ -233,15 +233,18 @@ public class ReviewContributionUseCase {
         blockRepo.save(block);
     }
 
-    /** Siguiente número de piedra libre en la escuela (máx número existente + 1). */
+    /** Menor número de piedra LIBRE en la escuela (rellena huecos al borrar:
+     *  si existen 1 y 3, devuelve 2; si existen 2 y 3, devuelve 1). Único por escuela. */
     private String nextBlockNumber(String schoolId) {
-        int max = blockRepo.findBySchoolIdOrderByCreatedAtAsc(schoolId).stream()
+        java.util.Set<Integer> used = blockRepo.findBySchoolIdOrderByCreatedAtAsc(schoolId).stream()
                 .filter(b -> b.getType() == SchoolBlock.Type.BLOCK)
                 .map(SchoolBlockJpaEntity::getName)
                 .filter(n -> n != null && n.matches("\\d+"))
-                .mapToInt(Integer::parseInt)
-                .max().orElse(0);
-        return String.valueOf(max + 1);
+                .map(Integer::parseInt)
+                .collect(java.util.stream.Collectors.toSet());
+        int n = 1;
+        while (used.contains(n)) n++;
+        return String.valueOf(n);
     }
 
     /** Parsea el JSON `bloquesJson` y añade BlockLineJpaEntity al bloque. */
