@@ -53,6 +53,12 @@ public class FollowController {
         return useCase.listFollowing(uid);
     }
 
+    @DeleteMapping("/me/followers/{followerUid}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeFollower(@AuthenticationPrincipal FirebaseUser me, @PathVariable String followerUid) {
+        useCase.removeFollower(me.uid(), followerUid);
+    }
+
     @GetMapping("/me/follow-requests")
     public List<PublicProfileDto> myPendingRequests(@AuthenticationPrincipal FirebaseUser me) {
         return useCase.listPendingRequests(me.uid());

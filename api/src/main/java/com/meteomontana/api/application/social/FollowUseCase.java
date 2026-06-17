@@ -119,6 +119,16 @@ public class FollowUseCase {
         followRepository.remove(followerUid, followedUid);
     }
 
+    /**
+     * Elimino a un seguidor: fuerzo que {@code followerUid} deje de seguirme a mí
+     * ({@code myUid}). Mismo borrado que rechazar una solicitud, pero para una
+     * relación ya aceptada. Idempotente (si no me sigue, no pasa nada).
+     */
+    @Transactional
+    public void removeFollower(String myUid, String followerUid) {
+        followRepository.remove(followerUid, myUid);
+    }
+
     @Transactional
     public void acceptRequest(String myUid, String requesterUid) {
         if (!followRepository.hasPendingRequest(requesterUid, myUid)) {

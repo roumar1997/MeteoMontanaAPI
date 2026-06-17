@@ -1,5 +1,7 @@
 package com.meteomontana.api.infrastructure.push;
 
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -19,6 +21,30 @@ public class FcmService implements com.meteomontana.api.domain.port.PushSender {
 
     private static final Logger log = LoggerFactory.getLogger(FcmService.class);
 
+    // Debe coincidir con el canal creado en la app (PushService.CHANNEL_ID) y el
+    // icono/color de la marca, para cuando es el SISTEMA quien pinta la notificación
+    // (app en background o cerrada → onMessageReceived NO corre).
+    private static final String ANDROID_CHANNEL_ID = "meteomontana_general";
+    private static final String ANDROID_ICON = "ic_notification";
+    private static final String ANDROID_COLOR = "#C0532B"; // Terra
+
+    /**
+     * Config Android con PRIORIDAD ALTA. Sin esto, un push a una app cerrada en
+     * móviles con gestión agresiva de batería (Xiaomi/MIUI, Doze) se retrasa o se
+     * descarta → la notificación "no llega" hasta abrir la app. Incluye canal,
+     * icono y color para que el sistema pinte la notificación con la marca.
+     */
+    private static AndroidConfig highPriorityAndroid() {
+        return AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .setNotification(AndroidNotification.builder()
+                        .setChannelId(ANDROID_CHANNEL_ID)
+                        .setIcon(ANDROID_ICON)
+                        .setColor(ANDROID_COLOR)
+                        .build())
+                .build();
+    }
+
     /** Envía push a un dispositivo concreto. Si el token es inválido, lo logueamos. */
     @Override
     public boolean sendToToken(String token, String title, String body, Map<String, String> data) {
@@ -29,7 +55,8 @@ public class FcmService implements com.meteomontana.api.domain.port.PushSender {
                     .setNotification(Notification.builder()
                             .setTitle(title)
                             .setBody(body)
-                            .build());
+                            .build())
+                    .setAndroidConfig(highPriorityAndroid());
             if (data != null) msg.putAllData(data);
 
             String id = FirebaseMessaging.getInstance().send(msg.build());
@@ -47,17 +74,32 @@ public class FcmService implements com.meteomontana.api.domain.port.PushSender {
     }
 
     /**
-     * Envía push SOLO con data (sin bloque notification). Así onMessageReceived
-     * de la app se ejecuta siempre — también con la app en background — y puede
-     * construir la notificación nativa con extras como el avatar del seguidor.
-     * El data map debe incluir "title" y "body".
+     * Push para las notificaciones sociales (follows, alertas). El data map incluye
+     * "title"/"body" + targetType/targetId (deep-link) + avatarUrl opcional.
+     *
+     * Lleva bloque `notification` Y data, con prioridad ALTA:
+     *  - App en PRIMER PLANO → onMessageReceived construye la notificación nativa
+     *    con el avatar del seguidor (largeIcon circular).
+     *  - App en BACKGROUND o CERRADA → la pinta el sistema (fiable aunque la app
+     *    esté muerta; antes era solo-data y Xiaomi no la despertaba → no llegaba).
+     *    Al tocarla, el `data` llega como extras del intent → deep-link igual.
      */
     @Override
     public boolean sendDataToToken(String token, Map<String, String> data) {
         if (token == null || token.isBlank()) return false;
         try {
-            String id = FirebaseMessaging.getInstance().send(
-                    Message.builder().setToken(token).putAllData(data).build());
+            String title = data != null ? data.getOrDefault("title", "Cumbre") : "Cumbre";
+            String body  = data != null ? data.getOrDefault("body", "") : "";
+            Message.Builder msg = Message.builder()
+                    .setToken(token)
+                    .setNotification(Notification.builder()
+                            .setTitle(title)
+                            .setBody(body)
+                            .build())
+                    .setAndroidConfig(highPriorityAndroid());
+            if (data != null) msg.putAllData(data);
+
+            String id = FirebaseMessaging.getInstance().send(msg.build());
             log.debug("FCM data sent: {}", id);
             return true;
         } catch (FirebaseMessagingException e) {
