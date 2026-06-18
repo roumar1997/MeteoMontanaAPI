@@ -20,6 +20,9 @@ public interface SpringDataNotificationRepository
     @Query("UPDATE NotificationJpaEntity n SET n.readAt = :now WHERE n.uid = :uid AND n.readAt IS NULL")
     void markAllAsRead(@Param("uid") String uid, @Param("now") LocalDateTime now);
 
-    /** Borrado de cuenta. */
+    /** Borrado de cuenta / borrar todas. */
     void deleteByUid(String uid);
+
+    /** Borra una notificación solo si es del usuario (devuelve nº borradas). */
+    long deleteByIdAndUid(String id, String uid);
 }

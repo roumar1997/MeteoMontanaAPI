@@ -12,4 +12,8 @@ public interface NotificationRepository {
     long countUnread(String uid);
     void markAsRead(String id);
     void markAllAsRead(String uid);
+    /** Borra una notificación SOLO si pertenece a ese uid (seguridad). */
+    void delete(String id, String uid);
+    /** Borra todas las notificaciones del usuario. */
+    void deleteAll(String uid);
 }

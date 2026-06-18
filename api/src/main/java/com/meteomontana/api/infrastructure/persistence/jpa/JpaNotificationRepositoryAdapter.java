@@ -61,6 +61,18 @@ public class JpaNotificationRepositoryAdapter implements NotificationRepository 
         jpaRepo.markAllAsRead(uid, LocalDateTime.now());
     }
 
+    @Override
+    @Transactional
+    public void delete(String id, String uid) {
+        jpaRepo.deleteByIdAndUid(id, uid);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAll(String uid) {
+        jpaRepo.deleteByUid(uid);
+    }
+
     private Notification toDomain(NotificationJpaEntity e) {
         return new Notification(
                 e.getId(), e.getUid(), e.getType(), e.getTitle(), e.getBody(),

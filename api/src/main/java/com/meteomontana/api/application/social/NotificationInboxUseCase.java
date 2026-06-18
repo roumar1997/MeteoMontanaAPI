@@ -25,4 +25,12 @@ public class NotificationInboxUseCase {
     public void markAllRead(String uid) {
         repository.markAllAsRead(uid);
     }
+
+    public void delete(String id, String uid) {
+        repository.delete(id, uid);
+    }
+
+    public void deleteAll(String uid) {
+        repository.deleteAll(uid);
+    }
 }
