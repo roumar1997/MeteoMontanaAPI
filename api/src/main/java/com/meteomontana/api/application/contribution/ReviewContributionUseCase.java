@@ -302,6 +302,20 @@ public class ReviewContributionUseCase {
         }
     }
 
+    /**
+     * La portada del bloque = foto de la CARA 0 (menor faceOrder, luego sortOrder).
+     * Tras corregir/añadir vías (que pueden cambiar la foto de una cara), mantiene
+     * la portada al día para miniaturas y marcadores del mapa.
+     */
+    private static void refreshCover(SchoolBlockJpaEntity block) {
+        block.getLines().stream()
+                .filter(l -> l.getPhotoPath() != null && !l.getPhotoPath().isBlank())
+                .min(java.util.Comparator
+                        .comparingInt(BlockLineJpaEntity::getFaceOrder)
+                        .thenComparingInt(BlockLineJpaEntity::getSortOrder))
+                .ifPresent(l -> block.setPhotoPath(l.getPhotoPath()));
+    }
+
     /** Foto (cara) de una vía del JSON: su `photoUrl`, o la portada del bloque. */
     private static String facePhotoOf(JsonNode node, String coverPhoto) {
         String p = node.path("photoUrl").isNull() ? null : node.path("photoUrl").asText(null);
@@ -344,6 +358,7 @@ public class ReviewContributionUseCase {
             if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
             String facePhoto = facePhotoOf(node, block.getPhotoPath());
             if (facePhoto != null && !facePhoto.isBlank()) line.setPhotoPath(facePhoto);
+            refreshCover(block);
             blockRepo.save(block);
         } catch (Exception ignored) {}
     }
@@ -410,6 +425,7 @@ public class ReviewContributionUseCase {
                             facePhoto, fo));
                 }
             }
+            refreshCover(block);
             blockRepo.save(block);
         } catch (Exception ignored) {}
     }

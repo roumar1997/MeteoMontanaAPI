@@ -90,6 +90,7 @@ public class SchoolBlockJpaEntity {
 
     public void setLat(double lat) { this.lat = lat; }
     public void setLon(double lon) { this.lon = lon; }
+    public void setPhotoPath(String photoPath) { this.photoPath = photoPath; }
     public void setSectorBlockId(String sectorBlockId) { this.sectorBlockId = sectorBlockId; }
 
     public void addLine(BlockLineJpaEntity line) {
