@@ -253,13 +253,20 @@ public class ReviewContributionUseCase {
         return String.valueOf(n);
     }
 
-    /** Parsea el JSON `bloquesJson` y añade BlockLineJpaEntity al bloque. */
+    /**
+     * Parsea el JSON `bloquesJson` y añade BlockLineJpaEntity al bloque.
+     * Cada vía puede traer su propia `photoUrl` (la CARA sobre la que está
+     * dibujada). Las vías se reparten en caras agrupando por foto; cada cara
+     * recibe un `faceOrder` según el orden de aparición. Sin `photoUrl` (piedra
+     * de una sola foto) caen todas en la foto de portada del bloque (cara 0).
+     */
     private void parseAndAttachLines(SchoolBlockJpaEntity block, String bloquesJson) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode arr = mapper.readTree(bloquesJson);
             if (!arr.isArray()) return;
 
+            java.util.LinkedHashMap<String, Integer> faceOrders = new java.util.LinkedHashMap<>();
             int sortOrder = 0;
             for (JsonNode node : arr) {
                 String name = node.path("name").asText("").trim();
@@ -274,19 +281,32 @@ public class ReviewContributionUseCase {
 
                 String linePath = node.path("linePath").asText(null);
 
+                String facePhoto = facePhotoOf(node, block.getPhotoPath());
+                int faceOrder = faceOrders.computeIfAbsent(
+                        facePhoto == null ? "" : facePhoto, k -> faceOrders.size());
+
                 BlockLineJpaEntity line = new BlockLineJpaEntity(
                         UUID.randomUUID().toString(),
                         name.isEmpty() ? String.valueOf(sortOrder + 1) : name,
                         grade,
                         startType,
                         linePath,
-                        sortOrder++
+                        sortOrder++,
+                        facePhoto,
+                        faceOrder
                 );
                 block.addLine(line);
             }
         } catch (Exception e) {
             // Si el JSON está mal, simplemente no creamos líneas pero la piedra sí.
         }
+    }
+
+    /** Foto (cara) de una vía del JSON: su `photoUrl`, o la portada del bloque. */
+    private static String facePhotoOf(JsonNode node, String coverPhoto) {
+        String p = node.path("photoUrl").isNull() ? null : node.path("photoUrl").asText(null);
+        if (p != null && !p.isBlank()) return p;
+        return coverPhoto;
     }
 
     /**
@@ -322,6 +342,8 @@ public class ReviewContributionUseCase {
             line.setGrade(grade);
             line.setStartType(startType);
             if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
+            String facePhoto = facePhotoOf(node, block.getPhotoPath());
+            if (facePhoto != null && !facePhoto.isBlank()) line.setPhotoPath(facePhoto);
             blockRepo.save(block);
         } catch (Exception ignored) {}
     }
@@ -345,6 +367,17 @@ public class ReviewContributionUseCase {
             if (!arr.isArray()) return;
             int sortOrder = block.getLines().stream()
                     .mapToInt(BlockLineJpaEntity::getSortOrder).max().orElse(-1) + 1;
+            // Mapa foto→orden de cara con las caras ya existentes (para que las vías
+            // nuevas de una foto ya conocida caigan en su cara, y las de una foto
+            // nueva creen una cara nueva al final).
+            java.util.LinkedHashMap<String, Integer> faceOrders = new java.util.LinkedHashMap<>();
+            for (var l : block.getLines()) {
+                String key = l.getPhotoPath() != null ? l.getPhotoPath()
+                        : (block.getPhotoPath() != null ? block.getPhotoPath() : "");
+                faceOrders.putIfAbsent(key, l.getFaceOrder());
+            }
+            int[] nextFaceOrder = { faceOrders.values().stream()
+                    .mapToInt(Integer::intValue).max().orElse(-1) + 1 };
             for (JsonNode node : arr) {
                 final String name = node.path("name").asText("").trim();
                 String g = node.path("grade").isNull() ? null : node.path("grade").asText("").trim();
@@ -352,6 +385,7 @@ public class ReviewContributionUseCase {
                 String rawStart = node.path("startType").isNull() ? null : node.path("startType").asText("").trim();
                 final BlockLine.StartType startType = mapStartType(rawStart);
                 final String linePath = node.path("linePath").asText(null);
+                final String facePhoto = facePhotoOf(node, block.getPhotoPath());
                 String tId = node.path("targetLineId").isNull() ? null : node.path("targetLineId").asText(null);
 
                 if (tId != null && !tId.isBlank()) {
@@ -363,12 +397,17 @@ public class ReviewContributionUseCase {
                                 line.setGrade(grade);
                                 line.setStartType(startType);
                                 if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
+                                if (facePhoto != null && !facePhoto.isBlank()) line.setPhotoPath(facePhoto);
                             });
                 } else {
+                    String key = facePhoto == null ? "" : facePhoto;
+                    Integer fo = faceOrders.get(key);
+                    if (fo == null) { fo = nextFaceOrder[0]++; faceOrders.put(key, fo); }
                     block.addLine(new BlockLineJpaEntity(
                             UUID.randomUUID().toString(),
                             name.isEmpty() ? String.valueOf(sortOrder + 1) : name,
-                            grade, startType, linePath, sortOrder++));
+                            grade, startType, linePath, sortOrder++,
+                            facePhoto, fo));
                 }
             }
             blockRepo.save(block);

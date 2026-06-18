@@ -10,12 +10,21 @@ public class BlockLine {
     private final StartType startType;
     private final String linePath;     // JSON con array de puntos
     private final int sortOrder;
+    private final String photoPath;    // foto (cara) sobre la que está dibujada esta vía
+    private final int faceOrder;       // orden de su cara dentro de la piedra
 
     public BlockLine(String id, String blockId, String name, String grade,
                      StartType startType, String linePath, int sortOrder) {
+        this(id, blockId, name, grade, startType, linePath, sortOrder, null, 0);
+    }
+
+    public BlockLine(String id, String blockId, String name, String grade,
+                     StartType startType, String linePath, int sortOrder,
+                     String photoPath, int faceOrder) {
         this.id = id; this.blockId = blockId; this.name = name;
         this.grade = grade; this.startType = startType;
         this.linePath = linePath; this.sortOrder = sortOrder;
+        this.photoPath = photoPath; this.faceOrder = faceOrder;
     }
 
     public String getId()           { return id; }
@@ -25,4 +34,6 @@ public class BlockLine {
     public StartType getStartType() { return startType; }
     public String getLinePath()     { return linePath; }
     public int getSortOrder()       { return sortOrder; }
+    public String getPhotoPath()    { return photoPath; }
+    public int getFaceOrder()       { return faceOrder; }
 }

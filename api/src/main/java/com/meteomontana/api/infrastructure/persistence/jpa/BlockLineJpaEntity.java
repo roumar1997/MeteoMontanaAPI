@@ -36,12 +36,25 @@ public class BlockLineJpaEntity {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
+    @Column(name = "photo_path", columnDefinition = "TEXT")
+    private String photoPath;
+
+    @Column(name = "face_order", nullable = false)
+    private int faceOrder;
+
     protected BlockLineJpaEntity() {}
 
     public BlockLineJpaEntity(String id, String name, String grade,
                               BlockLine.StartType startType, String linePath, int sortOrder) {
+        this(id, name, grade, startType, linePath, sortOrder, null, 0);
+    }
+
+    public BlockLineJpaEntity(String id, String name, String grade,
+                              BlockLine.StartType startType, String linePath, int sortOrder,
+                              String photoPath, int faceOrder) {
         this.id = id; this.name = name; this.grade = grade;
         this.startType = startType; this.linePath = linePath; this.sortOrder = sortOrder;
+        this.photoPath = photoPath; this.faceOrder = faceOrder;
     }
 
     public String getId()             { return id; }
@@ -56,4 +69,8 @@ public class BlockLineJpaEntity {
     public String getLinePath()       { return linePath; }
     public void setLinePath(String p) { this.linePath = p; }
     public int getSortOrder()         { return sortOrder; }
+    public String getPhotoPath()      { return photoPath; }
+    public void setPhotoPath(String p){ this.photoPath = p; }
+    public int getFaceOrder()         { return faceOrder; }
+    public void setFaceOrder(int f)   { this.faceOrder = f; }
 }

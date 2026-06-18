@@ -18,7 +18,9 @@ import java.util.UUID;
 public class SchoolBlockUseCase {
 
     public record CreateBlockLineRequest(
-            String name, String grade, String startType, String linePath
+            String name, String grade, String startType, String linePath,
+            String photoPath,   // cara (foto) sobre la que está dibujada esta vía (opcional)
+            Integer faceOrder   // orden de la cara (opcional, default 0)
     ) {}
 
     public record CreateBlockRequest(
@@ -36,12 +38,20 @@ public class SchoolBlockUseCase {
             String id, String schoolId, String type, String name,
             double lat, double lon, String photoPath, String description,
             String createdByUid, String createdAt, List<BlockLineDto> lines,
-            String sectorBlockId
+            String sectorBlockId,
+            // Caras = la piedra agrupada por foto (cada cara: foto + sus vías).
+            // `lines` y `photoPath` se mantienen (= primera cara) por compat.
+            List<BlockFaceDto> faces
     ) {}
 
     public record BlockLineDto(
             String id, String name, String grade, String startType,
-            String linePath, int sortOrder
+            String linePath, int sortOrder, String photoPath, int faceOrder
+    ) {}
+
+    /** Una cara de la piedra: una foto y las vías dibujadas sobre ella. */
+    public record BlockFaceDto(
+            String photoPath, int sortOrder, List<BlockLineDto> lines
     ) {}
 
     private final SchoolBlockRepository blockRepository;
@@ -92,7 +102,9 @@ public class SchoolBlockUseCase {
                         l.grade(),
                         l.startType() != null ? BlockLine.StartType.valueOf(l.startType()) : null,
                         l.linePath(),
-                        req.lines().indexOf(l)
+                        req.lines().indexOf(l),
+                        l.photoPath() != null ? l.photoPath() : req.photoPath(),
+                        l.faceOrder() != null ? l.faceOrder() : 0
                 )).toList();
 
         SchoolBlock block = new SchoolBlock(
@@ -141,7 +153,9 @@ public class SchoolBlockUseCase {
                         l.grade(),
                         l.startType() != null ? BlockLine.StartType.valueOf(l.startType()) : null,
                         l.linePath(),
-                        req.lines().indexOf(l)
+                        req.lines().indexOf(l),
+                        l.photoPath() != null ? l.photoPath() : req.photoPath(),
+                        l.faceOrder() != null ? l.faceOrder() : 0
                 )).toList();
 
         SchoolBlock updated = new SchoolBlock(
@@ -177,16 +191,40 @@ public class SchoolBlockUseCase {
     }
 
     private BlockDto toDto(SchoolBlock b) {
+        List<BlockLineDto> lines = b.getLines().stream().map(l -> new BlockLineDto(
+                l.getId(), l.getName(), l.getGrade(),
+                l.getStartType() != null ? l.getStartType().name() : null,
+                l.getLinePath(), l.getSortOrder(),
+                l.getPhotoPath() != null ? l.getPhotoPath() : b.getPhotoPath(),
+                l.getFaceOrder()
+        )).toList();
         return new BlockDto(
                 b.getId(), b.getSchoolId(), b.getType().name(), b.getName(),
                 b.getLat(), b.getLon(), b.getPhotoPath(), b.getDescription(),
                 b.getCreatedByUid(), b.getCreatedAt().toString(),
-                b.getLines().stream().map(l -> new BlockLineDto(
-                        l.getId(), l.getName(), l.getGrade(),
-                        l.getStartType() != null ? l.getStartType().name() : null,
-                        l.getLinePath(), l.getSortOrder()
-                )).toList(),
-                b.getSectorBlockId()
+                lines, b.getSectorBlockId(),
+                buildFaces(lines, b.getPhotoPath())
         );
+    }
+
+    /**
+     * Agrupa las vías por foto en CARAS, preservando el orden de aparición.
+     * Las vías sin foto caen en la cara de la foto de portada de la piedra.
+     * Si la piedra no tiene foto ni ninguna vía, no hay caras.
+     */
+    private static List<BlockFaceDto> buildFaces(List<BlockLineDto> lines, String coverPhoto) {
+        java.util.LinkedHashMap<String, List<BlockLineDto>> byPhoto = new java.util.LinkedHashMap<>();
+        for (BlockLineDto l : lines) {
+            String key = l.photoPath() != null ? l.photoPath()
+                    : (coverPhoto != null ? coverPhoto : "");
+            byPhoto.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(l);
+        }
+        List<BlockFaceDto> faces = new java.util.ArrayList<>();
+        int order = 0;
+        for (var entry : byPhoto.entrySet()) {
+            String photo = entry.getKey().isEmpty() ? null : entry.getKey();
+            faces.add(new BlockFaceDto(photo, order++, entry.getValue()));
+        }
+        return faces;
     }
 }

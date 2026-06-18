@@ -28,7 +28,8 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
         b.getLines().forEach(line -> {
             e.addLine(new BlockLineJpaEntity(
                     line.getId(), line.getName(), line.getGrade(),
-                    line.getStartType(), line.getLinePath(), line.getSortOrder()
+                    line.getStartType(), line.getLinePath(), line.getSortOrder(),
+                    line.getPhotoPath(), line.getFaceOrder()
             ));
         });
         return toDomain(jpaRepo.save(e));
@@ -51,7 +52,8 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
     private SchoolBlock toDomain(SchoolBlockJpaEntity e) {
         List<BlockLine> lines = e.getLines().stream().map(l -> new BlockLine(
                 l.getId(), e.getId(), l.getName(), l.getGrade(),
-                l.getStartType(), l.getLinePath(), l.getSortOrder()
+                l.getStartType(), l.getLinePath(), l.getSortOrder(),
+                l.getPhotoPath(), l.getFaceOrder()
         )).toList();
         return new SchoolBlock(
                 e.getId(), e.getSchoolId(), e.getType(), e.getName(),
