@@ -11,6 +11,13 @@ public record OpenMeteoResponse (
         double latitude,
         double longitude,
         double elevation,
+
+        // Offset de la zona horaria del sitio respecto a UTC, en segundos
+        // (lo manda Open-Meteo al pedir timezone=auto). Sirve para saber qué
+        // hora local es "ahora" y localizar el índice presente del array.
+        @JsonProperty("utc_offset_seconds")
+        int utcOffsetSeconds,
+
         HourlyData hourly
 ) {
     public record HourlyData(

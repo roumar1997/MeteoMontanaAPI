@@ -88,7 +88,7 @@ public class GetForecastByLocationUseCase {
         // Open-Meteo devuelve el array horario desde las 00:00 GMT de hoy, NO
         // desde la hora actual: hay que localizar la hora presente (findNowIndex)
         // o "ahora" sería la medianoche.
-        int nowIndex = findNowIndex(h);
+        int nowIndex = findNowIndex(h, weather.utcOffsetSeconds());
         var cur = hours.get(nowIndex);
         double precip24h = sumPrecip(h.precipitation(), nowIndex, 24);
         double precip72h = sumPrecip(h.precipitation(), nowIndex, 72);
@@ -151,9 +151,9 @@ public class GetForecastByLocationUseCase {
         );
     }
 
-    /** Índice de la hora actual en el array GMT de Open-Meteo (ver findNowIndex de GetForecastUseCase). */
-    private int findNowIndex(OpenMeteoResponse.HourlyData h) {
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+    /** Índice de la hora actual en el array local de Open-Meteo (ver findNowIndex de GetForecastUseCase). */
+    private int findNowIndex(OpenMeteoResponse.HourlyData h, int utcOffsetSeconds) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.ofTotalSeconds(utcOffsetSeconds));
         int idx = 0;
         for (int i = 0; i < h.time().size(); i++) {
             LocalDateTime t = LocalDateTime.parse(h.time().get(i));

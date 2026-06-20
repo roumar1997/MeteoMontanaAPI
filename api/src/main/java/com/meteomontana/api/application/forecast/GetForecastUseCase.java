@@ -42,7 +42,7 @@ public class GetForecastUseCase {
         // empezando en las 00:00 GMT de hoy, NO en la hora actual. Calculamos
         // el índice de la hora presente para que "ahora" y la ventana óptima no
         // usen la medianoche por error.
-        int nowIndex                              = findNowIndex(weather.hourly());
+        int nowIndex                              = findNowIndex(weather.hourly(), weather.utcOffsetSeconds());
         ForecastResponse.Current current          = buildCurrent(weather, hours, school.getRockType(), nowIndex);
         ForecastResponse.BestDay bestDay          = pickBestDay(days);
         ForecastResponse.OptimalWindow window     = pickOptimalWindow(hours, nowIndex);
@@ -247,12 +247,12 @@ public class GetForecastUseCase {
 
     /**
      * Índice de la hora "ahora" dentro del array horario de Open-Meteo.
-     * Las horas vienen en GMT (no pasamos timezone), así que comparamos con la
-     * hora actual UTC y devolvemos la última hora cuyo timestamp ya ha llegado.
-     * Si todas son futuras (caso raro), devuelve 0.
+     * Con timezone=auto las horas vienen en hora LOCAL del sitio, así que
+     * comparamos con la hora local (UTC + offset) y devolvemos la última hora
+     * cuyo timestamp ya ha llegado. Si todas son futuras, devuelve 0.
      */
-    private int findNowIndex(OpenMeteoResponse.HourlyData h) {
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+    private int findNowIndex(OpenMeteoResponse.HourlyData h, int utcOffsetSeconds) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.ofTotalSeconds(utcOffsetSeconds));
         int idx = 0;
         for (int i = 0; i < h.time().size(); i++) {
             LocalDateTime t = LocalDateTime.parse(h.time().get(i));

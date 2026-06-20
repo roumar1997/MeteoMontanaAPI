@@ -83,6 +83,13 @@ public class OpenMeteoClient {
                             .queryParam("longitude", lon)
                             .queryParam("hourly", HOURLY_VARS)
                             .queryParam("wind_speed_unit", "kmh")
+                            // timezone=auto → Open-Meteo devuelve las horas en la
+                            // zona horaria del propio sitio (Madrid = CEST en
+                            // verano) en vez de UTC. Sin esto, el array salía en
+                            // GMT y el grid mostraba las horas con 1-2h de desfase
+                            // respecto a la hora real. También devuelve
+                            // utc_offset_seconds para localizar "ahora".
+                            .queryParam("timezone", "auto")
                             .queryParam("forecast_days", 7)
                             .build())
                     .retrieve()
