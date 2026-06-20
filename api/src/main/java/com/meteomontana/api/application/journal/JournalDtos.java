@@ -49,7 +49,9 @@ public class JournalDtos {
             int boulderCount,
             int routeCount,
             int schoolCount,
-            String maxGrade,
+            String maxGrade,         // grado máx global (cualquier modalidad), por compat
+            String maxBoulderGrade,  // grado máx de bloque
+            String maxRouteGrade,    // grado máx de vía
             List<SchoolStats> bySchool
     ) {
         public record SchoolStats(String schoolName, int blockCount, String maxGrade) {}

@@ -64,12 +64,17 @@ public class JournalUseCase {
         int blockCount = all.size();
         int routeCount = 0;
         Map<String, List<JournalSession>> bySchool = new LinkedHashMap<>();
-        String maxGrade = null;
+        String maxGrade = null, maxBoulderGrade = null, maxRouteGrade = null;
         for (JournalSession s : all) {
             String key = s.getSchoolName() != null ? s.getSchoolName() : "(sin escuela)";
             bySchool.computeIfAbsent(key, k -> new ArrayList<>()).add(s);
             maxGrade = JournalGradeRank.max(maxGrade, s.getGrade());
-            if ("ROUTE".equalsIgnoreCase(s.getDiscipline())) routeCount++;
+            if ("ROUTE".equalsIgnoreCase(s.getDiscipline())) {
+                routeCount++;
+                maxRouteGrade = JournalGradeRank.max(maxRouteGrade, s.getGrade());
+            } else {
+                maxBoulderGrade = JournalGradeRank.max(maxBoulderGrade, s.getGrade());
+            }
         }
         int boulderCount = blockCount - routeCount;
 
@@ -85,7 +90,8 @@ public class JournalUseCase {
         }
 
         return new JournalDtos.JournalStatsDto(
-                blockCount, boulderCount, routeCount, bySchool.size(), maxGrade, perSchool
+                blockCount, boulderCount, routeCount, bySchool.size(),
+                maxGrade, maxBoulderGrade, maxRouteGrade, perSchool
         );
     }
 
