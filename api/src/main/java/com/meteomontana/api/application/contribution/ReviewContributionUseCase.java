@@ -228,6 +228,10 @@ public class ReviewContributionUseCase {
                 LocalDateTime.now(),
                 type == SchoolBlock.Type.BLOCK ? c.getSectorBlockId() : null
         );
+        // Modalidad de la piedra (bloque/vía) elegida por el autor de la propuesta.
+        if (type == SchoolBlock.Type.BLOCK) {
+            block.setDiscipline(parseDiscipline(c.getDiscipline()));
+        }
 
         // Para BOULDER: parsear bloquesJson y crear las líneas (vías) del bloque.
         // Cascade ALL del @OneToMany hace que se persistan al guardar el SchoolBlockJpaEntity.
@@ -237,6 +241,13 @@ public class ReviewContributionUseCase {
         }
 
         blockRepo.save(block);
+    }
+
+    /** Modalidad de la piedra propuesta; default BOULDER si null/desconocida. */
+    private static SchoolBlock.Discipline parseDiscipline(String raw) {
+        if (raw == null) return SchoolBlock.Discipline.BOULDER;
+        try { return SchoolBlock.Discipline.valueOf(raw.trim().toUpperCase()); }
+        catch (IllegalArgumentException e) { return SchoolBlock.Discipline.BOULDER; }
     }
 
     /** Menor número de piedra LIBRE en la escuela (rellena huecos al borrar:

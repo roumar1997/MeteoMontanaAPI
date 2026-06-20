@@ -24,6 +24,7 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
                 b.getLat(), b.getLon(), b.getPhotoPath(), b.getDescription(),
                 b.getCreatedByUid(), b.getCreatedAt(), b.getSectorBlockId()
         );
+        e.setDiscipline(b.getDiscipline());
         // Líneas
         b.getLines().forEach(line -> {
             e.addLine(new BlockLineJpaEntity(
@@ -56,7 +57,7 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
                 l.getPhotoPath(), l.getFaceOrder()
         )).toList();
         return new SchoolBlock(
-                e.getId(), e.getSchoolId(), e.getType(), e.getName(),
+                e.getId(), e.getSchoolId(), e.getType(), e.getDiscipline(), e.getName(),
                 e.getLat(), e.getLon(), e.getPhotoPath(), e.getDescription(),
                 e.getCreatedByUid(), e.getCreatedAt(), lines, e.getSectorBlockId()
         );

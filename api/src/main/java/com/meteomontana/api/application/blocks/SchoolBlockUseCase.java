@@ -31,7 +31,8 @@ public class SchoolBlockUseCase {
             String photoPath,
             String description,
             List<CreateBlockLineRequest> lines,
-            String sectorBlockId    // BLOCK: id del sector (ZONE) al que pertenece (opcional)
+            String sectorBlockId,   // BLOCK: id del sector (ZONE) al que pertenece (opcional)
+            String discipline       // BLOCK: BOULDER (bloque) / ROUTE (vía). Default BOULDER.
     ) {}
 
     public record BlockDto(
@@ -39,6 +40,7 @@ public class SchoolBlockUseCase {
             double lat, double lon, String photoPath, String description,
             String createdByUid, String createdAt, List<BlockLineDto> lines,
             String sectorBlockId,
+            String discipline,      // BOULDER (bloque) / ROUTE (vía)
             // Caras = la piedra agrupada por foto (cada cara: foto + sus vías).
             // `lines` y `photoPath` se mantienen (= primera cara) por compat.
             List<BlockFaceDto> faces
@@ -107,9 +109,11 @@ public class SchoolBlockUseCase {
                         l.faceOrder() != null ? l.faceOrder() : 0
                 )).toList();
 
+        SchoolBlock.Discipline discipline = type == SchoolBlock.Type.BLOCK
+                ? parseDiscipline(req.discipline()) : SchoolBlock.Discipline.BOULDER;
         SchoolBlock block = new SchoolBlock(
                 UUID.randomUUID().toString(),
-                schoolId, type, name,
+                schoolId, type, discipline, name,
                 req.lat(), req.lon(),
                 req.photoPath(),
                 req.description(),
@@ -117,6 +121,13 @@ public class SchoolBlockUseCase {
                 type == SchoolBlock.Type.BLOCK ? req.sectorBlockId() : null
         );
         return toDto(blockRepository.save(block));
+    }
+
+    /** Parsea la modalidad recibida del cliente; default BOULDER si null/desconocida. */
+    private SchoolBlock.Discipline parseDiscipline(String raw) {
+        if (raw == null) return SchoolBlock.Discipline.BOULDER;
+        try { return SchoolBlock.Discipline.valueOf(raw.trim().toUpperCase()); }
+        catch (IllegalArgumentException e) { return SchoolBlock.Discipline.BOULDER; }
     }
 
     /** Menor número de piedra LIBRE en la escuela (rellena huecos al borrar).
@@ -158,8 +169,10 @@ public class SchoolBlockUseCase {
                         l.faceOrder() != null ? l.faceOrder() : 0
                 )).toList();
 
+        SchoolBlock.Discipline discipline = req.discipline() != null
+                ? parseDiscipline(req.discipline()) : current.getDiscipline();
         SchoolBlock updated = new SchoolBlock(
-                blockId, current.getSchoolId(), type,
+                blockId, current.getSchoolId(), type, discipline,
                 req.name() != null ? req.name() : current.getName(),
                 req.lat() != null ? req.lat() : current.getLat(),
                 req.lon() != null ? req.lon() : current.getLon(),
@@ -203,6 +216,7 @@ public class SchoolBlockUseCase {
                 b.getLat(), b.getLon(), b.getPhotoPath(), b.getDescription(),
                 b.getCreatedByUid(), b.getCreatedAt().toString(),
                 lines, b.getSectorBlockId(),
+                b.getDiscipline().name(),
                 buildFaces(lines, b.getPhotoPath())
         );
     }

@@ -67,6 +67,9 @@ public class PendingContributionJpaEntity {
     @Column(name = "topo_lines_json", columnDefinition = "TEXT")
     private String topoLinesJson;
 
+    @Column(name = "discipline")
+    private String discipline;
+
     @Column(name = "submitted_by_uid", nullable = false)
     private String submittedByUid;
 
@@ -108,6 +111,7 @@ public class PendingContributionJpaEntity {
         e.photoUrl = c.getPhotoUrl();
         e.bloquesJson = c.getBloquesJson();
         e.topoLinesJson = c.getTopoLinesJson();
+        e.discipline = c.getDiscipline();
         e.submittedByUid = c.getSubmittedByUid();
         e.submittedByName = c.getSubmittedByName();
         e.reviewedByUid = c.getReviewedByUid();
@@ -121,7 +125,7 @@ public class PendingContributionJpaEntity {
         return new PendingContribution(id, type, status, schoolId, schoolName, name,
                 lat, lon, notes, description, proposedLat, proposedLon, correctionReason,
                 targetBlockId, targetLineId, sectorBlockId,
-                photoUrl, bloquesJson, topoLinesJson,
+                photoUrl, bloquesJson, topoLinesJson, discipline,
                 submittedByUid, submittedByName, reviewedByUid, reviewReason,
                 createdAt, reviewedAt);
     }

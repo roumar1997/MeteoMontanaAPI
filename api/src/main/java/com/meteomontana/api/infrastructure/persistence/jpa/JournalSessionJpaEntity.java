@@ -32,6 +32,10 @@ public class JournalSessionJpaEntity {
     private String grade;
     private String notes;
 
+    // Modalidad de la vía marcada (BOULDER/ROUTE). Snapshot para el conteo del
+    // perfil. Se setea aparte (setDiscipline) para no tocar el constructor.
+    private String discipline;
+
     @Column(name = "session_date", nullable = false)
     private LocalDate sessionDate;
 
@@ -63,6 +67,8 @@ public class JournalSessionJpaEntity {
     public String getBlockName()       { return blockName; }
     public String getGrade()           { return grade; }
     public String getNotes()           { return notes; }
+    public String getDiscipline()      { return discipline; }
+    public void setDiscipline(String discipline) { this.discipline = discipline; }
     public LocalDate getSessionDate()  { return sessionDate; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
 }

@@ -29,6 +29,7 @@ public class PendingContribution {
     private final String photoUrl;       // BOULDER: URL de Firebase Storage
     private final String bloquesJson;    // BOULDER: JSON array [{name,grade,startType,linePath}]
     private final String topoLinesJson;  // BOULDER: líneas normalizadas (redundante para admin)
+    private final String discipline;     // BOULDER (piedra nueva): BOULDER (bloque) / ROUTE (vía); null si no aplica
     private final String submittedByUid;
     private final String submittedByName;
     private final String reviewedByUid;
@@ -36,12 +37,28 @@ public class PendingContribution {
     private final LocalDateTime createdAt;
     private final LocalDateTime reviewedAt;
 
+    /** Constructor de compatibilidad (sin discipline → null). */
     public PendingContribution(String id, Type type, SubmissionStatus status,
                                String schoolId, String schoolName, String name,
                                double lat, double lon, String notes, String description,
                                Double proposedLat, Double proposedLon, String correctionReason,
                                String targetBlockId, String targetLineId, String sectorBlockId,
                                String photoUrl, String bloquesJson, String topoLinesJson,
+                               String submittedByUid, String submittedByName,
+                               String reviewedByUid, String reviewReason,
+                               LocalDateTime createdAt, LocalDateTime reviewedAt) {
+        this(id, type, status, schoolId, schoolName, name, lat, lon, notes, description,
+             proposedLat, proposedLon, correctionReason, targetBlockId, targetLineId, sectorBlockId,
+             photoUrl, bloquesJson, topoLinesJson, null,
+             submittedByUid, submittedByName, reviewedByUid, reviewReason, createdAt, reviewedAt);
+    }
+
+    public PendingContribution(String id, Type type, SubmissionStatus status,
+                               String schoolId, String schoolName, String name,
+                               double lat, double lon, String notes, String description,
+                               Double proposedLat, Double proposedLon, String correctionReason,
+                               String targetBlockId, String targetLineId, String sectorBlockId,
+                               String photoUrl, String bloquesJson, String topoLinesJson, String discipline,
                                String submittedByUid, String submittedByName,
                                String reviewedByUid, String reviewReason,
                                LocalDateTime createdAt, LocalDateTime reviewedAt) {
@@ -64,6 +81,7 @@ public class PendingContribution {
         this.photoUrl = photoUrl;
         this.bloquesJson = bloquesJson;
         this.topoLinesJson = topoLinesJson;
+        this.discipline = discipline;
         this.submittedByUid = submittedByUid;
         this.submittedByName = submittedByName;
         this.reviewedByUid = reviewedByUid;
@@ -91,6 +109,7 @@ public class PendingContribution {
     public String getPhotoUrl()          { return photoUrl; }
     public String getBloquesJson()       { return bloquesJson; }
     public String getTopoLinesJson()     { return topoLinesJson; }
+    public String getDiscipline()        { return discipline; }
     public String getSubmittedByUid()    { return submittedByUid; }
     public String getSubmittedByName()   { return submittedByName; }
     public String getReviewedByUid()     { return reviewedByUid; }

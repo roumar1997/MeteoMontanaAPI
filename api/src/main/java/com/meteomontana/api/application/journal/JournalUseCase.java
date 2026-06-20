@@ -37,6 +37,7 @@ public class JournalUseCase {
                 req.blockName().trim(),
                 req.grade(),
                 req.notes(),
+                normalizeDiscipline(req.discipline()),
                 req.date(),
                 LocalDateTime.now()
         );
@@ -61,13 +62,16 @@ public class JournalUseCase {
         List<JournalSession> all = repository.findByUid(uid);
 
         int blockCount = all.size();
+        int routeCount = 0;
         Map<String, List<JournalSession>> bySchool = new LinkedHashMap<>();
         String maxGrade = null;
         for (JournalSession s : all) {
             String key = s.getSchoolName() != null ? s.getSchoolName() : "(sin escuela)";
             bySchool.computeIfAbsent(key, k -> new ArrayList<>()).add(s);
             maxGrade = JournalGradeRank.max(maxGrade, s.getGrade());
+            if ("ROUTE".equalsIgnoreCase(s.getDiscipline())) routeCount++;
         }
+        int boulderCount = blockCount - routeCount;
 
         List<JournalDtos.JournalStatsDto.SchoolStats> perSchool = new ArrayList<>();
         for (var entry : bySchool.entrySet()) {
@@ -81,7 +85,12 @@ public class JournalUseCase {
         }
 
         return new JournalDtos.JournalStatsDto(
-                blockCount, bySchool.size(), maxGrade, perSchool
+                blockCount, boulderCount, routeCount, bySchool.size(), maxGrade, perSchool
         );
+    }
+
+    /** Normaliza la modalidad a BOULDER/ROUTE; default BOULDER. */
+    private static String normalizeDiscipline(String raw) {
+        return "ROUTE".equalsIgnoreCase(raw != null ? raw.trim() : null) ? "ROUTE" : "BOULDER";
     }
 }

@@ -15,7 +15,8 @@ public class JournalDtos {
             String blockName,
             String grade,
             String notes,
-            LocalDate date
+            LocalDate date,
+            String discipline    // BOULDER (bloque) / ROUTE (vía); default BOULDER si null
     ) {}
 
     public record JournalSessionDto(
@@ -27,20 +28,26 @@ public class JournalDtos {
             String grade,
             String notes,
             LocalDate date,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            String discipline
     ) {
         public static JournalSessionDto from(JournalSession s) {
             return new JournalSessionDto(
                     s.getId(), s.getSchoolId(), s.getSchoolName(),
                     s.getSector(), s.getBlockName(), s.getGrade(), s.getNotes(),
-                    s.getSessionDate(), s.getCreatedAt()
+                    s.getSessionDate(), s.getCreatedAt(),
+                    s.getDiscipline() != null ? s.getDiscipline() : "BOULDER"
             );
         }
     }
 
-    /** Stats agregadas: nº bloques, nº escuelas distintas, grado máx, por escuela. */
+    /** Stats agregadas: nº bloques (BOULDER), nº vías (ROUTE), nº escuelas,
+     *  grado máx y desglose por escuela. blockCount = boulderCount + routeCount
+     *  (total) por compatibilidad con clientes antiguos. */
     public record JournalStatsDto(
             int blockCount,
+            int boulderCount,
+            int routeCount,
             int schoolCount,
             String maxGrade,
             List<SchoolStats> bySchool

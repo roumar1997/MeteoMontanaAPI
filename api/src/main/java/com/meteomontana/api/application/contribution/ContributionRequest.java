@@ -19,5 +19,6 @@ public record ContributionRequest(
                                 // ASSIGN_SECTOR: sector a asignar a la piedra
         String photoUrl,        // BOULDER: URL de Firebase Storage (null si sin foto)
         String bloquesJson,     // BOULDER: JSON array [{name,grade,startType,linePath}]
-        String topoLinesJson    // BOULDER: líneas normalizadas
+        String topoLinesJson,   // BOULDER: líneas normalizadas
+        String discipline       // BOULDER (piedra nueva): BOULDER (bloque) / ROUTE (vía)
 ) {}

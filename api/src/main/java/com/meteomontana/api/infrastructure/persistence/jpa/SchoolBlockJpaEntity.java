@@ -31,6 +31,13 @@ public class SchoolBlockJpaEntity {
     @Column(nullable = false)
     private SchoolBlock.Type type;
 
+    // Modalidad de la piedra (BOULDER/ROUTE). Default BOULDER para las
+    // piedras ya existentes. Se setea aparte (setDiscipline) para no tocar
+    // los constructores.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SchoolBlock.Discipline discipline = SchoolBlock.Discipline.BOULDER;
+
     @Column(nullable = false)
     private String name;
 
@@ -78,6 +85,10 @@ public class SchoolBlockJpaEntity {
     public String getId()             { return id; }
     public String getSchoolId()       { return schoolId; }
     public SchoolBlock.Type getType() { return type; }
+    public SchoolBlock.Discipline getDiscipline() { return discipline; }
+    public void setDiscipline(SchoolBlock.Discipline discipline) {
+        this.discipline = discipline != null ? discipline : SchoolBlock.Discipline.BOULDER;
+    }
     public String getName()           { return name; }
     public double getLat()            { return lat; }
     public double getLon()            { return lon; }
