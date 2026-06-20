@@ -7,6 +7,7 @@ import com.meteomontana.api.infrastructure.weather.OpenMeteoResponse;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -83,10 +84,14 @@ public class GetForecastByLocationUseCase {
             ));
         }
 
-        // current with simple factors
-        var cur = hours.get(0);
-        double precip24h = sumPrecip(h.precipitation(), 0, 24);
-        double precip72h = sumPrecip(h.precipitation(), 0, 72);
+        // current with simple factors.
+        // Open-Meteo devuelve el array horario desde las 00:00 GMT de hoy, NO
+        // desde la hora actual: hay que localizar la hora presente (findNowIndex)
+        // o "ahora" sería la medianoche.
+        int nowIndex = findNowIndex(h);
+        var cur = hours.get(nowIndex);
+        double precip24h = sumPrecip(h.precipitation(), nowIndex, 24);
+        double precip72h = sumPrecip(h.precipitation(), nowIndex, 72);
         List<ForecastResponse.ScoreFactor> factors = List.of(
                 new ForecastResponse.ScoreFactor("TEMPERATURA", Math.round(cur.temperature()) + "°",
                         cur.temperature() >= 5 && cur.temperature() <= 22),
@@ -118,12 +123,12 @@ public class GetForecastByLocationUseCase {
             best = new ForecastResponse.BestDay(d.date(), d.avgScore(), d.scoreLabel(), idx);
         }
 
-        // optimal window
+        // optimal window — solo horas presentes/futuras (i >= nowIndex).
         String today = cur.time().substring(0, 10);
         ForecastResponse.OptimalWindow win = null;
         int windowSize = 4;
         List<Integer> todayIdx = new ArrayList<>();
-        for (int i = 0; i < hours.size(); i++) {
+        for (int i = nowIndex; i < hours.size(); i++) {
             if (hours.get(i).time().startsWith(today)) todayIdx.add(i);
         }
         if (todayIdx.size() >= windowSize) {
@@ -144,6 +149,18 @@ public class GetForecastByLocationUseCase {
                 "loc:" + lat + "," + lon, "Tu ubicación", lat, lon,
                 current, hours, days, best, win
         );
+    }
+
+    /** Índice de la hora actual en el array GMT de Open-Meteo (ver findNowIndex de GetForecastUseCase). */
+    private int findNowIndex(OpenMeteoResponse.HourlyData h) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        int idx = 0;
+        for (int i = 0; i < h.time().size(); i++) {
+            LocalDateTime t = LocalDateTime.parse(h.time().get(i));
+            if (!t.isAfter(now)) idx = i;
+            else break;
+        }
+        return idx;
     }
 
     private double sumPrecip(List<Double> list, int from, int len) {

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -37,9 +38,14 @@ public class GetForecastUseCase {
 
         List<ForecastResponse.HourForecast> hours = buildHourlyForecast(weather, school.getRockType());
         List<ForecastResponse.DayForecast>  days  = buildDailyForecast(weather, hours);
-        ForecastResponse.Current current          = buildCurrent(weather, hours, school.getRockType());
+        // Open-Meteo (forecast_days=7, sin timezone) devuelve el array horario
+        // empezando en las 00:00 GMT de hoy, NO en la hora actual. Calculamos
+        // el índice de la hora presente para que "ahora" y la ventana óptima no
+        // usen la medianoche por error.
+        int nowIndex                              = findNowIndex(weather.hourly());
+        ForecastResponse.Current current          = buildCurrent(weather, hours, school.getRockType(), nowIndex);
         ForecastResponse.BestDay bestDay          = pickBestDay(days);
-        ForecastResponse.OptimalWindow window     = pickOptimalWindow(hours, current.time());
+        ForecastResponse.OptimalWindow window     = pickOptimalWindow(hours, nowIndex);
 
         return new ForecastResponse(
                 school.getId(), school.getName(), school.getLat(), school.getLon(),
@@ -128,19 +134,20 @@ public class GetForecastUseCase {
     private ForecastResponse.Current buildCurrent(
             OpenMeteoResponse weather,
             List<ForecastResponse.HourForecast> hours,
-            String rockType) {
+            String rockType,
+            int nowIndex) {
 
-        // Índice 0 = "ahora" (Open-Meteo devuelve desde la hora actual redondeada).
-        var cur = hours.get(0);
+        // nowIndex = hora actual dentro del array (ver findNowIndex). Antes se
+        // usaba el índice 0 (medianoche), que daba una temperatura "ahora" falsa.
+        var cur = hours.get(nowIndex);
         OpenMeteoResponse.HourlyData h = weather.hourly();
 
         // Lluvia acumulada 24h y 72h hacia atrás. Open-Meteo solo da forecast,
-        // así que aproximamos con las primeras N horas que ya pasaron del día
-        // (no es exacto, pero útil para el UI). En realidad la app debería
-        // tener un endpoint con histórico — TODO.
-        // De momento: usamos las próximas 24/72 como proxy (es mejor que nada).
-        double precip24h = sumPrecip(h, 0, 24);
-        double precip72h = sumPrecip(h, 0, 72);
+        // así que aproximamos con las próximas N horas desde ahora (no es exacto,
+        // pero útil para el UI). En realidad la app debería tener un endpoint con
+        // histórico — TODO.
+        double precip24h = sumPrecip(h, nowIndex, 24);
+        double precip72h = sumPrecip(h, nowIndex, 72);
 
         boolean dryRock = isDryRock(cur, precip72h, rockType);
 
@@ -238,6 +245,23 @@ public class GetForecastUseCase {
         return (int) Math.round(baseHours * mult);
     }
 
+    /**
+     * Índice de la hora "ahora" dentro del array horario de Open-Meteo.
+     * Las horas vienen en GMT (no pasamos timezone), así que comparamos con la
+     * hora actual UTC y devolvemos la última hora cuyo timestamp ya ha llegado.
+     * Si todas son futuras (caso raro), devuelve 0.
+     */
+    private int findNowIndex(OpenMeteoResponse.HourlyData h) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        int idx = 0;
+        for (int i = 0; i < h.time().size(); i++) {
+            LocalDateTime t = LocalDateTime.parse(h.time().get(i));
+            if (!t.isAfter(now)) idx = i;
+            else break;
+        }
+        return idx;
+    }
+
     private double sumPrecip(OpenMeteoResponse.HourlyData h, int from, int len) {
         double sum = 0;
         for (int i = from; i < Math.min(from + len, h.precipitation().size()); i++) {
@@ -314,16 +338,18 @@ public class GetForecastUseCase {
     // ──────────────────────────────────────────────────────────────────────────
 
     private ForecastResponse.OptimalWindow pickOptimalWindow(
-            List<ForecastResponse.HourForecast> hours, String currentTime) {
+            List<ForecastResponse.HourForecast> hours, int nowIndex) {
 
-        String today = currentTime.substring(0, 10);
-        // Buscamos la ventana de 4h consecutivas con mejor score promedio del día actual.
+        String today = hours.get(nowIndex).time().substring(0, 10);
+        // Buscamos la ventana de 4h consecutivas con mejor score promedio del día
+        // actual, pero SOLO entre las horas que aún no han pasado (i >= nowIndex);
+        // antes incluía la madrugada ya pasada y proponía ventanas inexistentes.
         int windowSize = 4;
         int bestStart = -1;
         double bestAvg = -1;
 
         List<Integer> todayIdx = new ArrayList<>();
-        for (int i = 0; i < hours.size(); i++) {
+        for (int i = nowIndex; i < hours.size(); i++) {
             if (hours.get(i).time().startsWith(today)) todayIdx.add(i);
         }
         if (todayIdx.size() < windowSize) return null;
