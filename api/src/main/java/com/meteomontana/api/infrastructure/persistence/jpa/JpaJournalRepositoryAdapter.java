@@ -24,6 +24,7 @@ public class JpaJournalRepositoryAdapter implements JournalRepository {
                 s.getSessionDate(), s.getCreatedAt()
         );
         e.setDiscipline(s.getDiscipline());
+        e.setLineId(s.getLineId());
         return toDomain(jpaRepo.save(e));
     }
 
@@ -46,7 +47,7 @@ public class JpaJournalRepositoryAdapter implements JournalRepository {
         return new JournalSession(
                 e.getId(), e.getUid(), e.getSchoolId(), e.getSchoolName(),
                 e.getSector(), e.getBlockName(), e.getGrade(), e.getNotes(),
-                e.getDiscipline(), e.getSessionDate(), e.getCreatedAt()
+                e.getDiscipline(), e.getLineId(), e.getSessionDate(), e.getCreatedAt()
         );
     }
 }

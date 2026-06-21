@@ -38,6 +38,7 @@ public class JournalUseCase {
                 req.grade(),
                 req.notes(),
                 normalizeDiscipline(req.discipline()),
+                req.lineId(),
                 req.date(),
                 LocalDateTime.now()
         );

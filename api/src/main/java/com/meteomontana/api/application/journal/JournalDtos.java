@@ -16,7 +16,8 @@ public class JournalDtos {
             String grade,
             String notes,
             LocalDate date,
-            String discipline    // BOULDER (bloque) / ROUTE (vía); default BOULDER si null
+            String discipline,   // BOULDER (bloque) / ROUTE (vía); default BOULDER si null
+            String lineId        // id estable de la vía (null si offline/antiguo → match por nombre)
     ) {}
 
     public record JournalSessionDto(
@@ -29,14 +30,16 @@ public class JournalDtos {
             String notes,
             LocalDate date,
             LocalDateTime createdAt,
-            String discipline
+            String discipline,
+            String lineId
     ) {
         public static JournalSessionDto from(JournalSession s) {
             return new JournalSessionDto(
                     s.getId(), s.getSchoolId(), s.getSchoolName(),
                     s.getSector(), s.getBlockName(), s.getGrade(), s.getNotes(),
                     s.getSessionDate(), s.getCreatedAt(),
-                    s.getDiscipline() != null ? s.getDiscipline() : "BOULDER"
+                    s.getDiscipline() != null ? s.getDiscipline() : "BOULDER",
+                    s.getLineId()
             );
         }
     }

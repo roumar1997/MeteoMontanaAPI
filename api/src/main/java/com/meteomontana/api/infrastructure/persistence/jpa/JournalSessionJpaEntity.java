@@ -36,6 +36,11 @@ public class JournalSessionJpaEntity {
     // perfil. Se setea aparte (setDiscipline) para no tocar el constructor.
     private String discipline;
 
+    // Id estable de la BlockLine marcada. Enganche para mostrar en vivo y
+    // propagar cambios de grado. Se setea aparte (setLineId).
+    @Column(name = "line_id")
+    private String lineId;
+
     @Column(name = "session_date", nullable = false)
     private LocalDate sessionDate;
 
@@ -69,6 +74,8 @@ public class JournalSessionJpaEntity {
     public String getNotes()           { return notes; }
     public String getDiscipline()      { return discipline; }
     public void setDiscipline(String discipline) { this.discipline = discipline; }
+    public String getLineId()          { return lineId; }
+    public void setLineId(String lineId) { this.lineId = lineId; }
     public LocalDate getSessionDate()  { return sessionDate; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
 }

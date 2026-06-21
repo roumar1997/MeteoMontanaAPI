@@ -13,6 +13,7 @@ public class JournalSession {
     private final String grade;
     private final String notes;
     private final String discipline;   // BOULDER (bloque) / ROUTE (vía); null = BOULDER (entradas antiguas)
+    private final String lineId;       // id estable de la BlockLine; null = entrada antigua/offline (match por nombre)
     private final LocalDate sessionDate;
     private final LocalDateTime createdAt;
 
@@ -20,12 +21,19 @@ public class JournalSession {
                           String sector, String blockName, String grade, String notes,
                           LocalDate sessionDate, LocalDateTime createdAt) {
         this(id, uid, schoolId, schoolName, sector, blockName, grade, notes,
-             null, sessionDate, createdAt);
+             null, null, sessionDate, createdAt);
     }
 
     public JournalSession(String id, String uid, String schoolId, String schoolName,
                           String sector, String blockName, String grade, String notes,
                           String discipline, LocalDate sessionDate, LocalDateTime createdAt) {
+        this(id, uid, schoolId, schoolName, sector, blockName, grade, notes,
+             discipline, null, sessionDate, createdAt);
+    }
+
+    public JournalSession(String id, String uid, String schoolId, String schoolName,
+                          String sector, String blockName, String grade, String notes,
+                          String discipline, String lineId, LocalDate sessionDate, LocalDateTime createdAt) {
         this.id = id;
         this.uid = uid;
         this.schoolId = schoolId;
@@ -35,6 +43,7 @@ public class JournalSession {
         this.grade = grade;
         this.notes = notes;
         this.discipline = discipline;
+        this.lineId = lineId;
         this.sessionDate = sessionDate;
         this.createdAt = createdAt;
     }
@@ -48,6 +57,7 @@ public class JournalSession {
     public String getGrade()           { return grade; }
     public String getNotes()           { return notes; }
     public String getDiscipline()      { return discipline; }
+    public String getLineId()          { return lineId; }
     public LocalDate getSessionDate()  { return sessionDate; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
 }

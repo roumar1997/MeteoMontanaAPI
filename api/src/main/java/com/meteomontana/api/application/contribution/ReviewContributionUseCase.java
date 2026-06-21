@@ -38,17 +38,25 @@ public class ReviewContributionUseCase {
     private final SpringDataSchoolRepository       schoolRepo;
     private final com.meteomontana.api.infrastructure.email.ResendEmailService emailService;
     private final com.meteomontana.api.domain.port.UserRepository userRepository;
+    private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository journalRepo;
 
     public ReviewContributionUseCase(SpringDataContributionRepository repo,
                                      SpringDataSchoolBlockRepository blockRepo,
                                      SpringDataSchoolRepository schoolRepo,
                                      com.meteomontana.api.infrastructure.email.ResendEmailService emailService,
-                                     com.meteomontana.api.domain.port.UserRepository userRepository) {
+                                     com.meteomontana.api.domain.port.UserRepository userRepository,
+                                     com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository journalRepo) {
         this.repo       = repo;
         this.blockRepo  = blockRepo;
         this.schoolRepo = schoolRepo;
         this.emailService = emailService;
         this.userRepository = userRepository;
+        this.journalRepo = journalRepo;
+    }
+
+    /** Propaga el grado nuevo de una vía al diario de todos (si la vía tiene id). */
+    private void propagateGrade(String lineId, String grade) {
+        if (lineId != null && !lineId.isBlank()) journalRepo.updateGradeByLineId(lineId, grade);
     }
 
     private void sendReviewEmail(PendingContribution c, boolean approved, String reason) {
@@ -382,6 +390,7 @@ public class ReviewContributionUseCase {
 
             if (!name.isEmpty()) line.setName(name);
             line.setGrade(grade);
+            propagateGrade(line.getId(), grade);
             line.setStartType(startType);
             if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
             String facePhoto = facePhotoOf(node, block.getPhotoPath());
@@ -438,6 +447,7 @@ public class ReviewContributionUseCase {
                             .ifPresent(line -> {
                                 if (!name.isEmpty()) line.setName(name);
                                 line.setGrade(grade);
+                                propagateGrade(line.getId(), grade);
                                 line.setStartType(startType);
                                 if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
                                 if (facePhoto != null && !facePhoto.isBlank()) line.setPhotoPath(facePhoto);
@@ -511,6 +521,7 @@ public class ReviewContributionUseCase {
                     kept.add(line.getId());
                     if (!name.isEmpty()) line.setName(name);
                     line.setGrade(grade);
+                    propagateGrade(line.getId(), grade);
                     line.setStartType(startType);
                     if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
                     line.setPhotoPath(facePhoto);
