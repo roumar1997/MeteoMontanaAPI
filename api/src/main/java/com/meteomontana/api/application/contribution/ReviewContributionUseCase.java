@@ -126,7 +126,12 @@ public class ReviewContributionUseCase {
 
             case PARKING -> createBlock(c, SchoolBlock.Type.PARKING, admin.uid());
             case BOULDER -> {
-                if (c.getTargetBlockId() != null && c.getTargetLineId() != null) {
+                if (c.getTargetBlockId() != null && c.getGeometry() != null) {
+                    // Edición de MURO: el payload es el estado COMPLETO propuesto
+                    // (vías con su lineId + path + dirección) → reconciliar
+                    // preservando ids (los enganches del diario sobreviven).
+                    reconcileWall(c);
+                } else if (c.getTargetBlockId() != null && c.getTargetLineId() != null) {
                     // Corrección de una vía concreta: actualiza la línea existente
                     // con los datos del primer bloque del JSON.
                     updateExistingLine(c);
@@ -451,6 +456,86 @@ public class ReviewContributionUseCase {
             refreshCover(block);
             blockRepo.save(block);
         } catch (Exception ignored) {}
+    }
+
+    /**
+     * Reconcilia un MURO (geometry=LINE) al estado COMPLETO propuesto, preservando
+     * los ids de las vías existentes (clave para que los enganches del diario por
+     * lineId sobrevivan). Las vías del payload con `lineId` conocido se ACTUALIZAN
+     * en sitio; las nuevas (sin lineId) se CREAN; las existentes que el payload
+     * OMITE se BORRAN (orphanRemoval). sortOrder = orden en el payload; faceOrder
+     * por foto. Actualiza path/dirección/geometría del muro.
+     */
+    private void reconcileWall(PendingContribution c) {
+        var blockOpt = blockRepo.findById(c.getTargetBlockId());
+        if (blockOpt.isEmpty()) return;
+        var block = blockOpt.get();
+
+        SchoolBlock.Geometry geom = parseGeometry(c.getGeometry());
+        block.setGeometry(geom);
+        block.setPath(geom == SchoolBlock.Geometry.LINE ? c.getPath() : null);
+        block.setDirection("RTL".equalsIgnoreCase(c.getDirection()) ? "RTL" : "LTR");
+
+        if (c.getBloquesJson() == null || c.getBloquesJson().isBlank()) {
+            blockRepo.save(block);
+            return;
+        }
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode arr = mapper.readTree(c.getBloquesJson());
+            if (!arr.isArray()) { blockRepo.save(block); return; }
+
+            java.util.Map<String, BlockLineJpaEntity> existingById = new java.util.HashMap<>();
+            for (var l : block.getLines()) existingById.put(l.getId(), l);
+
+            java.util.Set<String> kept = new java.util.HashSet<>();
+            java.util.LinkedHashMap<String, Integer> faceOrders = new java.util.LinkedHashMap<>();
+            java.util.List<BlockLineJpaEntity> toAdd = new java.util.ArrayList<>();
+            int sortOrder = 0;
+            for (JsonNode node : arr) {
+                String lineId = textOrNull(node, "lineId");
+                if (lineId == null) lineId = textOrNull(node, "targetLineId");
+                String name = node.path("name").asText("").trim();
+                String g = node.path("grade").isNull() ? null : node.path("grade").asText("").trim();
+                String grade = (g != null && g.isEmpty()) ? null : g;
+                String rawStart = node.path("startType").isNull() ? null : node.path("startType").asText("").trim();
+                BlockLine.StartType startType = mapStartType(rawStart);
+                String linePath = node.path("linePath").asText(null);
+                String facePhoto = facePhotoOf(node, block.getPhotoPath());
+                int faceOrder = faceOrders.computeIfAbsent(facePhoto == null ? "" : facePhoto,
+                        k -> faceOrders.size());
+
+                BlockLineJpaEntity line = (lineId != null) ? existingById.get(lineId) : null;
+                if (line != null) {
+                    // Actualiza en sitio (preserva id → enganche del diario).
+                    kept.add(line.getId());
+                    if (!name.isEmpty()) line.setName(name);
+                    line.setGrade(grade);
+                    line.setStartType(startType);
+                    if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
+                    line.setPhotoPath(facePhoto);
+                    line.setSortOrder(sortOrder++);
+                    line.setFaceOrder(faceOrder);
+                } else {
+                    toAdd.add(new BlockLineJpaEntity(
+                            UUID.randomUUID().toString(),
+                            name.isEmpty() ? String.valueOf(sortOrder + 1) : name,
+                            grade, startType, linePath, sortOrder++, facePhoto, faceOrder));
+                }
+            }
+            // Borra las vías que la propuesta omite (orphanRemoval); añade las nuevas.
+            block.getLines().removeIf(l -> !kept.contains(l.getId()));
+            for (var l : toAdd) block.addLine(l);
+            refreshCover(block);
+            blockRepo.save(block);
+        } catch (Exception ignored) {}
+    }
+
+    private static String textOrNull(JsonNode node, String field) {
+        JsonNode n = node.path(field);
+        if (n.isMissingNode() || n.isNull()) return null;
+        String s = n.asText(null);
+        return (s == null || s.isBlank()) ? null : s;
     }
 
     /** Variante que respeta un offset inicial para sortOrder. */

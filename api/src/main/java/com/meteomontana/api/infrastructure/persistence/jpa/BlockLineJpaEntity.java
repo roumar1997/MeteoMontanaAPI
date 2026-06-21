@@ -69,6 +69,7 @@ public class BlockLineJpaEntity {
     public String getLinePath()       { return linePath; }
     public void setLinePath(String p) { this.linePath = p; }
     public int getSortOrder()         { return sortOrder; }
+    public void setSortOrder(int s)   { this.sortOrder = s; }
     public String getPhotoPath()      { return photoPath; }
     public void setPhotoPath(String p){ this.photoPath = p; }
     public int getFaceOrder()         { return faceOrder; }
