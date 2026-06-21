@@ -27,7 +27,10 @@ public record ContributionResponse(
         String sectorBlockId,
         Double proposedLat,
         Double proposedLon,
-        String correctionReason
+        String correctionReason,
+        String geometry,    // BOULDER: POINT / LINE (muro); null si no aplica
+        String path,        // BOULDER+LINE: polilínea JSON "[[lat,lon],...]"
+        String direction    // BOULDER+LINE: "LTR"/"RTL"
 ) {
     public static ContributionResponse from(PendingContribution c) {
         return new ContributionResponse(
@@ -38,7 +41,8 @@ public record ContributionResponse(
                 c.getCreatedAt(), c.getReviewedAt(),
                 c.getPhotoUrl(), c.getBloquesJson(), c.getTopoLinesJson(),
                 c.getTargetBlockId(), c.getTargetLineId(), c.getSectorBlockId(),
-                c.getProposedLat(), c.getProposedLon(), c.getCorrectionReason()
+                c.getProposedLat(), c.getProposedLon(), c.getCorrectionReason(),
+                c.getGeometry(), c.getPath(), c.getDirection()
         );
     }
 }
