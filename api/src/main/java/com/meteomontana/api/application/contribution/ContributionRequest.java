@@ -20,5 +20,8 @@ public record ContributionRequest(
         String photoUrl,        // BOULDER: URL de Firebase Storage (null si sin foto)
         String bloquesJson,     // BOULDER: JSON array [{name,grade,startType,linePath}]
         String topoLinesJson,   // BOULDER: líneas normalizadas
-        String discipline       // BOULDER (piedra nueva): BOULDER (bloque) / ROUTE (vía)
+        String discipline,      // BOULDER (piedra nueva): BOULDER (bloque) / ROUTE (vía)
+        String geometry,        // BOULDER: POINT / LINE (muro)
+        String path,            // BOULDER+LINE: polilínea JSON [[lat,lon],...]
+        String direction        // BOULDER+LINE: "LTR"/"RTL"
 ) {}

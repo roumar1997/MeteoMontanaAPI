@@ -231,6 +231,11 @@ public class ReviewContributionUseCase {
         // Modalidad de la piedra (bloque/vía) elegida por el autor de la propuesta.
         if (type == SchoolBlock.Type.BLOCK) {
             block.setDiscipline(parseDiscipline(c.getDiscipline()));
+            // Geometría: punto o muro (polilínea).
+            SchoolBlock.Geometry geom = parseGeometry(c.getGeometry());
+            block.setGeometry(geom);
+            block.setPath(geom == SchoolBlock.Geometry.LINE ? c.getPath() : null);
+            block.setDirection("RTL".equalsIgnoreCase(c.getDirection()) ? "RTL" : "LTR");
         }
 
         // Para BOULDER: parsear bloquesJson y crear las líneas (vías) del bloque.
@@ -248,6 +253,13 @@ public class ReviewContributionUseCase {
         if (raw == null) return SchoolBlock.Discipline.BOULDER;
         try { return SchoolBlock.Discipline.valueOf(raw.trim().toUpperCase()); }
         catch (IllegalArgumentException e) { return SchoolBlock.Discipline.BOULDER; }
+    }
+
+    /** Geometría de la piedra propuesta; default POINT si null/desconocida. */
+    private static SchoolBlock.Geometry parseGeometry(String raw) {
+        if (raw == null) return SchoolBlock.Geometry.POINT;
+        try { return SchoolBlock.Geometry.valueOf(raw.trim().toUpperCase()); }
+        catch (IllegalArgumentException e) { return SchoolBlock.Geometry.POINT; }
     }
 
     /** Menor número de piedra LIBRE en la escuela (rellena huecos al borrar:

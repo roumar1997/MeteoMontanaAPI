@@ -53,6 +53,7 @@ public class SubmitContributionUseCase {
                 req.proposedLat(), req.proposedLon(), req.correctionReason(),
                 req.targetBlockId(), req.targetLineId(), req.sectorBlockId(),
                 req.photoUrl(), req.bloquesJson(), req.topoLinesJson(), req.discipline(),
+                req.geometry(), req.path(), req.direction(),
                 user.uid(), user.name(),
                 null, null,
                 LocalDateTime.now(), null

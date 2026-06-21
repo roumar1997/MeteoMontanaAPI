@@ -61,6 +61,17 @@ public class SchoolBlockJpaEntity {
     @Column(name = "sector_block_id")
     private String sectorBlockId;
 
+    // Geometría/muro. Se setean aparte (setters) para no tocar los constructores.
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SchoolBlock.Geometry geometry = SchoolBlock.Geometry.POINT;
+
+    @Column(columnDefinition = "TEXT")
+    private String path;                       // polilínea JSON si LINE
+
+    @Column(name = "wall_direction", nullable = false)
+    private String direction = "LTR";
+
     @OneToMany(mappedBy = "block", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("sortOrder ASC")
     private List<BlockLineJpaEntity> lines = new ArrayList<>();
@@ -89,6 +100,14 @@ public class SchoolBlockJpaEntity {
     public void setDiscipline(SchoolBlock.Discipline discipline) {
         this.discipline = discipline != null ? discipline : SchoolBlock.Discipline.BOULDER;
     }
+    public SchoolBlock.Geometry getGeometry() { return geometry; }
+    public void setGeometry(SchoolBlock.Geometry geometry) {
+        this.geometry = geometry != null ? geometry : SchoolBlock.Geometry.POINT;
+    }
+    public String getPath() { return path; }
+    public void setPath(String path) { this.path = path; }
+    public String getDirection() { return direction; }
+    public void setDirection(String direction) { this.direction = direction != null ? direction : "LTR"; }
     public String getName()           { return name; }
     public double getLat()            { return lat; }
     public double getLon()            { return lon; }

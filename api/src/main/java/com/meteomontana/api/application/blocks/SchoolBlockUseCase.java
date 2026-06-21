@@ -32,7 +32,10 @@ public class SchoolBlockUseCase {
             String description,
             List<CreateBlockLineRequest> lines,
             String sectorBlockId,   // BLOCK: id del sector (ZONE) al que pertenece (opcional)
-            String discipline       // BLOCK: BOULDER (bloque) / ROUTE (vía). Default BOULDER.
+            String discipline,      // BLOCK: BOULDER (bloque) / ROUTE (vía). Default BOULDER.
+            String geometry,        // BLOCK: POINT (marcador) / LINE (muro). Default POINT.
+            String path,            // BLOCK+LINE: polilínea JSON [[lat,lon],...]
+            String direction        // BLOCK+LINE: "LTR"/"RTL" (numeración del muro)
     ) {}
 
     public record BlockDto(
@@ -41,6 +44,9 @@ public class SchoolBlockUseCase {
             String createdByUid, String createdAt, List<BlockLineDto> lines,
             String sectorBlockId,
             String discipline,      // BOULDER (bloque) / ROUTE (vía)
+            String geometry,        // POINT / LINE
+            String path,            // polilínea JSON si LINE
+            String direction,       // "LTR"/"RTL"
             // Caras = la piedra agrupada por foto (cada cara: foto + sus vías).
             // `lines` y `photoPath` se mantienen (= primera cara) por compat.
             List<BlockFaceDto> faces
@@ -111,6 +117,8 @@ public class SchoolBlockUseCase {
 
         SchoolBlock.Discipline discipline = type == SchoolBlock.Type.BLOCK
                 ? parseDiscipline(req.discipline()) : SchoolBlock.Discipline.BOULDER;
+        SchoolBlock.Geometry geometry = type == SchoolBlock.Type.BLOCK
+                ? parseGeometry(req.geometry()) : SchoolBlock.Geometry.POINT;
         SchoolBlock block = new SchoolBlock(
                 UUID.randomUUID().toString(),
                 schoolId, type, discipline, name,
@@ -118,7 +126,10 @@ public class SchoolBlockUseCase {
                 req.photoPath(),
                 req.description(),
                 creatorUid, LocalDateTime.now(), lines,
-                type == SchoolBlock.Type.BLOCK ? req.sectorBlockId() : null
+                type == SchoolBlock.Type.BLOCK ? req.sectorBlockId() : null,
+                geometry,
+                geometry == SchoolBlock.Geometry.LINE ? req.path() : null,
+                parseDirection(req.direction())
         );
         return toDto(blockRepository.save(block));
     }
@@ -128,6 +139,18 @@ public class SchoolBlockUseCase {
         if (raw == null) return SchoolBlock.Discipline.BOULDER;
         try { return SchoolBlock.Discipline.valueOf(raw.trim().toUpperCase()); }
         catch (IllegalArgumentException e) { return SchoolBlock.Discipline.BOULDER; }
+    }
+
+    /** Parsea la geometría; default POINT si null/desconocida. */
+    private SchoolBlock.Geometry parseGeometry(String raw) {
+        if (raw == null) return SchoolBlock.Geometry.POINT;
+        try { return SchoolBlock.Geometry.valueOf(raw.trim().toUpperCase()); }
+        catch (IllegalArgumentException e) { return SchoolBlock.Geometry.POINT; }
+    }
+
+    /** Normaliza la dirección del muro a LTR/RTL; default LTR. */
+    private String parseDirection(String raw) {
+        return "RTL".equalsIgnoreCase(raw != null ? raw.trim() : null) ? "RTL" : "LTR";
     }
 
     /** Menor número de piedra LIBRE en la escuela (rellena huecos al borrar).
@@ -171,6 +194,12 @@ public class SchoolBlockUseCase {
 
         SchoolBlock.Discipline discipline = req.discipline() != null
                 ? parseDiscipline(req.discipline()) : current.getDiscipline();
+        SchoolBlock.Geometry geometry = req.geometry() != null
+                ? parseGeometry(req.geometry()) : current.getGeometry();
+        String path = req.geometry() != null
+                ? (geometry == SchoolBlock.Geometry.LINE ? req.path() : null)
+                : current.getPath();
+        String direction = req.direction() != null ? parseDirection(req.direction()) : current.getDirection();
         SchoolBlock updated = new SchoolBlock(
                 blockId, current.getSchoolId(), type, discipline,
                 req.name() != null ? req.name() : current.getName(),
@@ -179,7 +208,8 @@ public class SchoolBlockUseCase {
                 req.photoPath() != null ? req.photoPath() : current.getPhotoPath(),
                 req.description() != null ? req.description() : current.getDescription(),
                 current.getCreatedByUid(), current.getCreatedAt(), lines,
-                req.sectorBlockId() != null ? req.sectorBlockId() : current.getSectorBlockId()
+                req.sectorBlockId() != null ? req.sectorBlockId() : current.getSectorBlockId(),
+                geometry, path, direction
         );
         // Borramos el viejo y guardamos nuevo (cascade eliminará líneas viejas)
         blockRepository.deleteById(blockId);
@@ -217,6 +247,7 @@ public class SchoolBlockUseCase {
                 b.getCreatedByUid(), b.getCreatedAt().toString(),
                 lines, b.getSectorBlockId(),
                 b.getDiscipline().name(),
+                b.getGeometry().name(), b.getPath(), b.getDirection(),
                 buildFaces(lines, b.getPhotoPath())
         );
     }

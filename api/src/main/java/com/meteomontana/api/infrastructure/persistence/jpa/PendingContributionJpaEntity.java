@@ -70,6 +70,15 @@ public class PendingContributionJpaEntity {
     @Column(name = "discipline")
     private String discipline;
 
+    @Column(name = "geometry")
+    private String geometry;
+
+    @Column(name = "path", columnDefinition = "TEXT")
+    private String path;
+
+    @Column(name = "wall_direction")
+    private String direction;
+
     @Column(name = "submitted_by_uid", nullable = false)
     private String submittedByUid;
 
@@ -112,6 +121,9 @@ public class PendingContributionJpaEntity {
         e.bloquesJson = c.getBloquesJson();
         e.topoLinesJson = c.getTopoLinesJson();
         e.discipline = c.getDiscipline();
+        e.geometry = c.getGeometry();
+        e.path = c.getPath();
+        e.direction = c.getDirection();
         e.submittedByUid = c.getSubmittedByUid();
         e.submittedByName = c.getSubmittedByName();
         e.reviewedByUid = c.getReviewedByUid();
@@ -126,6 +138,7 @@ public class PendingContributionJpaEntity {
                 lat, lon, notes, description, proposedLat, proposedLon, correctionReason,
                 targetBlockId, targetLineId, sectorBlockId,
                 photoUrl, bloquesJson, topoLinesJson, discipline,
+                geometry, path, direction,
                 submittedByUid, submittedByName, reviewedByUid, reviewReason,
                 createdAt, reviewedAt);
     }

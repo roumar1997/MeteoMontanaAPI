@@ -10,6 +10,9 @@ public class SchoolBlock {
      *  Solo aplica a las piedras (type=BLOCK); para PARKING/ZONE se ignora. */
     public enum Discipline { BOULDER, ROUTE }
 
+    /** Geometría en el mapa: PUNTO (marcador) o LÍNEA (muro = polilínea). */
+    public enum Geometry { POINT, LINE }
+
     private final String id;
     private final String schoolId;
     private final Type type;
@@ -23,17 +26,32 @@ public class SchoolBlock {
     private final LocalDateTime createdAt;
     private final List<BlockLine> lines;
     private final String sectorBlockId;   // null si la piedra no está asignada a un sector
+    private final Geometry geometry;
+    private final String path;            // polilínea JSON [[lat,lon],...] si LINE; null si POINT
+    private final String direction;       // "LTR"/"RTL": sentido de numeración del muro
 
+    /** Constructor canónico. */
     public SchoolBlock(String id, String schoolId, Type type, Discipline discipline, String name,
                        double lat, double lon, String photoPath, String description,
                        String createdByUid, LocalDateTime createdAt, List<BlockLine> lines,
-                       String sectorBlockId) {
+                       String sectorBlockId, Geometry geometry, String path, String direction) {
         this.id = id; this.schoolId = schoolId; this.type = type;
         this.discipline = discipline != null ? discipline : Discipline.BOULDER;
         this.name = name;
         this.lat = lat; this.lon = lon; this.photoPath = photoPath;
         this.description = description; this.createdByUid = createdByUid;
         this.createdAt = createdAt; this.lines = lines; this.sectorBlockId = sectorBlockId;
+        this.geometry = geometry != null ? geometry : Geometry.POINT;
+        this.path = path;
+        this.direction = direction != null ? direction : "LTR";
+    }
+
+    public SchoolBlock(String id, String schoolId, Type type, Discipline discipline, String name,
+                       double lat, double lon, String photoPath, String description,
+                       String createdByUid, LocalDateTime createdAt, List<BlockLine> lines,
+                       String sectorBlockId) {
+        this(id, schoolId, type, discipline, name, lat, lon, photoPath, description,
+             createdByUid, createdAt, lines, sectorBlockId, Geometry.POINT, null, "LTR");
     }
 
     public SchoolBlock(String id, String schoolId, Type type, String name,
@@ -64,4 +82,7 @@ public class SchoolBlock {
     public LocalDateTime getCreatedAt(){ return createdAt; }
     public List<BlockLine> getLines() { return lines; }
     public String getSectorBlockId()  { return sectorBlockId; }
+    public Geometry getGeometry()     { return geometry; }
+    public String getPath()           { return path; }
+    public String getDirection()      { return direction; }
 }
