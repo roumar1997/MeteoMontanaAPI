@@ -27,14 +27,8 @@ server:
     # (la app lo enseña al usuario; sin esto solo llega "Service Unavailable").
     include-message: always
 
-# Cache Caffeine — TTL 90 min para no martillear Open-Meteo (191 escuelas
-# por barrido de scores; con 30m rozábamos el límite gratuito de 10k/día
-# y Open-Meteo empezó a cortar conexiones desde la IP de Railway).
-spring.cache:
-  type: caffeine
-  cache-names: forecast, today-scores, range-scores
-  caffeine:
-    spec: maximumSize=500,expireAfterWrite=90m
+# Cache Caffeine — configurada programáticamente en CacheConfig.java
+# forecast=90min (Open-Meteo tiene límite 10k/día), today/range-scores=30min
 
 # Healthcheck endpoint para que Railway/Render sepan si la app está viva.
 management:
