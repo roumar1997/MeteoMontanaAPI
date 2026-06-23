@@ -7,7 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -63,6 +65,49 @@ public class FirestoreChatRepository implements ChatRepository {
             // si no se crea el doc, el cliente no podrá escribir el primer mensaje.
             log.warn("No se pudo crear la conversación {}: {}", convId, e.toString());
             throw new RuntimeException("No se pudo crear la conversación", e);
+        }
+    }
+
+    @Override
+    public String createGroup(String creatorUid, String name, List<String> memberUids) {
+        // participants = creador + miembros (sin duplicados, conservando orden).
+        LinkedHashSet<String> set = new LinkedHashSet<>();
+        set.add(creatorUid);
+        if (memberUids != null) {
+            for (String m : memberUids) if (m != null && !m.isBlank()) set.add(m);
+        }
+        List<String> participants = new ArrayList<>(set);
+        try {
+            var doc = firestore.collection("conversations").document();   // id aleatorio
+            doc.set(Map.of(
+                    "participants", participants,
+                    "isGroup", true,
+                    "name", name == null ? "Grupo" : name,
+                    "createdBy", creatorUid
+            )).get();
+            return doc.getId();
+        } catch (Exception e) {
+            log.warn("No se pudo crear el grupo '{}': {}", name, e.toString());
+            throw new RuntimeException("No se pudo crear el grupo", e);
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<String> participantsOf(String convId) {
+        if (convId == null || convId.isBlank()) return List.of();
+        try {
+            var snap = firestore.collection("conversations").document(convId).get().get();
+            Object p = snap.get("participants");
+            if (p instanceof List<?> list) {
+                List<String> out = new ArrayList<>();
+                for (Object o : list) if (o instanceof String s) out.add(s);
+                return out;
+            }
+            return List.of();
+        } catch (Exception e) {
+            log.warn("No se pudieron leer los participantes de {}: {}", convId, e.toString());
+            return List.of();
         }
     }
 

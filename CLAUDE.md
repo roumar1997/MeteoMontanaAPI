@@ -18,6 +18,28 @@ actualiza también el DTO y la interfaz Retrofit en `MeteoMontanaAndroid`.
 
 ---
 
+## 🟢🟡 STAGING vs PRODUCCIÓN (desde 2026-06-22) — LEER
+
+Hay **testers reales** en la prueba cerrada de Play usando producción EN VIVO.
+**Regla nº1: pedir OK a Rodrigo antes de cualquier commit/merge a `main`** (un
+cambio roto en prod les rompe la app). Flujo seguro con dos entornos Railway
+(proyecto `zoological-wisdom`), cada uno con **su propia BD**:
+
+| Entorno | Rama | URL | BD |
+|---|---|---|---|
+| **production** | `main` | `api.climbingteams.com` | datos reales (testers) |
+| **staging** | `develop` | `meteomontanaapi-staging.up.railway.app` | copia del catálogo |
+
+**Flujo**: cambias backend → push a **`develop`** → Railway despliega staging →
+pruebas (los APK/`.ipa` *debug* de las apps apuntan a staging) → cuando va bien,
+mergear a **`main`** (con OK) → Railway redespliega prod. Mantén los cambios
+**retrocompatibles** (campos nullable/aditivos, migraciones solo aditivas) por las
+apps ya instaladas. Firebase sigue compartido; lo aislado es backend + BD.
+
+> Pendiente: rotar contraseñas de las dos BD en Railway (quedaron en un chat).
+
+---
+
 ## ⚡ Arranque rápido
 
 ```powershell

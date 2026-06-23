@@ -22,4 +22,17 @@ public interface ChatRepository {
      * escribir mensajes.
      */
     void ensureConversation(String uidA, String uidB);
+
+    /**
+     * Crea un GRUPO de chat (varias personas) en Firestore y devuelve su convId.
+     * participants = creador + memberUids (sin duplicados). El doc lleva
+     * {@code isGroup=true} y {@code name}. Solo el backend crea conversaciones.
+     */
+    String createGroup(String creatorUid, String name, java.util.List<String> memberUids);
+
+    /**
+     * Lista de uids participantes de una conversación (para notificar a todos los
+     * miembros de un grupo). Vacía si no existe o ante error.
+     */
+    java.util.List<String> participantsOf(String convId);
 }

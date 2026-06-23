@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -44,6 +46,80 @@ public class ChatPushController {
     public record NotifyRequest(String toUid, String preview) {}
 
     public record StartRequest(String toUid) {}
+
+    public record CreateGroupRequest(String name, List<String> memberUids) {}
+
+    public record CreateGroupResponse(String convId) {}
+
+    public record NotifyGroupRequest(String convId, String preview) {}
+
+    /**
+     * Crea un GRUPO de chat. Solo el backend crea conversaciones (las reglas
+     * Firestore lo impiden a los clientes). Se aceptan como miembros los usuarios
+     * con relación de seguimiento con el creador (en cualquier sentido) o públicos
+     * — mismo criterio que el chat 1-a-1. Devuelve el convId del grupo.
+     */
+    @PostMapping("/group")
+    public ResponseEntity<CreateGroupResponse> createGroup(
+            @AuthenticationPrincipal FirebaseUser me,
+            @RequestBody CreateGroupRequest req) {
+        if (req == null || req.name() == null || req.name().isBlank()
+                || req.memberUids() == null || req.memberUids().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        // Filtra los miembros permitidos (relación de follow o público), sin mí.
+        List<String> allowed = new ArrayList<>();
+        for (String m : req.memberUids()) {
+            if (m == null || m.isBlank() || m.equals(me.uid()) || allowed.contains(m)) continue;
+            User u = userRepository.findByUid(m).orElse(null);
+            if (u == null) continue;
+            boolean ok = u.isPublic()
+                    || followRepository.isFollowing(me.uid(), m)
+                    || followRepository.isFollowing(m, me.uid());
+            if (ok) allowed.add(m);
+        }
+        if (allowed.isEmpty()) return ResponseEntity.badRequest().build();
+
+        String name = req.name().replaceAll("[\\p{Cc}\\p{Cf}]", "").strip();
+        if (name.length() > 60) name = name.substring(0, 60);
+        String convId = chatRepository.createGroup(me.uid(), name, allowed);
+        return ResponseEntity.ok(new CreateGroupResponse(convId));
+    }
+
+    /** Dispara push a TODOS los miembros del grupo menos al emisor. */
+    @PostMapping("/notify-group")
+    public ResponseEntity<Void> notifyGroup(
+            @AuthenticationPrincipal FirebaseUser sender,
+            @RequestBody NotifyGroupRequest req) {
+        if (req == null || req.convId() == null || req.convId().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        List<String> participants = chatRepository.participantsOf(req.convId());
+        // Solo notifico si el emisor pertenece al grupo (evita abuso).
+        if (!participants.contains(sender.uid())) return ResponseEntity.ok().build();
+
+        User from = userRepository.findByUid(sender.uid()).orElse(null);
+        String fromName = (from != null && from.getDisplayName() != null)
+                ? from.getDisplayName()
+                : (from != null && from.getUsername() != null ? from.getUsername() : "Mensaje nuevo");
+
+        String rawPreview = req.preview() == null ? "" :
+                req.preview().replaceAll("[\\p{Cc}\\p{Cf}]", "").strip();
+        String preview = rawPreview.length() > 80 ? rawPreview.substring(0, 80) + "…" : rawPreview;
+
+        for (String uid : participants) {
+            if (uid.equals(sender.uid())) continue;
+            User to = userRepository.findByUid(uid).orElse(null);
+            if (to == null || to.getFcmToken() == null || to.getFcmToken().isBlank()) continue;
+            Map<String, String> data = new HashMap<>();
+            data.put("targetType", "group");
+            data.put("targetId", req.convId());
+            data.put("title", fromName);
+            data.put("body", preview);
+            fcmService.sendToToken(to.getFcmToken(), fromName, preview, data);
+        }
+        return ResponseEntity.ok().build();
+    }
 
     /**
      * Inicia (o asegura) una conversación 1-a-1. Es la puerta de autorización del
