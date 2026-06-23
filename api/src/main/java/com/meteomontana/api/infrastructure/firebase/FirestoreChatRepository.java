@@ -79,11 +79,19 @@ public class FirestoreChatRepository implements ChatRepository {
         List<String> participants = new ArrayList<>(set);
         try {
             var doc = firestore.collection("conversations").document();   // id aleatorio
+            // OJO: la query de las apps ordena por "lastAt"; en Firestore un
+            // orderBy EXCLUYE los documentos que no tienen ese campo. Sin lastAt
+            // el grupo recién creado no aparecería en observeMyConversations()
+            // (→ "1 miembros / ya no eres miembro" y no se puede escribir). Por eso
+            // sembramos lastAt al crear el grupo.
             doc.set(Map.of(
                     "participants", participants,
                     "isGroup", true,
                     "name", name == null ? "Grupo" : name,
-                    "createdBy", creatorUid
+                    "createdBy", creatorUid,
+                    "lastAt", com.google.cloud.Timestamp.now(),
+                    "lastMessage", "Grupo creado",
+                    "lastFromUid", creatorUid
             )).get();
             return doc.getId();
         } catch (Exception e) {
