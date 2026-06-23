@@ -1,10 +1,13 @@
 package com.meteomontana.api.application.forecast;
 
+import com.meteomontana.api.domain.port.SchoolRepository;
+import com.meteomontana.api.infrastructure.weather.OpenMeteoClient;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Score de un TRAMO de varios días (los que el usuario elige) para cada escuela.
@@ -54,9 +57,15 @@ public class GetRangeScoresUseCase {
     ) {}
 
     private final GetForecastUseCase forecastUseCase;
+    private final SchoolRepository schoolRepository;
+    private final OpenMeteoClient openMeteoClient;
 
-    public GetRangeScoresUseCase(GetForecastUseCase forecastUseCase) {
+    public GetRangeScoresUseCase(GetForecastUseCase forecastUseCase,
+                                 SchoolRepository schoolRepository,
+                                 OpenMeteoClient openMeteoClient) {
         this.forecastUseCase = forecastUseCase;
+        this.schoolRepository = schoolRepository;
+        this.openMeteoClient = openMeteoClient;
     }
 
     /**
@@ -66,8 +75,15 @@ public class GetRangeScoresUseCase {
     @Cacheable(value = "range-scores", key = "#ids.toString() + '|' + #dates.toString()")
     public List<RangeScoreDto> forIds(List<String> ids, List<String> dates) {
         if (ids == null || ids.isEmpty() || dates == null || dates.isEmpty()) return List.of();
+        List<String> limited = ids.stream().limit(MAX_IDS).toList();
+        // Pre-calienta la caché con pocas llamadas batch (evita el pico de 429).
+        openMeteoClient.prewarm(limited.stream()
+                .map(id -> schoolRepository.findById(id).orElse(null))
+                .filter(Objects::nonNull)
+                .map(s -> new double[]{s.getLat(), s.getLon()})
+                .toList());
         List<RangeScoreDto> out = new ArrayList<>();
-        for (String id : ids.stream().limit(MAX_IDS).toList()) {
+        for (String id : limited) {
             try {
                 ForecastResponse fc = forecastUseCase.execute(id);
                 out.add(summarize(id, fc, dates));
