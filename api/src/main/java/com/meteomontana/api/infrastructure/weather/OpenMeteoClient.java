@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -34,12 +35,17 @@ public class OpenMeteoClient {
 
     /** Máximo de localizaciones por petición batch (URL razonable; 326 → 4 calls). */
     private static final int BATCH_SIZE = 100;
+    /** Antigüedad máxima del dato en la tabla para servirlo sin llamar en vivo.
+     *  El scheduler refresca cada hora; con 6h damos margen si una vuelta falla. */
+    private static final Duration SERVE_MAX_AGE = Duration.ofHours(6);
 
     private final RestClient restClient;
     private final CacheManager cacheManager;
+    private final ForecastStore store;
 
-    public OpenMeteoClient(CacheManager cacheManager) {
+    public OpenMeteoClient(CacheManager cacheManager, ForecastStore store) {
         this.cacheManager = cacheManager;
+        this.store = store;
         // Timeouts holgados: Open-Meteo responde lento cuando estrangula la IP
         // (Railway comparte IP de salida con otras apps).
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -56,31 +62,72 @@ public class OpenMeteoClient {
 
     @Cacheable(value = "forecast", key = "#lat + ',' + #lon")
     public OpenMeteoResponse fetchForecast(double lat, double lon) {
+        // L2: tabla Postgres (la rellena el scheduler cada hora). Lo normal es
+        // servir de aquí sin tocar Open-Meteo en la petición del usuario.
+        Optional<OpenMeteoResponse> fresh = store.getFresh(lat, lon, SERVE_MAX_AGE);
+        if (fresh.isPresent()) return fresh.get();
+
+        // Si estamos limitados, mejor servir lo último guardado (aunque viejo) que un 503.
         if (System.currentTimeMillis() < cooldownUntil) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "El servicio meteorológico está limitando las peticiones (429). "
-                            + "Reintentando automáticamente en unos minutos.");
+            return store.getAny(lat, lon).orElseThrow(() -> rateLimited());
         }
         try {
-            return doFetch(lat, lon);
+            OpenMeteoResponse r = doFetch(lat, lon);
+            store.save(lat, lon, r);
+            return r;
         } catch (RateLimitedException e) {
-            // 429: martillear solo lo empeora — paramos 10 min para que el límite se recupere.
+            // 429: martillear solo lo empeora — paramos 10 min. Servimos lo guardado si hay.
             cooldownUntil = System.currentTimeMillis() + Duration.ofMinutes(10).toMillis();
             log.warn("Open-Meteo 429: cooldown de 10 min activado");
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "El servicio meteorológico está limitando las peticiones (429). "
-                            + "Reintentando automáticamente en unos minutos.");
+            return store.getAny(lat, lon).orElseThrow(() -> rateLimited());
         } catch (ResponseStatusException first) {
             // Otros errores (timeout, corte de conexión) suelen ser intermitentes: un reintento.
             try { Thread.sleep(800); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             try {
-                return doFetch(lat, lon);
+                OpenMeteoResponse r = doFetch(lat, lon);
+                store.save(lat, lon, r);
+                return r;
             } catch (RateLimitedException e) {
                 cooldownUntil = System.currentTimeMillis() + Duration.ofMinutes(10).toMillis();
-                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                        "El servicio meteorológico está limitando las peticiones (429).");
+                return store.getAny(lat, lon).orElseThrow(() -> rateLimited());
+            } catch (ResponseStatusException second) {
+                // Último recurso: cualquier dato guardado antes de propagar el error.
+                Optional<OpenMeteoResponse> any = store.getAny(lat, lon);
+                if (any.isPresent()) return any.get();
+                throw second;
             }
         }
+    }
+
+    private static ResponseStatusException rateLimited() {
+        return new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "El servicio meteorológico está limitando las peticiones (429). "
+                        + "Reintentando automáticamente en unos minutos.");
+    }
+
+    /**
+     * Refresca TODAS las coordenadas dadas (las pida o no la caché) con pocas
+     * peticiones batch y las guarda en la tabla + caché en memoria. Lo llama
+     * ForecastPrefetchScheduler cada hora y al arrancar. Best-effort.
+     */
+    public void refreshAll(List<double[]> coords) {
+        if (coords == null || coords.isEmpty()) return;
+        if (System.currentTimeMillis() < cooldownUntil) return;
+        List<double[]> unique = dedupe(coords);
+        int ok = 0;
+        for (int from = 0; from < unique.size(); from += BATCH_SIZE) {
+            List<double[]> chunk = unique.subList(from, Math.min(from + BATCH_SIZE, unique.size()));
+            try {
+                ok += fetchAndStore(chunk);
+            } catch (RateLimitedException e) {
+                cooldownUntil = System.currentTimeMillis() + Duration.ofMinutes(10).toMillis();
+                log.warn("Open-Meteo 429 en refreshAll: cooldown 10 min");
+                break;
+            } catch (Exception e) {
+                log.warn("refreshAll chunk falló ({} coords): {}", chunk.size(), e.toString());
+            }
+        }
+        log.info("Forecast prefetch: {}/{} coordenadas refrescadas", ok, unique.size());
     }
 
     /**
@@ -96,36 +143,54 @@ public class OpenMeteoClient {
         if (coords == null || coords.isEmpty()) return;
         if (System.currentTimeMillis() < cooldownUntil) return;   // ya limitados: no insistir
 
-        // Solo las que NO están cacheadas (y sin duplicar coordenadas).
-        List<double[]> missing = coords.stream()
-                .filter(c -> getCached(c[0], c[1]) == null)
-                .collect(Collectors.collectingAndThen(
-                        Collectors.toMap(c -> cacheKey(c[0], c[1]), c -> c, (a, b) -> a),
-                        m -> new ArrayList<>(m.values())));
+        // Solo las que NO están frescas ni en memoria ni en la tabla (sin duplicar).
+        // Con el scheduler funcionando, normalmente esto queda vacío y no llama.
+        List<double[]> missing = dedupe(coords).stream()
+                .filter(c -> getCached(c[0], c[1]) == null
+                        && store.getFresh(c[0], c[1], SERVE_MAX_AGE).isEmpty())
+                .toList();
         if (missing.isEmpty()) return;
 
         for (int from = 0; from < missing.size(); from += BATCH_SIZE) {
             List<double[]> chunk = missing.subList(from, Math.min(from + BATCH_SIZE, missing.size()));
             try {
-                if (chunk.size() == 1) {
-                    // 1 sola localización: Open-Meteo devuelve un objeto, no array.
-                    OpenMeteoResponse r = doFetch(chunk.get(0)[0], chunk.get(0)[1]);
-                    putCache(chunk.get(0)[0], chunk.get(0)[1], r);
-                } else {
-                    OpenMeteoResponse[] arr = doFetchBatch(chunk);
-                    for (int i = 0; i < chunk.size() && i < arr.length; i++) {
-                        if (arr[i] != null) putCache(chunk.get(i)[0], chunk.get(i)[1], arr[i]);
-                    }
-                }
+                fetchAndStore(chunk);
             } catch (RateLimitedException e) {
                 cooldownUntil = System.currentTimeMillis() + Duration.ofMinutes(10).toMillis();
                 log.warn("Open-Meteo 429 en prewarm: cooldown 10 min");
                 return;   // no sigue martilleando
             } catch (Exception e) {
                 log.warn("prewarm chunk falló ({} coords): {}", chunk.size(), e.toString());
-                // sigue con el resto de chunks
             }
         }
+    }
+
+    /** Pide un lote (batch si >1; objeto si =1) y lo guarda en tabla + memoria. */
+    private int fetchAndStore(List<double[]> chunk) {
+        int n = 0;
+        if (chunk.size() == 1) {
+            OpenMeteoResponse r = doFetch(chunk.get(0)[0], chunk.get(0)[1]);
+            putCache(chunk.get(0)[0], chunk.get(0)[1], r);
+            store.save(chunk.get(0)[0], chunk.get(0)[1], r);
+            n = 1;
+        } else {
+            OpenMeteoResponse[] arr = doFetchBatch(chunk);
+            for (int i = 0; i < chunk.size() && i < arr.length; i++) {
+                if (arr[i] != null) {
+                    putCache(chunk.get(i)[0], chunk.get(i)[1], arr[i]);
+                    store.save(chunk.get(i)[0], chunk.get(i)[1], arr[i]);
+                    n++;
+                }
+            }
+        }
+        return n;
+    }
+
+    /** Quita coordenadas duplicadas (misma clave de caché), conservando el orden. */
+    private static List<double[]> dedupe(List<double[]> coords) {
+        return new ArrayList<>(coords.stream().collect(Collectors.toMap(
+                c -> cacheKey(c[0], c[1]), c -> c, (a, b) -> a,
+                java.util.LinkedHashMap::new)).values());
     }
 
     private OpenMeteoResponse[] doFetchBatch(List<double[]> chunk) {
