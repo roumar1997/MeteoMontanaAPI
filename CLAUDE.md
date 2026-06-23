@@ -688,6 +688,25 @@ consciente).
 
 (Las últimas 5-10 sesiones aproximadamente. Las más antiguas se podan.)
 
+### Sesión 2026-06-23 — Open-Meteo blindado (batch + prefetch) + grupos de chat
+
+- **Open-Meteo 429 por pico** (no caída global como en junio-11): cargar scores
+  de ~191 escuelas tras un redeploy → ~191 peticiones de golpe → >600/min → 429
+  → cooldown → forecast caído. **Arreglado y en prod**:
+  - `OpenMeteoClient`: **batch multi-localización** (lotes de 100 → ~4 calls).
+  - **Prefetch horario + caché persistente Postgres**: `ForecastPrefetchScheduler`
+    (@Scheduled "0 5 * * * *" + @Async ApplicationReadyEvent) refresca todas las
+    escuelas cada hora → tabla `forecast_cache` (V30) + `ForecastStore`.
+    `fetchForecast`: memoria → tabla(<6h) → vivo → si 429 sirve dato guardado.
+    Uso Open-Meteo ~96/día fijo pasen N usuarios; sobrevive a redeploys.
+- **Grupos de chat (backend, solo en `develop`/staging — NO en prod)**:
+  `POST /api/chat/group` + `/api/chat/notify-group`; `ChatRepository.createGroup/
+  participantsOf`. Reglas Firestore de grupos desplegadas a prod (compartido,
+  aditivas; 1-a-1 verificado OK). Para sacar grupos a testers: mergear a `main`
+  (prod) + nueva release de la app.
+- Recordatorio: backend `develop`→staging, `main`→prod; pedir OK antes de tocar
+  prod (ver sección STAGING vs PRODUCCIÓN arriba).
+
 ### Sesión 2026-06-13 — secado de roca según viento/sol/temperatura/humedad
 
 - **Mejora del secado en `GetForecastUseCase`**: el secado ya no depende solo
