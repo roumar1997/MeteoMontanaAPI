@@ -119,6 +119,41 @@ public class FirestoreChatRepository implements ChatRepository {
         }
     }
 
+    @Override
+    public void deleteUserData(String uid) {
+        if (uid == null || uid.isBlank()) return;
+        try {
+            var convs = firestore.collection("conversations")
+                    .whereArrayContains("participants", uid)
+                    .get().get();
+            for (var doc : convs.getDocuments()) {
+                // Borrar los mensajes de la conversación (subcolección).
+                try {
+                    var msgs = doc.getReference().collection("messages").get().get();
+                    for (var m : msgs.getDocuments()) m.getReference().delete();
+                } catch (Exception e) {
+                    log.warn("delete account: mensajes de {} no borrados: {}", doc.getId(), e.toString());
+                }
+                boolean isGroup = Boolean.TRUE.equals(doc.get("isGroup"));
+                if (isGroup) {
+                    // Grupo: quitar al usuario; si queda vacío, borrar el grupo.
+                    List<String> rest = new ArrayList<>();
+                    Object p = doc.get("participants");
+                    if (p instanceof List<?> list) {
+                        for (Object o : list) if (o instanceof String s && !s.equals(uid)) rest.add(s);
+                    }
+                    if (rest.isEmpty()) doc.getReference().delete();
+                    else doc.getReference().update("participants", rest);
+                } else {
+                    // 1-a-1: borrar la conversación entera.
+                    doc.getReference().delete();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("delete account: no se pudo borrar el chat de {}: {}", uid, e.toString());
+        }
+    }
+
     private static String conversationId(String uidA, String uidB) {
         String[] ids = {uidA, uidB};
         Arrays.sort(ids);

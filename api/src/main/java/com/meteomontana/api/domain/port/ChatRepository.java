@@ -35,4 +35,12 @@ public interface ChatRepository {
      * miembros de un grupo). Vacía si no existe o ante error.
      */
     java.util.List<String> participantsOf(String convId);
+
+    /**
+     * Borra los datos de chat del usuario al eliminar su cuenta (RGPD): elimina
+     * las conversaciones 1-a-1 en las que participa (y sus mensajes) y lo quita
+     * de los grupos (borrando el grupo si se queda sin participantes).
+     * Best-effort: no propaga errores.
+     */
+    void deleteUserData(String uid);
 }
