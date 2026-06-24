@@ -65,7 +65,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/forecast/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/blocks/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
-                .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                // Healthcheck público para CUALQUIER método (los monitores de
+                // uptime suelen usar HEAD; restringirlo a GET daba 403 → "caído").
+                .requestMatchers("/actuator/health").permitAll()
 
                 // Zona admin: como mínimo autenticado a nivel de Security
                 // (defensa en profundidad). El rol admin lo verifica además
