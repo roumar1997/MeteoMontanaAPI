@@ -41,7 +41,7 @@ public class AdminStatsUseCase {
     public AdminStats compute(String adminUid) {
         adminGuard.ensureAdmin(adminUid);
         long totalUsers = users.count();
-        long totalAdmins = users.findAll().stream().filter(u -> u.isAdmin()).count();
+        long totalAdmins = users.countAdmins();
         long totalSchools = schools.count();
         long totalNotes = notes.count();
         long pending = submissions.findByStatus(SubmissionStatus.PENDING).size();

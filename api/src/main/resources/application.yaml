@@ -10,7 +10,9 @@ spring:
     username: ${DATABASE_USERNAME:${PGUSER:meteomontana}}
     password: ${POSTGRES_PASSWORD:${PGPASSWORD:}}
     hikari:
-      maximum-pool-size: ${DB_POOL_SIZE:5}
+      # Pool de conexiones. Subir vía env DB_POOL_SIZE en Railway (p.ej. 15),
+      # SIN pasar de (réplicas × pool) ≤ ~70% del max_connections de Postgres.
+      maximum-pool-size: ${DB_POOL_SIZE:10}
       connection-timeout: 30000
   jpa:
     hibernate:
@@ -32,7 +34,7 @@ server:
 # y Open-Meteo empezó a cortar conexiones desde la IP de Railway).
 spring.cache:
   type: caffeine
-  cache-names: forecast, today-scores, range-scores
+  cache-names: forecast, today-scores, range-scores, schools-catalog
   caffeine:
     spec: maximumSize=500,expireAfterWrite=90m
 
@@ -41,7 +43,9 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # metrics: para ver latencia, errores y uso del pool Hikari
+        # (hikaricp.connections.active) en /actuator/metrics/{nombre}.
+        include: health,info,metrics
   endpoint:
     health:
       show-details: never

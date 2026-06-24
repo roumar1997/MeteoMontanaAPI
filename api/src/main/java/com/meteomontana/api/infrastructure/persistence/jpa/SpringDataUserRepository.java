@@ -1,6 +1,7 @@
 package com.meteomontana.api.infrastructure.persistence.jpa;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -10,6 +11,10 @@ public interface SpringDataUserRepository
 
     Optional<UserJpaEntity> findByUsernameIgnoreCase(String username);
     List<UserJpaEntity> findAllByFcmTokenIsNotNull();
+
+    /** Cuenta admins en BD (en vez de cargar todos los usuarios en memoria). */
+    @Query("select count(u) from UserJpaEntity u where u.isAdmin = true")
+    long countAdmins();
 
     /** Búsqueda acotada en BD (LIKE + LIMIT 100): evita cargar toda la tabla en
      *  memoria en el endpoint público de búsqueda (riesgo de DoS). */

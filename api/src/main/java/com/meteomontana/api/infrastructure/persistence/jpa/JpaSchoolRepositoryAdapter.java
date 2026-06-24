@@ -2,6 +2,8 @@ package com.meteomontana.api.infrastructure.persistence.jpa;
 
 import com.meteomontana.api.domain.model.School;
 import com.meteomontana.api.domain.port.SchoolRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 
@@ -18,7 +20,11 @@ public class JpaSchoolRepositoryAdapter implements SchoolRepository {
         this.jpaRepo = jpaRepo;
     }
 
+    // El catálogo (191 escuelas) cambia muy poco; cachearlo evita leer la tabla
+    // entera en cada petición de lista/búsqueda/prefetch. Se invalida al guardar
+    // una escuela (alta/edición/aprobación de propuesta).
     @Override
+    @Cacheable("schools-catalog")
     public List<School> findAll() {
         return jpaRepo.findAll()
                 .stream()
@@ -33,6 +39,7 @@ public class JpaSchoolRepositoryAdapter implements SchoolRepository {
     }
 
     @Override
+    @CacheEvict(value = "schools-catalog", allEntries = true)
     public School save(School s) {
         SchoolJpaEntity e = new SchoolJpaEntity(
                 s.getId(), s.getName(), s.getLocation(), s.getRegion(),
