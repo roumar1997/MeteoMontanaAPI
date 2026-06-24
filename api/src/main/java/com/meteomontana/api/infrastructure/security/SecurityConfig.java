@@ -63,6 +63,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/users/*/stats").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/*/journal").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/forecast/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/geocode").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/blocks/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                 // Healthcheck público para CUALQUIER método (los monitores de
