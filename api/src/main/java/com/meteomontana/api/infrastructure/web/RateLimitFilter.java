@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -18,12 +19,20 @@ import java.util.concurrent.ConcurrentHashMap;
  * abusivo agote el pool de conexiones a base de peticiones. Para un límite
  * compartido entre varias réplicas haría falta un store externo (Redis); con
  * una sola instancia esto sobra.
+ *
+ * Configurable por env RATE_LIMIT_PER_MINUTE:
+ *   - default 600/min por IP (generoso: no estorba a usuarios reales, ni siquiera
+ *     a varios detrás del mismo NAT de una operadora móvil, pero corta un flood).
+ *   - poner 0 lo DESACTIVA (útil para medir la capacidad real con una prueba de
+ *     carga desde una sola IP, donde el limitador falsearía el resultado).
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final int MAX_PER_MINUTE = 150;
+    @Value("${RATE_LIMIT_PER_MINUTE:600}")
+    private int maxPerMinute;
+
     private static final long WINDOW_MS = 60_000L;
 
     private final ConcurrentHashMap<String, Counter> counters = new ConcurrentHashMap<>();
@@ -37,8 +46,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
         String path = req.getRequestURI();
-        // No limitar el healthcheck: lo pinga el monitor de uptime cada pocos seg.
-        if (path != null && path.startsWith("/actuator")) {
+        // Desactivado (RATE_LIMIT_PER_MINUTE=0) o healthcheck → no limitar.
+        if (maxPerMinute <= 0 || (path != null && path.startsWith("/actuator"))) {
             chain.doFilter(req, res);
             return;
         }
@@ -53,7 +62,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 c.count = 0;
             }
             c.count++;
-            limited = c.count > MAX_PER_MINUTE;
+            limited = c.count > maxPerMinute;
         }
         // Cota de memoria: si el mapa crece demasiado (muchas IPs), se reinicia.
         if (counters.size() > 10_000) counters.clear();

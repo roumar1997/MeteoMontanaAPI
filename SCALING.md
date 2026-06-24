@@ -18,9 +18,17 @@
   en memoria → no escalaba).
 - **Catálogo de escuelas cacheado** (`@Cacheable("schools-catalog")`), se invalida
   al guardar una escuela. Antes leía las 191 filas en cada petición de lista.
-- **Rate-limit por IP** (`RateLimitFilter`, 150 req/min, en memoria) para que un
-  cliente con bug/abusivo no agote el pool. (Por instancia; multi-réplica necesita
-  Redis.)
+- **Rate-limit por IP** (`RateLimitFilter`, en memoria) para que un cliente con
+  bug/abusivo no agote el pool. Configurable con env **`RATE_LIMIT_PER_MINUTE`**
+  (default **600**/min/IP; `0` lo desactiva). 600 es generoso para no estorbar a
+  usuarios reales ni a varios detrás del mismo NAT móvil, pero corta un flood.
+  (Por instancia; multi-réplica necesita Redis.)
+
+> **Para medir la capacidad real con k6**: como la prueba sale de UNA IP, el
+> rate-limit la trata como un cliente abusivo y devuelve 429 a casi todo (el
+> resultado sale 99% "fallido" aunque el server vaya fino). Para medir de verdad:
+> pon `RATE_LIMIT_PER_MINUTE=0` en staging, lanza k6, y vuelve a quitarlo. Sin eso,
+> el dato útil es la latencia de las peticiones que SÍ pasan (p95 ~42 ms = rápido).
 - **Métricas** expuestas en `/actuator/metrics` (incluye `hikaricp.connections.active`,
   latencia, errores). `/actuator/health` ya existía.
 
