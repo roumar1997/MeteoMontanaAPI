@@ -10,5 +10,6 @@ public record UpdateProfileRequest(
         String bio,
         String topGrade,
         Boolean isPublic,
-        String photoUrl
+        String photoUrl,
+        String gender       // WOMAN | MAN | UNSPECIFIED — privado, nunca en PublicProfileDto
 ) {}

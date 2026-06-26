@@ -14,12 +14,13 @@ public class User {
     private final boolean isAdmin;
     private final boolean isPremium;
     private final String fcmToken;
+    private final String gender;           // WOMAN | MAN | UNSPECIFIED | null — PRIVADO
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public User(String uid, String email, String username, String displayName,
                 String photoPath, String bio, boolean isPublic, String topGrade,
-                boolean isAdmin, boolean isPremium, String fcmToken,
+                boolean isAdmin, boolean isPremium, String fcmToken, String gender,
                 LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.uid = uid;
         this.email = email;
@@ -32,6 +33,7 @@ public class User {
         this.isAdmin = isAdmin;
         this.isPremium = isPremium;
         this.fcmToken = fcmToken;
+        this.gender = gender;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -47,6 +49,7 @@ public class User {
     public boolean isAdmin()           { return isAdmin; }
     public boolean isPremium()         { return isPremium; }
     public String getFcmToken()        { return fcmToken; }
+    public String getGender()          { return gender; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
     public LocalDateTime getUpdatedAt(){ return updatedAt; }
 }

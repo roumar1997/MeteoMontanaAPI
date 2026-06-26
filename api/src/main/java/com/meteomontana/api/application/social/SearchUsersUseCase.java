@@ -45,7 +45,7 @@ public class SearchUsersUseCase {
                     User user = new User(
                             e.getUid(), e.getEmail(), e.getUsername(), e.getDisplayName(),
                             e.getPhotoPath(), e.getBio(), e.isPublic(), e.getTopGrade(),
-                            e.isAdmin(), e.isPremium(), e.getFcmToken(),
+                            e.isAdmin(), e.isPremium(), e.getFcmToken(), e.getGender(),
                             e.getCreatedAt(), e.getUpdatedAt()
                     );
                     return user.isPublic() ? mapper.toPublic(user) : mapper.toPublicLocked(user);

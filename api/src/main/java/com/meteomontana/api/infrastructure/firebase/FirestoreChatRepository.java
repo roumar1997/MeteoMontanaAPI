@@ -101,6 +101,33 @@ public class FirestoreChatRepository implements ChatRepository {
     }
 
     @Override
+    public void updateParticipants(String convId, List<String> participants) {
+        if (convId == null || convId.isBlank()) return;
+        try {
+            firestore.collection("conversations")
+                    .document(convId)
+                    .update("participants", participants)
+                    .get();
+        } catch (Exception e) {
+            log.warn("No se pudieron actualizar los participantes de {}: {}", convId, e.toString());
+            throw new RuntimeException("No se pudo actualizar el grupo", e);
+        }
+    }
+
+    @Override
+    public void deleteConversation(String convId) {
+        if (convId == null || convId.isBlank()) return;
+        try {
+            var doc = firestore.collection("conversations").document(convId);
+            var msgs = doc.collection("messages").get().get();
+            for (var m : msgs.getDocuments()) m.getReference().delete();
+            doc.delete().get();
+        } catch (Exception e) {
+            log.warn("No se pudo borrar la conversación {}: {}", convId, e.toString());
+        }
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public List<String> participantsOf(String convId) {
         if (convId == null || convId.isBlank()) return List.of();

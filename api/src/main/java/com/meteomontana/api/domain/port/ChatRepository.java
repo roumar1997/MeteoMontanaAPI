@@ -37,6 +37,18 @@ public interface ChatRepository {
     java.util.List<String> participantsOf(String convId);
 
     /**
+     * Actualiza la lista de participants de un grupo (join/kick).
+     * Idempotente — si el uid ya está / ya no está, no falla.
+     */
+    void updateParticipants(String convId, java.util.List<String> participants);
+
+    /**
+     * Borra toda la conversación (doc + subcolección messages). Usado cuando
+     * caduca una quedada. Best-effort: no propaga errores.
+     */
+    void deleteConversation(String convId);
+
+    /**
      * Borra los datos de chat del usuario al eliminar su cuenta (RGPD): elimina
      * las conversaciones 1-a-1 en las que participa (y sus mensajes) y lo quita
      * de los grupos (borrando el grupo si se queda sin participantes).

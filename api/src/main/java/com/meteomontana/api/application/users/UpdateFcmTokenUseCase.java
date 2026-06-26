@@ -28,7 +28,7 @@ public class UpdateFcmTokenUseCase {
                 current.getUid(), current.getEmail(), current.getUsername(),
                 current.getDisplayName(), current.getPhotoPath(), current.getBio(),
                 current.isPublic(), current.getTopGrade(), current.isAdmin(),
-                current.isPremium(), token,
+                current.isPremium(), token, current.getGender(),
                 current.getCreatedAt(), LocalDateTime.now()
         );
         userRepository.save(updated);

@@ -34,6 +34,7 @@ public class UpdateMyProfileUseCase {
         String newTopGrade    = req.topGrade() != null    ? req.topGrade() : current.getTopGrade();
         boolean newIsPublic   = req.isPublic() != null    ? req.isPublic() : current.isPublic();
         String newPhotoPath   = req.photoUrl() != null    ? req.photoUrl() : current.getPhotoPath();
+        String newGender      = req.gender() != null      ? validateGender(req.gender()) : current.getGender();
 
         User updated = new User(
                 current.getUid(),
@@ -47,6 +48,7 @@ public class UpdateMyProfileUseCase {
                 current.isAdmin(),
                 current.isPremium(),
                 current.getFcmToken(),
+                newGender,
                 current.getCreatedAt(),
                 LocalDateTime.now()
         );
@@ -64,6 +66,13 @@ public class UpdateMyProfileUseCase {
             throw new UsernameAlreadyTakenException(normalized);
         }
         return normalized;
+    }
+
+    private String validateGender(String gender) {
+        return switch (gender.toUpperCase()) {
+            case "WOMAN", "MAN", "UNSPECIFIED" -> gender.toUpperCase();
+            default -> throw new IllegalArgumentException("Invalid gender value: " + gender);
+        };
     }
 
     private String truncate(String s, int max) {
