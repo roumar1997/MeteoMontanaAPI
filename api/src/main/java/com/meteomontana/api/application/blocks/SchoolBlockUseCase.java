@@ -54,8 +54,16 @@ public class SchoolBlockUseCase {
 
     public record BlockLineDto(
             String id, String name, String grade, String startType,
-            String linePath, int sortOrder, String photoPath, int faceOrder
-    ) {}
+            String linePath, int sortOrder, String photoPath, int faceOrder,
+            Float avgStars,     // media de valoraciones (null si nadie ha valorado)
+            Integer myStars     // valoración del usuario actual (null si no ha valorado)
+    ) {
+        // Constructor de compatibilidad para código existente sin ratings
+        public BlockLineDto(String id, String name, String grade, String startType,
+                            String linePath, int sortOrder, String photoPath, int faceOrder) {
+            this(id, name, grade, startType, linePath, sortOrder, photoPath, faceOrder, null, null);
+        }
+    }
 
     /** Una cara de la piedra: una foto y las vías dibujadas sobre ella. */
     public record BlockFaceDto(
@@ -65,17 +73,25 @@ public class SchoolBlockUseCase {
     private final SchoolBlockRepository blockRepository;
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
+    private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataLineRatingRepository ratingRepo;
 
     public SchoolBlockUseCase(SchoolBlockRepository blockRepository,
                               SchoolRepository schoolRepository,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              com.meteomontana.api.infrastructure.persistence.jpa.SpringDataLineRatingRepository ratingRepo) {
         this.blockRepository = blockRepository;
         this.schoolRepository = schoolRepository;
         this.userRepository = userRepository;
+        this.ratingRepo = ratingRepo;
     }
 
     public List<BlockDto> listBySchool(String schoolId) {
-        return blockRepository.findBySchoolId(schoolId).stream().map(this::toDto).toList();
+        return listBySchool(schoolId, null);
+    }
+
+    public List<BlockDto> listBySchool(String schoolId, String callerUid) {
+        return blockRepository.findBySchoolId(schoolId).stream()
+                .map(b -> toDto(b, callerUid)).toList();
     }
 
     public BlockDto findById(String id) {
@@ -234,13 +250,25 @@ public class SchoolBlockUseCase {
     }
 
     private BlockDto toDto(SchoolBlock b) {
-        List<BlockLineDto> lines = b.getLines().stream().map(l -> new BlockLineDto(
-                l.getId(), l.getName(), l.getGrade(),
-                l.getStartType() != null ? l.getStartType().name() : null,
-                l.getLinePath(), l.getSortOrder(),
-                l.getPhotoPath() != null ? l.getPhotoPath() : b.getPhotoPath(),
-                l.getFaceOrder()
-        )).toList();
+        return toDto(b, null);
+    }
+
+    private BlockDto toDto(SchoolBlock b, String callerUid) {
+        List<BlockLineDto> lines = b.getLines().stream().map(l -> {
+            Double avg = ratingRepo.avgStarsByLineId(l.getId());
+            Integer my = callerUid == null ? null :
+                    ratingRepo.findByUidAndLineId(callerUid, l.getId())
+                              .map(r -> r.getStars()).orElse(null);
+            return new BlockLineDto(
+                    l.getId(), l.getName(), l.getGrade(),
+                    l.getStartType() != null ? l.getStartType().name() : null,
+                    l.getLinePath(), l.getSortOrder(),
+                    l.getPhotoPath() != null ? l.getPhotoPath() : b.getPhotoPath(),
+                    l.getFaceOrder(),
+                    avg == null ? null : avg.floatValue(),
+                    my
+            );
+        }).toList();
         return new BlockDto(
                 b.getId(), b.getSchoolId(), b.getType().name(), b.getName(),
                 b.getLat(), b.getLon(), b.getPhotoPath(), b.getDescription(),

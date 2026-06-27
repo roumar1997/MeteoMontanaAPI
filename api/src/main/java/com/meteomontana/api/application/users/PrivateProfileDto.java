@@ -14,5 +14,6 @@ public record PrivateProfileDto(
         String topGrade,
         boolean isPublic,
         boolean isAdmin,
-        boolean isPremium
+        boolean isPremium,
+        String gender    // WOMAN | MAN | UNSPECIFIED | null — PRIVADO, nunca en PublicProfileDto
 ) {}

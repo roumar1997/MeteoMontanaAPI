@@ -56,7 +56,8 @@ public class UserDtoMapper {
                 u.getTopGrade(),
                 u.isPublic(),
                 u.isAdmin(),
-                u.isPremium()
+                u.isPremium(),
+                u.getGender()
         );
     }
 

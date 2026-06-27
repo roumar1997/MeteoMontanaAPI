@@ -1,6 +1,7 @@
 package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.application.admin.AdminGuard;
+import com.meteomontana.api.application.blocks.RateLineUseCase;
 import com.meteomontana.api.application.blocks.SchoolBlockUseCase;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.http.HttpStatus;
@@ -23,16 +24,21 @@ public class SchoolBlockController {
 
     private final SchoolBlockUseCase useCase;
     private final AdminGuard adminGuard;
+    private final RateLineUseCase rateLine;
 
-    public SchoolBlockController(SchoolBlockUseCase useCase, AdminGuard adminGuard) {
+    public SchoolBlockController(SchoolBlockUseCase useCase, AdminGuard adminGuard, RateLineUseCase rateLine) {
         this.useCase = useCase;
         this.adminGuard = adminGuard;
+        this.rateLine = rateLine;
     }
 
-    /** Público: listar bloques de la escuela. */
+    /** Público: listar bloques de la escuela. Si el usuario está autenticado,
+     *  las vías incluyen su valoración personal (myStars). */
     @GetMapping("/schools/{id}/blocks")
-    public List<SchoolBlockUseCase.BlockDto> list(@PathVariable String id) {
-        return useCase.listBySchool(id);
+    public List<SchoolBlockUseCase.BlockDto> list(
+            @PathVariable String id,
+            @AuthenticationPrincipal FirebaseUser user) {
+        return useCase.listBySchool(id, user != null ? user.uid() : null);
     }
 
     /** Público: detalle de un bloque (con sus líneas). */
@@ -68,5 +74,28 @@ public class SchoolBlockController {
     public void delete(@AuthenticationPrincipal FirebaseUser user,
                        @PathVariable String blockId) {
         useCase.delete(user.uid(), blockId);
+    }
+
+    // ── Valoraciones de vías ────────────────────────────────────────────────
+
+    public record RateRequest(int stars) {}
+
+    /** Valora una vía (1-5 estrellas). Upsert: si ya valoró, actualiza. */
+    @PostMapping("/blocks/{blockId}/lines/{lineId}/rate")
+    public RateLineUseCase.RatingResult rate(
+            @AuthenticationPrincipal FirebaseUser user,
+            @PathVariable String blockId,
+            @PathVariable String lineId,
+            @RequestBody RateRequest req) {
+        return rateLine.rate(user.uid(), lineId, req.stars());
+    }
+
+    /** Elimina la valoración del usuario para esta vía. */
+    @DeleteMapping("/blocks/{blockId}/lines/{lineId}/rate")
+    public RateLineUseCase.RatingResult unrate(
+            @AuthenticationPrincipal FirebaseUser user,
+            @PathVariable String blockId,
+            @PathVariable String lineId) {
+        return rateLine.unrate(user.uid(), lineId);
     }
 }
