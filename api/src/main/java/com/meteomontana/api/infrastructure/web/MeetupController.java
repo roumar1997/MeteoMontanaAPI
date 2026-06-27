@@ -22,6 +22,7 @@ public class MeetupController {
     private final JoinMeetupUseCase joinMeetup;
     private final LeaveMeetupUseCase leaveMeetup;
     private final KickMemberUseCase kickMember;
+    private final SubmitReportUseCase submitReport;
     private final MeetupRepository meetupRepository;
     private final MeetupDtoMapper mapper;
 
@@ -30,6 +31,7 @@ public class MeetupController {
                             JoinMeetupUseCase joinMeetup,
                             LeaveMeetupUseCase leaveMeetup,
                             KickMemberUseCase kickMember,
+                            SubmitReportUseCase submitReport,
                             MeetupRepository meetupRepository,
                             MeetupDtoMapper mapper) {
         this.getMeetups = getMeetups;
@@ -37,6 +39,7 @@ public class MeetupController {
         this.joinMeetup = joinMeetup;
         this.leaveMeetup = leaveMeetup;
         this.kickMember = kickMember;
+        this.submitReport = submitReport;
         this.meetupRepository = meetupRepository;
         this.mapper = mapper;
     }
@@ -103,5 +106,13 @@ public class MeetupController {
         if (targetUid == null || targetUid.isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "uid requerido");
         kickMember.execute(user.uid(), id, targetUid);
+    }
+
+    @PostMapping("/{id}/report")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ReportDto report(@AuthenticationPrincipal FirebaseUser user,
+                            @PathVariable String id,
+                            @RequestBody SubmitReportRequest req) {
+        return submitReport.execute(user.uid(), id, req);
     }
 }

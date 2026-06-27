@@ -7,11 +7,15 @@ import com.meteomontana.api.application.admin.ListAdminLogsUseCase;
 import com.meteomontana.api.application.admin.ListPendingSubmissionsUseCase;
 import com.meteomontana.api.application.admin.RejectSubmissionUseCase;
 import com.meteomontana.api.application.admin.SendAdminPushUseCase;
+import com.meteomontana.api.application.meetups.ListReportsUseCase;
+import com.meteomontana.api.application.meetups.ReportDto;
+import com.meteomontana.api.application.meetups.ResolveReportUseCase;
 import com.meteomontana.api.application.submissions.SubmissionDto;
 import com.meteomontana.api.domain.model.AdminLog;
 import com.meteomontana.api.domain.model.School;
 import com.meteomontana.api.domain.port.SchoolRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,9 +24,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -34,6 +40,8 @@ public class AdminController {
     private final ListAdminLogsUseCase listLogs;
     private final SendAdminPushUseCase sendPushUseCase;
     private final AdminStatsUseCase statsUseCase;
+    private final ListReportsUseCase listReports;
+    private final ResolveReportUseCase resolveReport;
     private final SchoolRepository schoolRepository;
     private final AdminGuard adminGuard;
 
@@ -43,6 +51,8 @@ public class AdminController {
                            ListAdminLogsUseCase listLogs,
                            SendAdminPushUseCase sendPushUseCase,
                            AdminStatsUseCase statsUseCase,
+                           ListReportsUseCase listReports,
+                           ResolveReportUseCase resolveReport,
                            SchoolRepository schoolRepository,
                            AdminGuard adminGuard) {
         this.listPending = listPending;
@@ -51,6 +61,8 @@ public class AdminController {
         this.listLogs = listLogs;
         this.sendPushUseCase = sendPushUseCase;
         this.statsUseCase = statsUseCase;
+        this.listReports = listReports;
+        this.resolveReport = resolveReport;
         this.schoolRepository = schoolRepository;
         this.adminGuard = adminGuard;
     }
@@ -118,5 +130,20 @@ public class AdminController {
     public List<AdminLog> logs(@AuthenticationPrincipal FirebaseUser user,
                                @RequestParam(defaultValue = "100") int limit) {
         return listLogs.execute(user.uid(), limit);
+    }
+
+    @GetMapping("/reports")
+    public List<ReportDto> reports(@AuthenticationPrincipal FirebaseUser user) {
+        adminGuard.ensureAdmin(user.uid());
+        return listReports.execute();
+    }
+
+    @PostMapping("/reports/{id}/resolve")
+    public ReportDto resolveReport(@AuthenticationPrincipal FirebaseUser user,
+                                   @PathVariable String id,
+                                   @RequestBody(required = false) Map<String, String> body) {
+        adminGuard.ensureAdmin(user.uid());
+        String action = body != null ? body.getOrDefault("action", "resolve") : "resolve";
+        return resolveReport.execute(user.uid(), id, action);
     }
 }
