@@ -23,6 +23,8 @@ public class MeetupController {
     private final LeaveMeetupUseCase leaveMeetup;
     private final KickMemberUseCase kickMember;
     private final SubmitReportUseCase submitReport;
+    private final GetMeetupAlertUseCase getMeetupAlert;
+    private final SetMeetupAlertUseCase setMeetupAlert;
     private final MeetupRepository meetupRepository;
     private final MeetupDtoMapper mapper;
 
@@ -32,6 +34,8 @@ public class MeetupController {
                             LeaveMeetupUseCase leaveMeetup,
                             KickMemberUseCase kickMember,
                             SubmitReportUseCase submitReport,
+                            GetMeetupAlertUseCase getMeetupAlert,
+                            SetMeetupAlertUseCase setMeetupAlert,
                             MeetupRepository meetupRepository,
                             MeetupDtoMapper mapper) {
         this.getMeetups = getMeetups;
@@ -40,6 +44,8 @@ public class MeetupController {
         this.leaveMeetup = leaveMeetup;
         this.kickMember = kickMember;
         this.submitReport = submitReport;
+        this.getMeetupAlert = getMeetupAlert;
+        this.setMeetupAlert = setMeetupAlert;
         this.meetupRepository = meetupRepository;
         this.mapper = mapper;
     }
@@ -115,4 +121,19 @@ public class MeetupController {
                             @RequestBody SubmitReportRequest req) {
         return submitReport.execute(user.uid(), id, req);
     }
+
+    // ── Alertas de quedadas ────────────────────────────────────────────────
+
+    @GetMapping("/alerts/me")
+    public MeetupAlertDto getMyAlert(@AuthenticationPrincipal FirebaseUser user) {
+        return getMeetupAlert.execute(user.uid());
+    }
+
+    @PutMapping("/alerts/me")
+    public MeetupAlertDto setMyAlert(@AuthenticationPrincipal FirebaseUser user,
+                                     @RequestBody SetAlertRequest req) {
+        return setMeetupAlert.execute(user.uid(), req.enabled(), req.daysCsv());
+    }
+
+    public record SetAlertRequest(boolean enabled, String daysCsv) {}
 }
