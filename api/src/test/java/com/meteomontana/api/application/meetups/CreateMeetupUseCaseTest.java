@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.meetups;
 
+import com.meteomontana.api.application.social.NotificationService;
 import com.meteomontana.api.domain.model.Meetup;
 import com.meteomontana.api.domain.model.School;
 import com.meteomontana.api.domain.model.User;
@@ -19,10 +20,13 @@ import static org.mockito.Mockito.*;
 
 class CreateMeetupUseCaseTest {
 
-    MeetupRepository meetupRepository = mock(MeetupRepository.class);
-    ChatRepository   chatRepository   = mock(ChatRepository.class);
-    SchoolRepository schoolRepository = mock(SchoolRepository.class);
-    UserRepository   userRepository   = mock(UserRepository.class);
+    MeetupRepository     meetupRepository     = mock(MeetupRepository.class);
+    ChatRepository       chatRepository       = mock(ChatRepository.class);
+    SchoolRepository     schoolRepository     = mock(SchoolRepository.class);
+    UserRepository       userRepository       = mock(UserRepository.class);
+    MeetupAlertRepository alertRepository     = mock(MeetupAlertRepository.class);
+    NotificationService  notificationService  = mock(NotificationService.class);
+    PushSender           pushSender           = mock(PushSender.class);
 
     CreateMeetupUseCase useCase;
 
@@ -30,7 +34,8 @@ class CreateMeetupUseCaseTest {
 
     @BeforeEach void setUp() {
         MeetupDtoMapper mapper = new MeetupDtoMapper(schoolRepository, userRepository);
-        useCase = new CreateMeetupUseCase(meetupRepository, chatRepository, schoolRepository, userRepository, mapper);
+        useCase = new CreateMeetupUseCase(meetupRepository, chatRepository, schoolRepository,
+                userRepository, alertRepository, notificationService, pushSender, mapper);
 
         when(schoolRepository.findById("school-1")).thenReturn(Optional.of(
                 new School("school-1", "La Muela", null, null, null, null, 0, 0, null)));
