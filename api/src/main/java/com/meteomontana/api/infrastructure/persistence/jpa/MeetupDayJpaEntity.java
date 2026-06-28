@@ -10,7 +10,7 @@ import java.time.LocalDate;
 public class MeetupDayJpaEntity {
 
     @Id
-    @Column(name = "meetup_id", columnDefinition = "uuid")
+    @Column(name = "meetup_id")
     private String meetupId;
 
     @Id

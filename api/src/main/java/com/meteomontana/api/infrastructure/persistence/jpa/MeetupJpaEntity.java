@@ -12,7 +12,7 @@ import java.util.List;
 public class MeetupJpaEntity {
 
     @Id
-    @Column(columnDefinition = "uuid", updatable = false)
+    @Column(updatable = false)
     private String id;
 
     @Column(name = "school_id", nullable = false)
