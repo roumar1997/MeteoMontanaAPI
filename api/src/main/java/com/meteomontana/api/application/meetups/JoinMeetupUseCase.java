@@ -47,7 +47,8 @@ public class JoinMeetupUseCase {
         switch (meetup.getPrivacy()) {
             case "FOLLOWERS" -> {
                 if (!meetup.getCreatorUid().equals(uid) &&
-                        !followRepository.isFollowing(uid, meetup.getCreatorUid())) {
+                        !followRepository.isFollowing(uid, meetup.getCreatorUid()) &&
+                        !followRepository.isFollowing(meetup.getCreatorUid(), uid)) {
                     throw new IllegalStateException("FOLLOW_REQUIRED");
                 }
             }

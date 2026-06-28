@@ -52,7 +52,8 @@ public class GetMeetupsUseCase {
         return switch (m.getPrivacy()) {
             case "OPEN" -> true;
             case "FOLLOWERS" -> m.getCreatorUid().equals(requesterUid) ||
-                    followRepository.isFollowing(requesterUid, m.getCreatorUid());
+                    followRepository.isFollowing(requesterUid, m.getCreatorUid()) ||
+                    followRepository.isFollowing(m.getCreatorUid(), requesterUid);
             case "WOMEN" -> "WOMAN".equals(requesterGender);
             default -> false;
         };

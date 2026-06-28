@@ -38,6 +38,7 @@ public class MeetupController {
                             GetMeetupAlertUseCase getMeetupAlert,
                             SetMeetupAlertUseCase setMeetupAlert,
                             UpdateMeetupUseCase updateMeetup,
+                            DeleteMeetupUseCase deleteMeetup,
                             MeetupRepository meetupRepository,
                             MeetupDtoMapper mapper) {
         this.getMeetups = getMeetups;
@@ -49,9 +50,12 @@ public class MeetupController {
         this.getMeetupAlert = getMeetupAlert;
         this.setMeetupAlert = setMeetupAlert;
         this.updateMeetup = updateMeetup;
+        this.deleteMeetup = deleteMeetup;
         this.meetupRepository = meetupRepository;
         this.mapper = mapper;
     }
+
+    private final DeleteMeetupUseCase deleteMeetup;
 
     @GetMapping
     public List<MeetupDto> list(
@@ -67,6 +71,12 @@ public class MeetupController {
         return meetupRepository.findById(id)
                 .map(m -> mapper.toDto(m, user.uid()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@AuthenticationPrincipal FirebaseUser user, @PathVariable String id) {
+        deleteMeetup.execute(user.uid(), id);
     }
 
     /** Abrir el detalle de la quedada desde el chat de grupo (por su conversación). */
