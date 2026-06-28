@@ -93,7 +93,7 @@ public class CreateMeetupUseCase {
 
         LocalDateTime now = LocalDateTime.now();
         Meetup meetup = new Meetup(
-                null, req.schoolId(), req.name(),
+                null, req.schoolId(), req.name(), req.description(),
                 req.discipline() != null ? req.discipline().toUpperCase() : null,
                 privacy, req.memberLimit(), req.photoUrl(),
                 creatorUid, conversationId, sortedDays, lastDay, expiresAt, now,

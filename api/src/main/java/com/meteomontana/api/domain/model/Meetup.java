@@ -9,6 +9,7 @@ public class Meetup {
     private final String id;
     private final String schoolId;
     private final String name;
+    private final String description;      // detalles opcionales del organizador
     private final String discipline;       // BOULDER | ROUTE | BOTH | null
     private final String privacy;          // OPEN | FOLLOWERS | WOMEN
     private final Integer memberLimit;     // null = sin tope
@@ -21,7 +22,7 @@ public class Meetup {
     private final LocalDateTime createdAt;
     private final List<MeetupMember> members;
 
-    public Meetup(String id, String schoolId, String name, String discipline,
+    public Meetup(String id, String schoolId, String name, String description, String discipline,
                   String privacy, Integer memberLimit, String photoUrl,
                   String creatorUid, String conversationId, List<LocalDate> days,
                   LocalDate lastDay, LocalDateTime expiresAt, LocalDateTime createdAt,
@@ -29,6 +30,7 @@ public class Meetup {
         this.id = id;
         this.schoolId = schoolId;
         this.name = name;
+        this.description = description;
         this.discipline = discipline;
         this.privacy = privacy;
         this.memberLimit = memberLimit;
@@ -45,6 +47,7 @@ public class Meetup {
     public String getId()             { return id; }
     public String getSchoolId()       { return schoolId; }
     public String getName()           { return name; }
+    public String getDescription()    { return description; }
     public String getDiscipline()     { return discipline; }
     public String getPrivacy()        { return privacy; }
     public Integer getMemberLimit()   { return memberLimit; }

@@ -21,6 +21,9 @@ public class MeetupJpaEntity {
     @Column(nullable = false, length = 80)
     private String name;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "discipline", length = 16)
     private String discipline;
 
@@ -56,13 +59,14 @@ public class MeetupJpaEntity {
 
     protected MeetupJpaEntity() {}
 
-    public MeetupJpaEntity(String id, String schoolId, String name, String discipline,
+    public MeetupJpaEntity(String id, String schoolId, String name, String description, String discipline,
                            String privacy, Integer memberLimit, String photoUrl,
                            String creatorUid, String conversationId,
                            LocalDate lastDay, LocalDateTime expiresAt, LocalDateTime createdAt) {
         this.id = id;
         this.schoolId = schoolId;
         this.name = name;
+        this.description = description;
         this.discipline = discipline;
         this.privacy = privacy;
         this.memberLimit = memberLimit;
@@ -77,6 +81,8 @@ public class MeetupJpaEntity {
     public String getId()             { return id; }
     public String getSchoolId()       { return schoolId; }
     public String getName()           { return name; }
+    public String getDescription()    { return description; }
+    public void setDescription(String description) { this.description = description; }
     public String getDiscipline()     { return discipline; }
     public String getPrivacy()        { return privacy; }
     public Integer getMemberLimit()   { return memberLimit; }

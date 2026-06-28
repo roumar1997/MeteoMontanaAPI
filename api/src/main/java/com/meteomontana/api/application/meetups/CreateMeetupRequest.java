@@ -6,6 +6,7 @@ import java.util.List;
 public record CreateMeetupRequest(
         String schoolId,
         String name,
+        String description,    // detalles opcionales del organizador
         String discipline,     // BOULDER | ROUTE | BOTH | null
         String privacy,        // OPEN | FOLLOWERS | WOMEN
         Integer memberLimit,   // null = sin tope

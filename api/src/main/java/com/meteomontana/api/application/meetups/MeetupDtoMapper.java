@@ -19,8 +19,10 @@ public class MeetupDtoMapper {
     }
 
     public MeetupDto toDto(Meetup m, String requesterUid) {
-        String schoolName = schoolRepository.findById(m.getSchoolId())
-                .map(s -> s.getName()).orElse(m.getSchoolId());
+        var school = schoolRepository.findById(m.getSchoolId());
+        String schoolName = school.map(s -> s.getName()).orElse(m.getSchoolId());
+        Double schoolLat = school.map(s -> s.getLat()).orElse(null);
+        Double schoolLon = school.map(s -> s.getLon()).orElse(null);
 
         var creator = userRepository.findByUid(m.getCreatorUid());
         String creatorUsername  = creator.map(u -> u.getUsername()).orElse(null);
@@ -36,7 +38,8 @@ public class MeetupDtoMapper {
                 m.getMembers().stream().anyMatch(mm -> mm.uid().equals(requesterUid));
 
         return new MeetupDto(
-                m.getId(), m.getSchoolId(), schoolName, m.getName(), m.getDiscipline(),
+                m.getId(), m.getSchoolId(), schoolName, schoolLat, schoolLon,
+                m.getName(), m.getDescription(), m.getDiscipline(),
                 m.getPrivacy(), m.getMemberLimit(),
                 m.getMembers() == null ? 0 : m.getMembers().size(),
                 m.getPhotoUrl(), m.getCreatorUid(), creatorUsername, creatorPhotoUrl,

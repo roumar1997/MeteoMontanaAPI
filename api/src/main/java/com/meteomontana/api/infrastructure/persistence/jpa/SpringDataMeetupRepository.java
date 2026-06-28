@@ -18,4 +18,7 @@ public interface SpringDataMeetupRepository extends JpaRepository<MeetupJpaEntit
 
     /** Quedadas de un creador. */
     List<MeetupJpaEntity> findByCreatorUid(String creatorUid);
+
+    /** Quedada por su conversación de chat (para abrir el detalle desde el chat). */
+    java.util.Optional<MeetupJpaEntity> findByConversationId(String conversationId);
 }

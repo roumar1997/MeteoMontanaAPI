@@ -25,6 +25,7 @@ public class MeetupController {
     private final SubmitReportUseCase submitReport;
     private final GetMeetupAlertUseCase getMeetupAlert;
     private final SetMeetupAlertUseCase setMeetupAlert;
+    private final UpdateMeetupUseCase updateMeetup;
     private final MeetupRepository meetupRepository;
     private final MeetupDtoMapper mapper;
 
@@ -36,6 +37,7 @@ public class MeetupController {
                             SubmitReportUseCase submitReport,
                             GetMeetupAlertUseCase getMeetupAlert,
                             SetMeetupAlertUseCase setMeetupAlert,
+                            UpdateMeetupUseCase updateMeetup,
                             MeetupRepository meetupRepository,
                             MeetupDtoMapper mapper) {
         this.getMeetups = getMeetups;
@@ -46,6 +48,7 @@ public class MeetupController {
         this.submitReport = submitReport;
         this.getMeetupAlert = getMeetupAlert;
         this.setMeetupAlert = setMeetupAlert;
+        this.updateMeetup = updateMeetup;
         this.meetupRepository = meetupRepository;
         this.mapper = mapper;
     }
@@ -65,6 +68,34 @@ public class MeetupController {
                 .map(m -> mapper.toDto(m, user.uid()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
+
+    /** Abrir el detalle de la quedada desde el chat de grupo (por su conversación). */
+    @GetMapping("/by-conversation/{conversationId}")
+    public MeetupDto getByConversation(@AuthenticationPrincipal FirebaseUser user,
+                                       @PathVariable String conversationId) {
+        return meetupRepository.findByConversationId(conversationId)
+                .map(m -> mapper.toDto(m, user.uid()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    /** Editar la descripción (solo el organizador). */
+    @PatchMapping("/{id}")
+    public MeetupDto update(@AuthenticationPrincipal FirebaseUser user,
+                            @PathVariable String id,
+                            @RequestBody UpdateMeetupRequest req) {
+        try {
+            return updateMeetup.updateDescription(user.uid(), id, req.description());
+        } catch (IllegalStateException e) {
+            if ("NOT_CREATOR".equals(e.getMessage()))
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Solo el organizador puede editar la quedada");
+            throw e;
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    public record UpdateMeetupRequest(String description) {}
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

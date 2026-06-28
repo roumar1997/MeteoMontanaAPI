@@ -38,7 +38,7 @@ class GetMeetupsUseCaseTest {
 
     private Meetup meetup(String privacy) {
         LocalDate day = LocalDate.now().plusDays(1);
-        return new Meetup("id-1", "school-1", "Test", null, privacy, null, null,
+        return new Meetup("id-1", "school-1", "Test", null, null, privacy, null, null,
                 CREATOR, "conv-1", List.of(day), day,
                 day.plusDays(1).atStartOfDay(), LocalDateTime.now(), List.of());
     }

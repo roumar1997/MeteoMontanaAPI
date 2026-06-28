@@ -50,7 +50,7 @@ class CreateMeetupUseCaseTest {
 
     @Test void creates_open_meetup_successfully() {
         when(userRepository.findByUid(CREATOR)).thenReturn(Optional.of(user(null)));
-        var req = new CreateMeetupRequest("school-1", "Quedada verano", "BOULDER",
+        var req = new CreateMeetupRequest("school-1", "Quedada verano", null, "BOULDER",
                 "OPEN", null, null, List.of(LocalDate.now().plusDays(1)));
         var result = useCase.execute(CREATOR, req);
         assertThat(result).isNotNull();
@@ -60,7 +60,7 @@ class CreateMeetupUseCaseTest {
 
     @Test void rejects_women_meetup_if_creator_not_woman() {
         when(userRepository.findByUid(CREATOR)).thenReturn(Optional.of(user("MAN")));
-        var req = new CreateMeetupRequest("school-1", "Solo chicas", null,
+        var req = new CreateMeetupRequest("school-1", "Solo chicas", null, null,
                 "WOMEN", null, null, List.of(LocalDate.now().plusDays(1)));
         assertThatThrownBy(() -> useCase.execute(CREATOR, req))
                 .isInstanceOf(IllegalStateException.class)
@@ -69,7 +69,7 @@ class CreateMeetupUseCaseTest {
 
     @Test void allows_women_meetup_if_creator_is_woman() {
         when(userRepository.findByUid(CREATOR)).thenReturn(Optional.of(user("WOMAN")));
-        var req = new CreateMeetupRequest("school-1", "Solo chicas", null,
+        var req = new CreateMeetupRequest("school-1", "Solo chicas", null, null,
                 "WOMEN", null, null, List.of(LocalDate.now().plusDays(1)));
         var result = useCase.execute(CREATOR, req);
         assertThat(result).isNotNull();
@@ -77,14 +77,14 @@ class CreateMeetupUseCaseTest {
 
     @Test void rejects_empty_days() {
         when(userRepository.findByUid(CREATOR)).thenReturn(Optional.of(user(null)));
-        var req = new CreateMeetupRequest("school-1", "Test", null, "OPEN", null, null, List.of());
+        var req = new CreateMeetupRequest("school-1", "Test", null, null, "OPEN", null, null, List.of());
         assertThatThrownBy(() -> useCase.execute(CREATOR, req))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test void discipline_both_is_accepted() {
         when(userRepository.findByUid(CREATOR)).thenReturn(Optional.of(user(null)));
-        var req = new CreateMeetupRequest("school-1", "Polivalente", "BOTH",
+        var req = new CreateMeetupRequest("school-1", "Polivalente", null, "BOTH",
                 "OPEN", null, null, List.of(LocalDate.now().plusDays(1)));
         var result = useCase.execute(CREATOR, req);
         assertThat(result).isNotNull();

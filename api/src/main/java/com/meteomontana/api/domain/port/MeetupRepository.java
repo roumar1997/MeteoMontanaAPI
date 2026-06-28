@@ -12,7 +12,12 @@ public interface MeetupRepository {
 
     Optional<Meetup> findById(String id);
 
+    Optional<Meetup> findByConversationId(String conversationId);
+
     Meetup save(Meetup meetup);
+
+    /** Actualiza la descripción de una quedada (solo cambia ese campo). */
+    void updateDescription(String meetupId, String description);
 
     void delete(String id);
 

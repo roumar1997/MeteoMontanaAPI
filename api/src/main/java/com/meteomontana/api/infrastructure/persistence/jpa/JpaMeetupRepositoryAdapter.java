@@ -36,11 +36,25 @@ public class JpaMeetupRepositoryAdapter implements MeetupRepository {
     }
 
     @Override
+    public Optional<Meetup> findByConversationId(String conversationId) {
+        return meetupRepo.findByConversationId(conversationId).map(this::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public void updateDescription(String meetupId, String description) {
+        meetupRepo.findById(meetupId).ifPresent(m -> {
+            m.setDescription(description);
+            meetupRepo.save(m);
+        });
+    }
+
+    @Override
     @Transactional
     public Meetup save(Meetup meetup) {
         String id = meetup.getId() != null ? meetup.getId() : UUID.randomUUID().toString();
         MeetupJpaEntity entity = new MeetupJpaEntity(
-                id, meetup.getSchoolId(), meetup.getName(), meetup.getDiscipline(),
+                id, meetup.getSchoolId(), meetup.getName(), meetup.getDescription(), meetup.getDiscipline(),
                 meetup.getPrivacy(), meetup.getMemberLimit(), meetup.getPhotoUrl(),
                 meetup.getCreatorUid(), meetup.getConversationId(),
                 meetup.getLastDay(), meetup.getExpiresAt(), meetup.getCreatedAt()
@@ -109,7 +123,7 @@ public class JpaMeetupRepositoryAdapter implements MeetupRepository {
         }).toList();
 
         return new Meetup(
-                e.getId(), e.getSchoolId(), e.getName(), e.getDiscipline(),
+                e.getId(), e.getSchoolId(), e.getName(), e.getDescription(), e.getDiscipline(),
                 e.getPrivacy(), e.getMemberLimit(), e.getPhotoUrl(),
                 e.getCreatorUid(), e.getConversationId(), days,
                 e.getLastDay(), e.getExpiresAt(), e.getCreatedAt(), members
