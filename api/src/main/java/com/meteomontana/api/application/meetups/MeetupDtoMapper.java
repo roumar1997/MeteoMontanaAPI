@@ -31,7 +31,7 @@ public class MeetupDtoMapper {
         List<MeetupDto.MemberDto> memberDtos = m.getMembers() == null ? List.of() :
                 m.getMembers().stream()
                         .map(mm -> new MeetupDto.MemberDto(
-                                mm.uid(), mm.username(), mm.displayName(), mm.photoUrl()))
+                                mm.uid(), mm.username(), mm.displayName(), mm.photoUrl(), mm.gearJson()))
                         .toList();
 
         boolean joined = requesterUid != null && m.getMembers() != null &&

@@ -107,6 +107,20 @@ public class JpaMeetupRepositoryAdapter implements MeetupRepository {
     }
 
     @Override
+    @Transactional
+    public void updateMemberGear(String meetupId, String uid, String gearJson) {
+        meetupRepo.findById(meetupId).ifPresent(m -> {
+            m.getMembers().stream()
+                .filter(mm -> mm.getUid().equals(uid))
+                .findFirst()
+                .ifPresent(mm -> {
+                    mm.setGearJson(gearJson);
+                    meetupRepo.save(m);
+                });
+        });
+    }
+
+    @Override
     public List<Meetup> findExpired() {
         return meetupRepo.findExpired(LocalDateTime.now())
                 .stream().map(this::toDomain).toList();
@@ -119,7 +133,7 @@ public class JpaMeetupRepositoryAdapter implements MeetupRepository {
             String username = user.map(u -> u.getUsername()).orElse(null);
             String displayName = user.map(u -> u.getDisplayName()).orElse(null);
             String photoUrl = user.map(u -> u.getPhotoPath()).orElse(null);
-            return new Meetup.MeetupMember(mm.getUid(), username, displayName, photoUrl, mm.getJoinedAt());
+            return new Meetup.MeetupMember(mm.getUid(), username, displayName, photoUrl, mm.getJoinedAt(), mm.getGearJson());
         }).toList();
 
         return new Meetup(

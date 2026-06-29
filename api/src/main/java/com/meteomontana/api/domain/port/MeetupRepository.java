@@ -27,6 +27,8 @@ public interface MeetupRepository {
 
     void removeMember(String meetupId, String uid);
 
+    void updateMemberGear(String meetupId, String uid, String gearJson);
+
     /** Para el @Scheduled de caducidad. */
     List<Meetup> findExpired();
 }

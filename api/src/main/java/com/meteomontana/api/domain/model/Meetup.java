@@ -65,5 +65,5 @@ public class Meetup {
     }
 
     public record MeetupMember(String uid, String username, String displayName,
-                                String photoUrl, LocalDateTime joinedAt) {}
+                                String photoUrl, LocalDateTime joinedAt, String gearJson) {}
 }

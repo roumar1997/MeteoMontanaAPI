@@ -99,7 +99,7 @@ public class CreateMeetupUseCase {
                 creatorUid, conversationId, sortedDays, lastDay, expiresAt, now,
                 List.of(new Meetup.MeetupMember(creatorUid,
                         creator.getUsername(), creator.getDisplayName(),
-                        creator.getPhotoPath(), now))
+                        creator.getPhotoPath(), now, null))
         );
 
         Meetup saved = meetupRepository.save(meetup);

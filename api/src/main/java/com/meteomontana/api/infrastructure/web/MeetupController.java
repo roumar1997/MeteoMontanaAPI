@@ -79,6 +79,19 @@ public class MeetupController {
         deleteMeetup.execute(user.uid(), id);
     }
 
+    @PutMapping("/{id}/my-gear")
+    public MeetupDto updateMyGear(@AuthenticationPrincipal FirebaseUser user,
+                                   @PathVariable String id,
+                                   @RequestBody java.util.Map<String, Object> body) {
+        String gearJson = body.get("gearJson") instanceof String s ? s : null;
+        if (!meetupRepository.isMember(id, user.uid()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No eres miembro de esta quedada");
+        meetupRepository.updateMemberGear(id, user.uid(), gearJson);
+        return meetupRepository.findById(id)
+                .map(m -> mapper.toDto(m, user.uid()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
     /** Abrir el detalle de la quedada desde el chat de grupo (por su conversación). */
     @GetMapping("/by-conversation/{conversationId}")
     public MeetupDto getByConversation(@AuthenticationPrincipal FirebaseUser user,

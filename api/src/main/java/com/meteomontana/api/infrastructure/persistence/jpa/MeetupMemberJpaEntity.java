@@ -20,6 +20,9 @@ public class MeetupMemberJpaEntity {
     @Column(name = "joined_at", nullable = false)
     private LocalDateTime joinedAt;
 
+    @Column(name = "gear_json")
+    private String gearJson;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "meetup_id", insertable = false, updatable = false)
     private MeetupJpaEntity meetup;
@@ -35,4 +38,6 @@ public class MeetupMemberJpaEntity {
     public String getMeetupId()      { return meetupId; }
     public String getUid()           { return uid; }
     public LocalDateTime getJoinedAt() { return joinedAt; }
+    public String getGearJson()      { return gearJson; }
+    public void setGearJson(String g) { this.gearJson = g; }
 }

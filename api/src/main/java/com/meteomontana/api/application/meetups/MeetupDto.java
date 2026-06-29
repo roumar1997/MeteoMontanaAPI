@@ -28,5 +28,5 @@ public record MeetupDto(
         List<MemberDto> members,
         boolean joined
 ) {
-    public record MemberDto(String uid, String username, String displayName, String photoUrl) {}
+    public record MemberDto(String uid, String username, String displayName, String photoUrl, String gearJson) {}
 }
