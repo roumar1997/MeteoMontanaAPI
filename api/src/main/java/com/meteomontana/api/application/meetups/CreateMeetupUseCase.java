@@ -3,8 +3,10 @@ package com.meteomontana.api.application.meetups;
 import com.meteomontana.api.application.social.NotificationService;
 import com.meteomontana.api.domain.model.MeetupAlert;
 import com.meteomontana.api.domain.model.Meetup;
+import com.meteomontana.api.domain.model.School;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.ChatRepository;
+import com.meteomontana.api.domain.port.FollowRepository;
 import com.meteomontana.api.domain.port.MeetupAlertRepository;
 import com.meteomontana.api.domain.port.MeetupRepository;
 import com.meteomontana.api.domain.port.PushSender;
@@ -26,6 +28,7 @@ public class CreateMeetupUseCase {
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
     private final MeetupAlertRepository alertRepository;
+    private final FollowRepository followRepository;
     private final NotificationService notificationService;
     private final PushSender pushSender;
     private final MeetupDtoMapper mapper;
@@ -35,6 +38,7 @@ public class CreateMeetupUseCase {
                                SchoolRepository schoolRepository,
                                UserRepository userRepository,
                                MeetupAlertRepository alertRepository,
+                               FollowRepository followRepository,
                                NotificationService notificationService,
                                PushSender pushSender,
                                MeetupDtoMapper mapper) {
@@ -43,6 +47,7 @@ public class CreateMeetupUseCase {
         this.schoolRepository = schoolRepository;
         this.userRepository = userRepository;
         this.alertRepository = alertRepository;
+        this.followRepository = followRepository;
         this.notificationService = notificationService;
         this.pushSender = pushSender;
         this.mapper = mapper;
@@ -112,10 +117,8 @@ public class CreateMeetupUseCase {
 
     private void notifyAlerts(Meetup meetup, User creator, String privacy) {
         try {
-            // OPEN: notificar a todos con alerta; FOLLOWERS/WOMEN: omitir push masivo
-            if (!"OPEN".equals(privacy)) return;
-
             List<MeetupAlert> alerts = alertRepository.findBySchoolId(meetup.getSchoolId());
+            School school = schoolRepository.findById(meetup.getSchoolId()).orElse(null);
             String title = "Nueva quedada: " + meetup.getName();
             String creatorName = creator.getDisplayName() != null ? creator.getDisplayName() : creator.getUsername();
             String body = "Organiza " + creatorName;
@@ -124,6 +127,22 @@ public class CreateMeetupUseCase {
                 String alertUid = alert.getUid();
                 if (alertUid.equals(meetup.getCreatorUid())) continue;
                 if (!alert.matchesDays(meetup.getDays())) continue;
+                if (!alert.matchesDiscipline(meetup.getDiscipline())) continue;
+                if (!alert.matchesPrivacyPreference(privacy)) continue;
+                if (school != null && !alert.matchesDistance(school.getLat(), school.getLon())) continue;
+
+                // El usuario debe poder VER la quedada según su privacidad real,
+                // no solo según su preferencia de filtro.
+                if ("FOLLOWERS".equals(privacy)) {
+                    boolean related = followRepository.isFollowing(alertUid, meetup.getCreatorUid())
+                            || followRepository.isFollowing(meetup.getCreatorUid(), alertUid);
+                    if (!related) continue;
+                }
+                if ("WOMEN".equals(privacy)) {
+                    boolean isWoman = userRepository.findByUid(alertUid)
+                            .map(u -> "WOMAN".equals(u.getGender())).orElse(false);
+                    if (!isWoman) continue;
+                }
 
                 notificationService.create(alertUid, "MEETUP_NEW", title, body, "meetup", meetup.getId());
 

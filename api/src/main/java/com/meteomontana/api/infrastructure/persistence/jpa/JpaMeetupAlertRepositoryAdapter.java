@@ -30,8 +30,9 @@ public class JpaMeetupAlertRepositoryAdapter implements MeetupAlertRepository {
     @Override
     public MeetupAlert save(MeetupAlert alert) {
         MeetupAlertJpaEntity entity = new MeetupAlertJpaEntity(
-                alert.getId(), alert.getUid(), alert.getSchoolId(),
-                alert.getDaysCsv(), alert.getCreatedAt()
+                alert.getId(), alert.getUid(), alert.getSchoolId(), alert.getDaysCsv(),
+                alert.getDiscipline(), alert.getPrivacy(), alert.getMaxDistanceKm(),
+                alert.getUserLat(), alert.getUserLon(), alert.getCreatedAt()
         );
         return toDomain(spring.save(entity));
     }
@@ -43,6 +44,8 @@ public class JpaMeetupAlertRepositoryAdapter implements MeetupAlertRepository {
     }
 
     private MeetupAlert toDomain(MeetupAlertJpaEntity e) {
-        return new MeetupAlert(e.getId(), e.getUid(), e.getSchoolId(), e.getDaysCsv(), e.getCreatedAt());
+        return new MeetupAlert(e.getId(), e.getUid(), e.getSchoolId(), e.getDaysCsv(),
+                e.getDiscipline(), e.getPrivacy(), e.getMaxDistanceKm(),
+                e.getUserLat(), e.getUserLon(), e.getCreatedAt());
     }
 }

@@ -25,6 +25,7 @@ class CreateMeetupUseCaseTest {
     SchoolRepository     schoolRepository     = mock(SchoolRepository.class);
     UserRepository       userRepository       = mock(UserRepository.class);
     MeetupAlertRepository alertRepository     = mock(MeetupAlertRepository.class);
+    FollowRepository     followRepository     = mock(FollowRepository.class);
     NotificationService  notificationService  = mock(NotificationService.class);
     PushSender           pushSender           = mock(PushSender.class);
 
@@ -35,7 +36,7 @@ class CreateMeetupUseCaseTest {
     @BeforeEach void setUp() {
         MeetupDtoMapper mapper = new MeetupDtoMapper(schoolRepository, userRepository);
         useCase = new CreateMeetupUseCase(meetupRepository, chatRepository, schoolRepository,
-                userRepository, alertRepository, notificationService, pushSender, mapper);
+                userRepository, alertRepository, followRepository, notificationService, pushSender, mapper);
 
         when(schoolRepository.findById("school-1")).thenReturn(Optional.of(
                 new School("school-1", "La Muela", null, null, null, null, 0, 0, null)));
