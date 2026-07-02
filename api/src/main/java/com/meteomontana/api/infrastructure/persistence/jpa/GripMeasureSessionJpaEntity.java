@@ -24,10 +24,10 @@ public class GripMeasureSessionJpaEntity {
     private String hand;
 
     @Column(name = "peak_kg", nullable = false)
-    private Double peakKg;
+    private double peakKg;
 
     @Column(name = "avg_kg", nullable = false)
-    private Double avgKg;
+    private double avgKg;
 
     @Column(name = "duration_s", nullable = false)
     private Integer durationS;
@@ -41,7 +41,7 @@ public class GripMeasureSessionJpaEntity {
     protected GripMeasureSessionJpaEntity() {}
 
     public GripMeasureSessionJpaEntity(String id, String uid, Integer gripTypeId, String hand,
-                                        Double peakKg, Double avgKg, Integer durationS,
+                                        double peakKg, double avgKg, Integer durationS,
                                         String edgeMm, LocalDateTime createdAt) {
         this.id = id;
         this.uid = uid;
@@ -58,8 +58,8 @@ public class GripMeasureSessionJpaEntity {
     public String getUid()               { return uid; }
     public Integer getGripTypeId()       { return gripTypeId; }
     public String getHand()              { return hand; }
-    public Double getPeakKg()            { return peakKg; }
-    public Double getAvgKg()             { return avgKg; }
+    public double getPeakKg()            { return peakKg; }
+    public double getAvgKg()             { return avgKg; }
     public Integer getDurationS()        { return durationS; }
     public String getEdgeMm()            { return edgeMm; }
     public LocalDateTime getCreatedAt()  { return createdAt; }

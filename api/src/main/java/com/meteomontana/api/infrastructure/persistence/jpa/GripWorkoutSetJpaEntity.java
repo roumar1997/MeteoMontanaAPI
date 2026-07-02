@@ -31,16 +31,16 @@ public class GripWorkoutSetJpaEntity {
     private Integer gripTypeId;
 
     @Column(name = "target_min_pct", nullable = false)
-    private Double targetMinPct;
+    private double targetMinPct;
 
     @Column(name = "target_max_pct", nullable = false)
-    private Double targetMaxPct;
+    private double targetMaxPct;
 
     protected GripWorkoutSetJpaEntity() {}
 
     public GripWorkoutSetJpaEntity(String id, String workoutId, Integer sortOrder, Integer reps,
                                     Integer workS, Integer restS, Integer gripTypeId,
-                                    Double targetMinPct, Double targetMaxPct) {
+                                    double targetMinPct, double targetMaxPct) {
         this.id = id;
         this.workoutId = workoutId;
         this.sortOrder = sortOrder;
@@ -59,6 +59,6 @@ public class GripWorkoutSetJpaEntity {
     public Integer getWorkS()          { return workS; }
     public Integer getRestS()          { return restS; }
     public Integer getGripTypeId()     { return gripTypeId; }
-    public Double getTargetMinPct()    { return targetMinPct; }
-    public Double getTargetMaxPct()    { return targetMaxPct; }
+    public double getTargetMinPct()    { return targetMinPct; }
+    public double getTargetMaxPct()    { return targetMaxPct; }
 }

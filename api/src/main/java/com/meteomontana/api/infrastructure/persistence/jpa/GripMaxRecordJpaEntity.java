@@ -24,7 +24,7 @@ public class GripMaxRecordJpaEntity {
     private String hand;
 
     @Column(name = "max_kg", nullable = false)
-    private Double maxKg;
+    private double maxKg;
 
     @Column(name = "edge_mm")
     private String edgeMm;
@@ -35,7 +35,7 @@ public class GripMaxRecordJpaEntity {
     protected GripMaxRecordJpaEntity() {}
 
     public GripMaxRecordJpaEntity(String id, String uid, Integer gripTypeId, String hand,
-                                   Double maxKg, String edgeMm, LocalDateTime measuredAt) {
+                                   double maxKg, String edgeMm, LocalDateTime measuredAt) {
         this.id = id;
         this.uid = uid;
         this.gripTypeId = gripTypeId;
@@ -49,7 +49,7 @@ public class GripMaxRecordJpaEntity {
     public String getUid()                 { return uid; }
     public Integer getGripTypeId()         { return gripTypeId; }
     public String getHand()                { return hand; }
-    public Double getMaxKg()               { return maxKg; }
+    public double getMaxKg()               { return maxKg; }
     public String getEdgeMm()              { return edgeMm; }
     public LocalDateTime getMeasuredAt()   { return measuredAt; }
 }
