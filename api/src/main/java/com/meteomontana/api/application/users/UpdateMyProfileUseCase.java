@@ -35,6 +35,7 @@ public class UpdateMyProfileUseCase {
         boolean newIsPublic   = req.isPublic() != null    ? req.isPublic() : current.isPublic();
         String newPhotoPath   = req.photoUrl() != null    ? req.photoUrl() : current.getPhotoPath();
         String newGender      = req.gender() != null      ? validateGender(req.gender()) : current.getGender();
+        String newGearJson    = req.gearJson() != null    ? truncate(req.gearJson(), 512) : current.getGearJson();
 
         User updated = new User(
                 current.getUid(),
@@ -49,6 +50,7 @@ public class UpdateMyProfileUseCase {
                 current.isPremium(),
                 current.getFcmToken(),
                 newGender,
+                newGearJson,
                 current.getCreatedAt(),
                 LocalDateTime.now()
         );
@@ -70,7 +72,7 @@ public class UpdateMyProfileUseCase {
 
     private String validateGender(String gender) {
         return switch (gender.toUpperCase()) {
-            case "WOMAN", "MAN", "UNSPECIFIED" -> gender.toUpperCase();
+            case "WOMAN", "MAN", "OTHER", "UNSPECIFIED" -> gender.toUpperCase();
             default -> throw new IllegalArgumentException("Invalid gender value: " + gender);
         };
     }

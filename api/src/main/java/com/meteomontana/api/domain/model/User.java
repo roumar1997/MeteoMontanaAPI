@@ -14,7 +14,11 @@ public class User {
     private final boolean isAdmin;
     private final boolean isPremium;
     private final String fcmToken;
-    private final String gender;           // WOMAN | MAN | UNSPECIFIED | null — PRIVADO
+    private final String gender;           // WOMAN | MAN | OTHER | UNSPECIFIED | null — PRIVADO
+    // Material propio (perfil): JSON simple, mismo formato que meetup_members.gear_json.
+    // {"cuerda":true,"grigri":false,"cintas":12,"crashpads":2}. Se usa para
+    // autorrellenar el material al unirte a una quedada (editable ahí igualmente).
+    private final String gearJson;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
@@ -22,6 +26,14 @@ public class User {
                 String photoPath, String bio, boolean isPublic, String topGrade,
                 boolean isAdmin, boolean isPremium, String fcmToken, String gender,
                 LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this(uid, email, username, displayName, photoPath, bio, isPublic, topGrade,
+                isAdmin, isPremium, fcmToken, gender, null, createdAt, updatedAt);
+    }
+
+    public User(String uid, String email, String username, String displayName,
+                String photoPath, String bio, boolean isPublic, String topGrade,
+                boolean isAdmin, boolean isPremium, String fcmToken, String gender,
+                String gearJson, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.uid = uid;
         this.email = email;
         this.username = username;
@@ -34,6 +46,7 @@ public class User {
         this.isPremium = isPremium;
         this.fcmToken = fcmToken;
         this.gender = gender;
+        this.gearJson = gearJson;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -50,6 +63,7 @@ public class User {
     public boolean isPremium()         { return isPremium; }
     public String getFcmToken()        { return fcmToken; }
     public String getGender()          { return gender; }
+    public String getGearJson()        { return gearJson; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
     public LocalDateTime getUpdatedAt(){ return updatedAt; }
 }

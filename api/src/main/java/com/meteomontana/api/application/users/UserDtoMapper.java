@@ -57,7 +57,8 @@ public class UserDtoMapper {
                 u.isPublic(),
                 u.isAdmin(),
                 u.isPremium(),
-                u.getGender()
+                u.getGender(),
+                u.getGearJson()
         );
     }
 

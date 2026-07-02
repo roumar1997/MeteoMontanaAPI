@@ -32,7 +32,7 @@ public class JpaUserRepositoryAdapter implements UserRepository {
                 u.getUid(), u.getEmail(), u.getUsername(), u.getDisplayName(),
                 u.getPhotoPath(), u.getBio(), u.isPublic(), u.getTopGrade(),
                 u.isAdmin(), u.isPremium(), u.getFcmToken(), u.getGender(),
-                u.getCreatedAt(), u.getUpdatedAt()
+                u.getGearJson(), u.getCreatedAt(), u.getUpdatedAt()
         );
         return toDomain(jpaRepo.save(entity));
     }
@@ -54,7 +54,7 @@ public class JpaUserRepositoryAdapter implements UserRepository {
                 e.getUid(), e.getEmail(), e.getUsername(), e.getDisplayName(),
                 e.getPhotoPath(), e.getBio(), e.isPublic(), e.getTopGrade(),
                 e.isAdmin(), e.isPremium(), e.getFcmToken(), e.getGender(),
-                e.getCreatedAt(), e.getUpdatedAt()
+                e.getGearJson(), e.getCreatedAt(), e.getUpdatedAt()
         );
     }
 }

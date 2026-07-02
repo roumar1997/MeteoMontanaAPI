@@ -45,6 +45,9 @@ public class UserJpaEntity {
     @Column(name = "gender")
     private String gender;
 
+    @Column(name = "gear_json", length = 512)
+    private String gearJson;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -57,6 +60,14 @@ public class UserJpaEntity {
                          String photoPath, String bio, boolean isPublic, String topGrade,
                          boolean isAdmin, boolean isPremium, String fcmToken, String gender,
                          LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this(uid, email, username, displayName, photoPath, bio, isPublic, topGrade,
+                isAdmin, isPremium, fcmToken, gender, null, createdAt, updatedAt);
+    }
+
+    public UserJpaEntity(String uid, String email, String username, String displayName,
+                         String photoPath, String bio, boolean isPublic, String topGrade,
+                         boolean isAdmin, boolean isPremium, String fcmToken, String gender,
+                         String gearJson, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.uid = uid;
         this.email = email;
         this.username = username;
@@ -69,6 +80,7 @@ public class UserJpaEntity {
         this.isPremium = isPremium;
         this.fcmToken = fcmToken;
         this.gender = gender;
+        this.gearJson = gearJson;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -85,6 +97,7 @@ public class UserJpaEntity {
     public boolean isPremium()         { return isPremium; }
     public String getFcmToken()        { return fcmToken; }
     public String getGender()          { return gender; }
+    public String getGearJson()        { return gearJson; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
     public LocalDateTime getUpdatedAt(){ return updatedAt; }
 }

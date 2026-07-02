@@ -41,6 +41,13 @@ public class JournalSessionJpaEntity {
     @Column(name = "line_id")
     private String lineId;
 
+    // DONE (hecho) | PROJECT (proyecto: lo estás probando, aún no te ha salido).
+    // Se setea aparte (setStatus) para no tocar el constructor. Default DONE
+    // (columna NOT NULL DEFAULT 'DONE' en BD; entradas nuevas sin setStatus
+    // explícito también caen aquí).
+    @Column(name = "status", nullable = false)
+    private String status = "DONE";
+
     @Column(name = "session_date", nullable = false)
     private LocalDate sessionDate;
 
@@ -76,6 +83,8 @@ public class JournalSessionJpaEntity {
     public void setDiscipline(String discipline) { this.discipline = discipline; }
     public String getLineId()          { return lineId; }
     public void setLineId(String lineId) { this.lineId = lineId; }
+    public String getStatus()          { return status; }
+    public void setStatus(String status) { this.status = status != null ? status : "DONE"; }
     public LocalDate getSessionDate()  { return sessionDate; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
 }

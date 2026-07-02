@@ -15,5 +15,7 @@ public record PrivateProfileDto(
         boolean isPublic,
         boolean isAdmin,
         boolean isPremium,
-        String gender    // WOMAN | MAN | UNSPECIFIED | null — PRIVADO, nunca en PublicProfileDto
+        String gender,   // WOMAN | MAN | OTHER | UNSPECIFIED | null — PRIVADO, nunca en PublicProfileDto
+        // Material propio: JSON {"cuerda":true,"grigri":false,"cintas":12,"crashpads":2} | null.
+        String gearJson
 ) {}

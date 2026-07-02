@@ -14,6 +14,9 @@ public class JournalSession {
     private final String notes;
     private final String discipline;   // BOULDER (bloque) / ROUTE (vía); null = BOULDER (entradas antiguas)
     private final String lineId;       // id estable de la BlockLine; null = entrada antigua/offline (match por nombre)
+    // DONE (hecho, comportamiento de siempre) | PROJECT (proyecto: lo estás
+    // probando pero aún no te ha salido). null = DONE (entradas antiguas).
+    private final String status;
     private final LocalDate sessionDate;
     private final LocalDateTime createdAt;
 
@@ -34,6 +37,14 @@ public class JournalSession {
     public JournalSession(String id, String uid, String schoolId, String schoolName,
                           String sector, String blockName, String grade, String notes,
                           String discipline, String lineId, LocalDate sessionDate, LocalDateTime createdAt) {
+        this(id, uid, schoolId, schoolName, sector, blockName, grade, notes,
+             discipline, lineId, null, sessionDate, createdAt);
+    }
+
+    public JournalSession(String id, String uid, String schoolId, String schoolName,
+                          String sector, String blockName, String grade, String notes,
+                          String discipline, String lineId, String status,
+                          LocalDate sessionDate, LocalDateTime createdAt) {
         this.id = id;
         this.uid = uid;
         this.schoolId = schoolId;
@@ -44,6 +55,7 @@ public class JournalSession {
         this.notes = notes;
         this.discipline = discipline;
         this.lineId = lineId;
+        this.status = status;
         this.sessionDate = sessionDate;
         this.createdAt = createdAt;
     }
@@ -58,6 +70,7 @@ public class JournalSession {
     public String getNotes()           { return notes; }
     public String getDiscipline()      { return discipline; }
     public String getLineId()          { return lineId; }
+    public String getStatus()          { return status; }
     public LocalDate getSessionDate()  { return sessionDate; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
 }

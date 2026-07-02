@@ -39,6 +39,7 @@ public class JournalUseCase {
                 req.notes(),
                 normalizeDiscipline(req.discipline()),
                 req.lineId(),
+                normalizeStatus(req.status()),
                 req.date(),
                 LocalDateTime.now()
         );
@@ -60,7 +61,12 @@ public class JournalUseCase {
     }
 
     public JournalDtos.JournalStatsDto statsFor(String uid) {
-        List<JournalSession> all = repository.findByUid(uid);
+        // Los PROYECTOS no cuentan para las stats (no están "hechos" todavía);
+        // solo las entradas DONE. Espejo de listMine, que sí devuelve ambas
+        // (la app filtra por status según la pantalla: Vías/Bloques vs Proyectos).
+        List<JournalSession> all = repository.findByUid(uid).stream()
+                .filter(s -> !"PROJECT".equalsIgnoreCase(s.getStatus()))
+                .toList();
 
         int blockCount = all.size();
         int routeCount = 0;
@@ -99,5 +105,10 @@ public class JournalUseCase {
     /** Normaliza la modalidad a BOULDER/ROUTE; default BOULDER. */
     private static String normalizeDiscipline(String raw) {
         return "ROUTE".equalsIgnoreCase(raw != null ? raw.trim() : null) ? "ROUTE" : "BOULDER";
+    }
+
+    /** Normaliza el estado a DONE/PROJECT; default DONE (compat clientes antiguos). */
+    private static String normalizeStatus(String raw) {
+        return "PROJECT".equalsIgnoreCase(raw != null ? raw.trim() : null) ? "PROJECT" : "DONE";
     }
 }
