@@ -61,12 +61,23 @@ public class JournalUseCase {
     }
 
     public JournalDtos.JournalStatsDto statsFor(String uid) {
-        // Los PROYECTOS no cuentan para las stats (no están "hechos" todavía);
-        // solo las entradas DONE. Espejo de listMine, que sí devuelve ambas
-        // (la app filtra por status según la pantalla: Vías/Bloques vs Proyectos).
-        List<JournalSession> all = repository.findByUid(uid).stream()
+        // Los PROYECTOS no cuentan para las stats DONE (blockCount/boulderCount/
+        // routeCount/maxGrade...); solo las entradas DONE. Pero SÍ se cuentan
+        // aparte (project*) en la MISMA llamada, para que "Proyectos" del perfil
+        // funcione con el mismo caché offline que el resto de stats.
+        List<JournalSession> everything = repository.findByUid(uid);
+        List<JournalSession> all = everything.stream()
                 .filter(s -> !"PROJECT".equalsIgnoreCase(s.getStatus()))
                 .toList();
+
+        int projectBoulderCount = 0, projectRouteCount = 0;
+        for (JournalSession s : everything) {
+            if ("PROJECT".equalsIgnoreCase(s.getStatus())) {
+                if ("ROUTE".equalsIgnoreCase(s.getDiscipline())) projectRouteCount++;
+                else projectBoulderCount++;
+            }
+        }
+        int projectCount = projectBoulderCount + projectRouteCount;
 
         int blockCount = all.size();
         int routeCount = 0;
@@ -98,7 +109,8 @@ public class JournalUseCase {
 
         return new JournalDtos.JournalStatsDto(
                 blockCount, boulderCount, routeCount, bySchool.size(),
-                maxGrade, maxBoulderGrade, maxRouteGrade, perSchool
+                maxGrade, maxBoulderGrade, maxRouteGrade, perSchool,
+                projectCount, projectBoulderCount, projectRouteCount
         );
     }
 

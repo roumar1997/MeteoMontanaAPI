@@ -49,7 +49,11 @@ public class JournalDtos {
 
     /** Stats agregadas: nº bloques (BOULDER), nº vías (ROUTE), nº escuelas,
      *  grado máx y desglose por escuela. blockCount = boulderCount + routeCount
-     *  (total) por compatibilidad con clientes antiguos. */
+     *  (total) por compatibilidad con clientes antiguos. project* cuenta las
+     *  entradas PROJECT (probando, aún no hecho) — separado del resto, que solo
+     *  cuenta DONE. Viene en la MISMA llamada que el resto de stats para que
+     *  "Proyectos" funcione offline igual que Bloques/Vías/Escuelas (se cachea
+     *  junto con todo lo demás, sin round-trip aparte). */
     public record JournalStatsDto(
             int blockCount,
             int boulderCount,
@@ -58,7 +62,10 @@ public class JournalDtos {
             String maxGrade,         // grado máx global (cualquier modalidad), por compat
             String maxBoulderGrade,  // grado máx de bloque
             String maxRouteGrade,    // grado máx de vía
-            List<SchoolStats> bySchool
+            List<SchoolStats> bySchool,
+            int projectCount,
+            int projectBoulderCount,
+            int projectRouteCount
     ) {
         public record SchoolStats(String schoolName, int blockCount, String maxGrade) {}
     }
