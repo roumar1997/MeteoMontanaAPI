@@ -28,7 +28,16 @@ public class GetForecastByLocationUseCase {
     }
 
     public ForecastResponse execute(double lat, double lon, String rockType) {
-        OpenMeteoResponse weather = openMeteoClient.fetchForecast(lat, lon);
+        // Redondeo a ~1km (2 decimales): el tiempo no varía de verdad en ese
+        // radio, y así compartimos caché/tabla entre peticiones del mismo sitio
+        // (el GPS nunca repite la coordenada exacta) y entre usuarios cercanos.
+        // Sin esto, el tab Tiempo NUNCA acertaba en caché (a diferencia de
+        // Escuelas, de coordenadas fijas) → cada apertura llamaba en vivo a
+        // Open-Meteo y, si limitaba (429), no había ningún dato guardado de esa
+        // coordenada exacta para servir de respaldo → error visible al usuario.
+        double roundedLat = Math.round(lat * 100.0) / 100.0;
+        double roundedLon = Math.round(lon * 100.0) / 100.0;
+        OpenMeteoResponse weather = openMeteoClient.fetchForecast(roundedLat, roundedLon);
         String rock = rockType != null ? rockType : "Caliza";
 
         // Reuso lógica del GetForecastUseCase manualmente porque
