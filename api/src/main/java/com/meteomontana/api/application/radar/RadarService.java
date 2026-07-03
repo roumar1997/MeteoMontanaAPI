@@ -30,7 +30,7 @@ public class RadarService {
     public List<RadarFrameEntity> timeline(String radar, int hours) {
         int h = Math.min(Math.max(hours, 1), 6);
         return repo.findByRadarCodeAndCapturedAtAfterOrderByCapturedAtAsc(
-                radar, LocalDateTime.now().minus(Duration.ofHours(h)));
+                radar, nowMadrid().minus(Duration.ofHours(h)));
     }
 
     /**
@@ -58,6 +58,13 @@ public class RadarService {
         }
     }
 
+    /** Los frames se archivan con hora de Madrid; el servidor corre en UTC.
+     *  TODAS las ventanas temporales deben usar la MISMA zona o desaparecen
+     *  las últimas 2h (bug visto en producción el día del estreno). */
+    private static LocalDateTime nowMadrid() {
+        return LocalDateTime.now(java.time.ZoneId.of("Europe/Madrid"));
+    }
+
     public double[] bounds(String radar) {
         if (RadarComposite.CODE.equals(radar)) return RadarComposite.bounds();
         double[] b = RadarSites.bounds(radar);
@@ -69,8 +76,8 @@ public class RadarService {
     @Transactional(readOnly = true)
     public List<LocalDateTime> compositeTimeline(int hours) {
         int h = Math.min(Math.max(hours, 1), 48);
-        LocalDateTime now = LocalDateTime.now();
-        return repo.findDistinctCapturedAtBetween(now.minus(Duration.ofHours(h)), now);
+        LocalDateTime now = nowMadrid();
+        return repo.findDistinctCapturedAtBetween(now.minus(Duration.ofHours(h)), now.plusMinutes(5));
     }
 
     /** Ciclos del compuesto en un día concreto (chips HOY/AYER de la app). */

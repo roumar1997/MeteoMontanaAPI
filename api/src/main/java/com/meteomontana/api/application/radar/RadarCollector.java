@@ -101,7 +101,8 @@ public class RadarCollector {
 
     @Transactional
     protected int prune() {
-        return repo.deleteOlderThan(LocalDateTime.now().minusHours(RETENTION_HOURS));
+        return repo.deleteOlderThan(LocalDateTime.now(java.time.ZoneId.of("Europe/Madrid"))
+                .minusHours(RETENTION_HOURS));
     }
 
     private static String sha256(byte[] data) {
