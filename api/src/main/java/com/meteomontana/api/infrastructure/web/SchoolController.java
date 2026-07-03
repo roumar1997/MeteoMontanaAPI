@@ -2,6 +2,7 @@ package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.application.CreateNoteUseCase;
 import com.meteomontana.api.application.GetNotesBySchoolUseCase;
+import com.meteomontana.api.application.note.NoteVotesService;
 import com.meteomontana.api.application.GetSchoolByIdUseCase;
 import com.meteomontana.api.application.GetSchoolsUseCase;
 import com.meteomontana.api.application.SearchSchoolsUseCase;
@@ -41,6 +42,7 @@ public class SchoolController {
     private final GetNotesBySchoolUseCase getNotesBySchoolUseCase;
     private final GetForecastUseCase getForecastUseCase;
     private final CreateNoteUseCase createNoteUseCase;
+    private final NoteVotesService noteVotesService;
     private final SearchSchoolsUseCase searchSchoolsUseCase;
     private final GetMonthlyStatsUseCase getMonthlyStatsUseCase;
     private final ObjectMapper objectMapper;
@@ -50,6 +52,7 @@ public class SchoolController {
                             GetNotesBySchoolUseCase getNotesBySchoolUseCase,
                             GetForecastUseCase getForecastUseCase,
                             CreateNoteUseCase createNoteUseCase,
+                            NoteVotesService noteVotesService,
                             SearchSchoolsUseCase searchSchoolsUseCase,
                             GetMonthlyStatsUseCase getMonthlyStatsUseCase,
                             ObjectMapper objectMapper) {
@@ -58,6 +61,7 @@ public class SchoolController {
         this.getNotesBySchoolUseCase = getNotesBySchoolUseCase;
         this.getForecastUseCase      = getForecastUseCase;
         this.createNoteUseCase       = createNoteUseCase;
+        this.noteVotesService        = noteVotesService;
         this.searchSchoolsUseCase    = searchSchoolsUseCase;
         this.getMonthlyStatsUseCase  = getMonthlyStatsUseCase;
         this.objectMapper            = objectMapper;
@@ -113,8 +117,14 @@ public class SchoolController {
     }
 
     @GetMapping("/schools/{id}/notes")
-    public List<Note> getNotesBySchool(@PathVariable String id) {
-        return getNotesBySchoolUseCase.execute(id);
+    public List<NoteVotesService.NoteWithMyVote> getNotesBySchool(
+            @PathVariable String id,
+            @AuthenticationPrincipal FirebaseUser user) {
+        // Ordenadas por utilidad (me gusta − no me gusta) y con el voto del
+        // usuario que consulta (0 si es anónimo).
+        return noteVotesService.enrichAndSort(
+                getNotesBySchoolUseCase.execute(id),
+                user != null ? user.uid() : null);
     }
 
     @GetMapping("/schools/{id}/forecast")
@@ -126,6 +136,16 @@ public class SchoolController {
     @GetMapping("/schools/{id}/monthly-stats")
     public GetMonthlyStatsUseCase.MonthlyStatsResponse getMonthlyStats(@PathVariable String id) {
         return getMonthlyStatsUseCase.execute(id);
+    }
+
+    /** Voto de utilidad: {"value":1|-1}. Repetir el voto lo retira. */
+    @PostMapping("/notes/{noteId}/vote")
+    public java.util.Map<String, Integer> voteNote(@PathVariable String noteId,
+                                                   @AuthenticationPrincipal FirebaseUser user,
+                                                   @RequestBody java.util.Map<String, Integer> body) {
+        int myVote = noteVotesService.vote(user.uid(), noteId,
+                body.getOrDefault("value", 0));
+        return java.util.Map.of("myVote", myVote);
     }
 
     @PostMapping("/schools/{id}/notes")
