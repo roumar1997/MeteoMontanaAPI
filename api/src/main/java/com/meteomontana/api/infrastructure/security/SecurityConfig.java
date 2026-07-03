@@ -69,6 +69,9 @@ public class SecurityConfig {
                 // Radar de lluvia (datos AEMET): público como el forecast.
                 .requestMatchers(HttpMethod.GET, "/api/radar/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/mountain/**").permitAll()
+                // Enlaces compartidos + verificación de App Links: públicos.
+                .requestMatchers(HttpMethod.GET, "/s/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/.well-known/**").permitAll()
                 // Healthcheck público para CUALQUIER método (los monitores de
                 // uptime suelen usar HEAD; restringirlo a GET daba 403 → "caído").
                 .requestMatchers("/actuator/health").permitAll()

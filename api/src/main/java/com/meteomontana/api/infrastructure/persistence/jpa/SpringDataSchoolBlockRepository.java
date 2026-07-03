@@ -20,4 +20,10 @@ public interface SpringDataSchoolBlockRepository
            "where b.schoolId = :schoolId " +
            "order by b.createdAt asc")
     List<SchoolBlockJpaEntity> findBySchoolIdOrderByCreatedAtAsc(@Param("schoolId") String schoolId);
+
+    /** Bloque que contiene una vía concreta (para los enlaces compartidos). */
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT DISTINCT b FROM SchoolBlockJpaEntity b LEFT JOIN FETCH b.lines WHERE EXISTS "
+        + "(SELECT 1 FROM BlockLineJpaEntity l WHERE l.block = b AND l.id = :lineId)")
+    java.util.Optional<SchoolBlockJpaEntity> findByLineId(@org.springframework.data.repository.query.Param("lineId") String lineId);
 }
