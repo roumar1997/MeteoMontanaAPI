@@ -41,26 +41,35 @@ public class RadarController {
                                       @RequestParam(required = false) String radar,
                                       @RequestParam(required = false) Double lat,
                                       @RequestParam(required = false) Double lon) {
-        // La app manda el centro del mapa y el backend elige el radar: la
-        // tabla de antenas vive solo aquí.
+        // Por defecto: compuesto España entera ("es"). Con lat/lon se puede
+        // pedir el radar regional más cercano (mejor resolución); la tabla de
+        // antenas vive solo en el backend.
         if (radar == null) {
             radar = (lat != null && lon != null)
                     ? com.meteomontana.api.infrastructure.radar.RadarSites.nearest(lat, lon).code()
-                    : "ma";
+                    : com.meteomontana.api.application.radar.RadarComposite.CODE;
         }
         double[] b = service.bounds(radar);
+        var timeline = com.meteomontana.api.application.radar.RadarComposite.CODE.equals(radar)
+                ? service.compositeTimeline(hours)
+                : service.timeline(radar, hours).stream()
+                        .map(com.meteomontana.api.infrastructure.radar.RadarFrameEntity::getCapturedAt)
+                        .toList();
         return Map.of(
                 "radar", radar,
                 // Esquinas del PNG para clavarlo en el mapa (MapLibre ImageSource).
                 "bounds", Map.of("north", b[0], "west", b[1], "south", b[2], "east", b[3]),
-                "frames", service.timeline(radar, hours).stream().map(f -> Map.of(
-                        "ts", f.getCapturedAt().format(TS),
-                        "capturedAt", f.getCapturedAt().toString())).toList());
+                "frames", timeline.stream().map(t -> Map.of(
+                        "ts", t.format(TS),
+                        "capturedAt", t.toString())).toList());
     }
 
     @GetMapping("/frame/{radar}/{ts}")
     public ResponseEntity<byte[]> frame(@PathVariable String radar, @PathVariable String ts) {
-        byte[] png = service.renderedFrame(radar, LocalDateTime.parse(ts, TS));
+        LocalDateTime at = LocalDateTime.parse(ts, TS);
+        byte[] png = com.meteomontana.api.application.radar.RadarComposite.CODE.equals(radar)
+                ? service.renderedComposite(at)
+                : service.renderedFrame(radar, at);
         return ResponseEntity.ok()
                 // El PNG de un frame es estable → las apps pueden cachearlo un rato
                 // largo (si la máscara mejora, el ts nuevo ya viene distinto).

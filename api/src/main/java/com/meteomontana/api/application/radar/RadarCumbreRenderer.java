@@ -43,6 +43,13 @@ public class RadarCumbreRenderer {
      *               para construir la máscara de estáticos.
      */
     public byte[] render(byte[] target, List<byte[]> recent) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream(32 * 1024);
+        ImageIO.write(renderImage(target, recent), "png", bos);
+        return bos.toByteArray();
+    }
+
+    /** Igual que render() pero devolviendo la imagen (para el compuesto España). */
+    public BufferedImage renderImage(byte[] target, List<byte[]> recent) throws IOException {
         BufferedImage src = read(target);
         List<BufferedImage> others = recent.stream()
                 .map(RadarCumbreRenderer::readUnchecked)
@@ -62,9 +69,15 @@ public class RadarCumbreRenderer {
                 out.setRGB(x, y, classify(rgb, maskReady));
             }
         }
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(32 * 1024);
-        ImageIO.write(out, "png", bos);
-        return bos.toByteArray();
+        return out;
+    }
+
+    /** Prioridad de intensidad para el compuesto (fuerte pisa a débil). */
+    public static int intensity(int argb) {
+        if (argb == STRONG) return 3;
+        if (argb == MEDIUM) return 2;
+        if (argb == WEAK) return 1;
+        return 0;
     }
 
     /** Fondo/decorado por color fijo: negro, gris exterior, blanco de textos. */

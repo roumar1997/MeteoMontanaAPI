@@ -17,6 +17,16 @@ public interface SpringDataRadarFrameRepository extends JpaRepository<RadarFrame
 
     Optional<RadarFrameEntity> findByRadarCodeAndCapturedAt(String radarCode, LocalDateTime capturedAt);
 
+    /** Último frame del radar en o antes de un instante (para el compuesto:
+     *  el dedupe hace que un radar sin cambios no tenga frame en cada ciclo). */
+    Optional<RadarFrameEntity> findTopByRadarCodeAndCapturedAtLessThanEqualOrderByCapturedAtDesc(
+            String radarCode, LocalDateTime at);
+
+    /** Ciclos con algún frame (timeline del compuesto España). */
+    @Query("SELECT DISTINCT f.capturedAt FROM RadarFrameEntity f "
+            + "WHERE f.capturedAt > :after ORDER BY f.capturedAt ASC")
+    List<LocalDateTime> findDistinctCapturedAtAfter(LocalDateTime after);
+
     @Modifying
     @Query("DELETE FROM RadarFrameEntity f WHERE f.capturedAt < :cutoff")
     int deleteOlderThan(LocalDateTime cutoff);

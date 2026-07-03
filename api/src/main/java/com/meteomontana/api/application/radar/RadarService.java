@@ -59,8 +59,58 @@ public class RadarService {
     }
 
     public double[] bounds(String radar) {
+        if (RadarComposite.CODE.equals(radar)) return RadarComposite.bounds();
         double[] b = RadarSites.bounds(radar);
         if (b == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "radar desconocido");
         return b;
+    }
+
+    /** Ciclos disponibles para el compuesto España (cualquier radar cuenta). */
+    @Transactional(readOnly = true)
+    public List<LocalDateTime> compositeTimeline(int hours) {
+        int h = Math.min(Math.max(hours, 1), 6);
+        return repo.findDistinctCapturedAtAfter(LocalDateTime.now().minus(Duration.ofHours(h)));
+    }
+
+    /**
+     * PNG del compuesto Península+Baleares en un ciclo: por cada radar se usa
+     * su último frame en o antes del ciclo (el dedupe del recolector hace que
+     * un radar sin cambios no re-archive) y se cose al lienzo común.
+     */
+    @Cacheable(cacheNames = "radar-png", key = "'es/' + #capturedAt")
+    @Transactional(readOnly = true)
+    public byte[] renderedComposite(LocalDateTime capturedAt) {
+        java.awt.image.BufferedImage canvas = new java.awt.image.BufferedImage(
+                RadarComposite.WIDTH, RadarComposite.HEIGHT,
+                java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        boolean any = false;
+        for (String code : RadarSites.SITES.keySet()) {
+            if ("ca".equals(code)) continue; // Canarias: fuera del lienzo peninsular
+            RadarFrameEntity frame = repo
+                    .findTopByRadarCodeAndCapturedAtLessThanEqualOrderByCapturedAtDesc(code, capturedAt)
+                    // dato más viejo de 40 min = radar caído: mejor hueco que lluvia fantasma
+                    .filter(f -> !f.getCapturedAt().isBefore(capturedAt.minusMinutes(40)))
+                    .orElse(null);
+            if (frame == null) continue;
+            List<byte[]> recent = repo
+                    .findByRadarCodeAndCapturedAtAfterOrderByCapturedAtAsc(
+                            code, frame.getCapturedAt().minusHours(2))
+                    .stream()
+                    .filter(f -> !f.getCapturedAt().equals(frame.getCapturedAt()))
+                    .map(RadarFrameEntity::getImage)
+                    .toList();
+            try {
+                RadarComposite.paste(canvas, renderer.renderImage(frame.getImage(), recent), code);
+                any = true;
+            } catch (IOException e) { /* frame ilegible: ese radar no pinta */ }
+        }
+        if (!any) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "sin datos en ese ciclo");
+        try {
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream(64 * 1024);
+            javax.imageio.ImageIO.write(canvas, "png", bos);
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "error al componer");
+        }
     }
 }
