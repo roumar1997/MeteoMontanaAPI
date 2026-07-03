@@ -39,6 +39,7 @@ public class RadarController {
     @GetMapping("/frames")
     public Map<String, Object> frames(@RequestParam(defaultValue = "2") int hours,
                                       @RequestParam(required = false) String radar,
+                                      @RequestParam(required = false) String date,
                                       @RequestParam(required = false) Double lat,
                                       @RequestParam(required = false) Double lon) {
         // Por defecto: compuesto España entera ("es"). Con lat/lon se puede
@@ -50,7 +51,12 @@ public class RadarController {
                     : com.meteomontana.api.application.radar.RadarComposite.CODE;
         }
         double[] b = service.bounds(radar);
-        var timeline = com.meteomontana.api.application.radar.RadarComposite.CODE.equals(radar)
+        boolean composite = com.meteomontana.api.application.radar.RadarComposite.CODE.equals(radar);
+        // Con ?date=yyyyMMdd: todos los ciclos de ese día (chips HOY/AYER).
+        var timeline = (composite && date != null)
+                ? service.compositeTimelineForDay(java.time.LocalDate.parse(
+                        date, DateTimeFormatter.ofPattern("yyyyMMdd")))
+                : composite
                 ? service.compositeTimeline(hours)
                 : service.timeline(radar, hours).stream()
                         .map(com.meteomontana.api.infrastructure.radar.RadarFrameEntity::getCapturedAt)

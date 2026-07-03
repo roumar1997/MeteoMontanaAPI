@@ -68,8 +68,16 @@ public class RadarService {
     /** Ciclos disponibles para el compuesto España (cualquier radar cuenta). */
     @Transactional(readOnly = true)
     public List<LocalDateTime> compositeTimeline(int hours) {
-        int h = Math.min(Math.max(hours, 1), 6);
-        return repo.findDistinctCapturedAtAfter(LocalDateTime.now().minus(Duration.ofHours(h)));
+        int h = Math.min(Math.max(hours, 1), 48);
+        LocalDateTime now = LocalDateTime.now();
+        return repo.findDistinctCapturedAtBetween(now.minus(Duration.ofHours(h)), now);
+    }
+
+    /** Ciclos del compuesto en un día concreto (chips HOY/AYER de la app). */
+    @Transactional(readOnly = true)
+    public List<LocalDateTime> compositeTimelineForDay(java.time.LocalDate day) {
+        return repo.findDistinctCapturedAtBetween(
+                day.atStartOfDay(), day.plusDays(1).atStartOfDay());
     }
 
     /**

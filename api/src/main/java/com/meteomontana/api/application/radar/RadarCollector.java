@@ -43,7 +43,9 @@ public class RadarCollector {
             "mu", "vd", "ca", "se", "va", "ss", "za");
 
     private static final long PAUSE_BETWEEN_RADARS_MS = 2_500;
-    private static final int RETENTION_HOURS = 6;
+    // 48h: alimenta los chips HOY/AYER de la app. Peso: ~15 radares x 288
+    // ciclos x ~12KB ≈ 50 MB en Postgres. Asumible.
+    private static final int RETENTION_HOURS = 48;
 
     private final AemetRadarClient client;
     private final SpringDataRadarFrameRepository repo;

@@ -22,10 +22,10 @@ public interface SpringDataRadarFrameRepository extends JpaRepository<RadarFrame
     Optional<RadarFrameEntity> findTopByRadarCodeAndCapturedAtLessThanEqualOrderByCapturedAtDesc(
             String radarCode, LocalDateTime at);
 
-    /** Ciclos con algún frame (timeline del compuesto España). */
+    /** Ciclos con algún frame en una ventana (timeline del compuesto España). */
     @Query("SELECT DISTINCT f.capturedAt FROM RadarFrameEntity f "
-            + "WHERE f.capturedAt > :after ORDER BY f.capturedAt ASC")
-    List<LocalDateTime> findDistinctCapturedAtAfter(LocalDateTime after);
+            + "WHERE f.capturedAt >= :from AND f.capturedAt < :to ORDER BY f.capturedAt ASC")
+    List<LocalDateTime> findDistinctCapturedAtBetween(LocalDateTime from, LocalDateTime to);
 
     @Modifying
     @Query("DELETE FROM RadarFrameEntity f WHERE f.capturedAt < :cutoff")

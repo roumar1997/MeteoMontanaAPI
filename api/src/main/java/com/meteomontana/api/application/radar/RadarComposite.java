@@ -13,10 +13,12 @@ import java.awt.image.BufferedImage;
  */
 public final class RadarComposite {
 
-    // Marco geográfico del lienzo (equirectangular).
-    public static final double NORTH = 44.4, SOUTH = 34.8, WEST = -9.9, EAST = 4.6;
+    // Marco geográfico del lienzo (equirectangular). Cubre el ALCANCE COMPLETO
+    // de los radares (240 km desde cada antena): se ve la lluvia sobre el mar,
+    // Portugal y el sur de Francia — "lo que viene", como en la web de AEMET.
+    public static final double NORTH = 45.7, SOUTH = 34.3, WEST = -11.6, EAST = 5.8;
     // ~2 km/px: suficiente para la vista país (el dato original es 1 km/px).
-    public static final int WIDTH = 744, HEIGHT = 576;
+    public static final int WIDTH = 744, HEIGHT = 636;
 
     /** Código virtual del compuesto en la API. */
     public static final String CODE = "es";
