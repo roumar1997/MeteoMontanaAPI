@@ -66,6 +66,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/geocode").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/blocks/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
+                // Radar de lluvia (datos AEMET): público como el forecast.
+                .requestMatchers(HttpMethod.GET, "/api/radar/**").permitAll()
                 // Healthcheck público para CUALQUIER método (los monitores de
                 // uptime suelen usar HEAD; restringirlo a GET daba 403 → "caído").
                 .requestMatchers("/actuator/health").permitAll()
