@@ -38,7 +38,16 @@ public class RadarController {
 
     @GetMapping("/frames")
     public Map<String, Object> frames(@RequestParam(defaultValue = "2") int hours,
-                                      @RequestParam(defaultValue = "ma") String radar) {
+                                      @RequestParam(required = false) String radar,
+                                      @RequestParam(required = false) Double lat,
+                                      @RequestParam(required = false) Double lon) {
+        // La app manda el centro del mapa y el backend elige el radar: la
+        // tabla de antenas vive solo aquí.
+        if (radar == null) {
+            radar = (lat != null && lon != null)
+                    ? com.meteomontana.api.infrastructure.radar.RadarSites.nearest(lat, lon).code()
+                    : "ma";
+        }
         double[] b = service.bounds(radar);
         return Map.of(
                 "radar", radar,

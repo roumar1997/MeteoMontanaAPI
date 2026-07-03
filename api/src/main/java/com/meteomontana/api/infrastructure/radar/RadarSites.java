@@ -51,5 +51,18 @@ public final class RadarSites {
         return new double[]{s.lat() + dLat, s.lon() - dLon, s.lat() - dLat, s.lon() + dLon};
     }
 
+    /** Radar más cercano a un punto (para que la app no lleve la tabla). */
+    public static Site nearest(double lat, double lon) {
+        Site best = null;
+        double bestD = Double.MAX_VALUE;
+        for (Site s : SITES.values()) {
+            double dLat = (s.lat() - lat) * KM_PER_DEG_LAT;
+            double dLon = (s.lon() - lon) * KM_PER_DEG_LAT * Math.cos(Math.toRadians(lat));
+            double d = dLat * dLat + dLon * dLon;
+            if (d < bestD) { bestD = d; best = s; }
+        }
+        return best;
+    }
+
     private RadarSites() {}
 }
