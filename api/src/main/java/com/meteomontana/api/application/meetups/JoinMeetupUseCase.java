@@ -35,6 +35,13 @@ public class JoinMeetupUseCase {
 
     @Transactional
     public MeetupDto execute(String uid, String meetupId) {
+        return execute(uid, meetupId, false);
+    }
+
+    /** invited=true (enlace de invitación válido): salta la restricción de
+     *  seguimiento (FOLLOWERS) pero NUNCA la de género (WOMEN). */
+    @Transactional
+    public MeetupDto execute(String uid, String meetupId, boolean invited) {
         Meetup meetup = meetupRepository.findById(meetupId)
                 .orElseThrow(() -> new IllegalArgumentException("Quedada no encontrada: " + meetupId));
 
@@ -46,7 +53,7 @@ public class JoinMeetupUseCase {
         // Comprobar privacidad
         switch (meetup.getPrivacy()) {
             case "FOLLOWERS" -> {
-                if (!meetup.getCreatorUid().equals(uid) &&
+                if (!invited && !meetup.getCreatorUid().equals(uid) &&
                         !followRepository.isFollowing(uid, meetup.getCreatorUid()) &&
                         !followRepository.isFollowing(meetup.getCreatorUid(), uid)) {
                     throw new IllegalStateException("FOLLOW_REQUIRED");

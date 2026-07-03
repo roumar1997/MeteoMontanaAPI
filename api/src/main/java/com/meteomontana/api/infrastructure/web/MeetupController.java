@@ -28,6 +28,7 @@ public class MeetupController {
     private final UpdateMeetupUseCase updateMeetup;
     private final MeetupRepository meetupRepository;
     private final MeetupDtoMapper mapper;
+    private final com.meteomontana.api.application.meetups.MeetupInviteService inviteService;
 
     public MeetupController(GetMeetupsUseCase getMeetups,
                             CreateMeetupUseCase createMeetup,
@@ -40,7 +41,8 @@ public class MeetupController {
                             UpdateMeetupUseCase updateMeetup,
                             DeleteMeetupUseCase deleteMeetup,
                             MeetupRepository meetupRepository,
-                            MeetupDtoMapper mapper) {
+                            MeetupDtoMapper mapper,
+                            com.meteomontana.api.application.meetups.MeetupInviteService inviteService) {
         this.getMeetups = getMeetups;
         this.createMeetup = createMeetup;
         this.joinMeetup = joinMeetup;
@@ -53,6 +55,7 @@ public class MeetupController {
         this.deleteMeetup = deleteMeetup;
         this.meetupRepository = meetupRepository;
         this.mapper = mapper;
+        this.inviteService = inviteService;
     }
 
     private final DeleteMeetupUseCase deleteMeetup;
@@ -134,10 +137,25 @@ public class MeetupController {
         }
     }
 
+    /** Enlace de invitación (solo miembros). El token no caduca mientras exista la quedada. */
+    @org.springframework.web.bind.annotation.GetMapping("/{id}/invite")
+    public java.util.Map<String, String> inviteLink(@AuthenticationPrincipal FirebaseUser user,
+                                                    @PathVariable String id) {
+        if (!meetupRepository.isMember(id, user.uid())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo los miembros pueden invitar");
+        }
+        String token = inviteService.tokenFor(id);
+        return java.util.Map.of(
+                "token", token,
+                "link", "https://api.climbingteams.com/s/q/" + id + "?i=" + token);
+    }
+
     @PostMapping("/{id}/join")
-    public MeetupDto join(@AuthenticationPrincipal FirebaseUser user, @PathVariable String id) {
+    public MeetupDto join(@AuthenticationPrincipal FirebaseUser user, @PathVariable String id,
+                          @org.springframework.web.bind.annotation.RequestParam(required = false) String invite) {
         try {
-            return joinMeetup.execute(user.uid(), id);
+            boolean invited = inviteService.isValid(id, invite);
+            return joinMeetup.execute(user.uid(), id, invited);
         } catch (IllegalStateException e) {
             throw switch (e.getMessage()) {
                 case "FOLLOW_REQUIRED" -> new ResponseStatusException(HttpStatus.FORBIDDEN,
