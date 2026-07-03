@@ -52,7 +52,7 @@ public class WeekendAlertUseCase {
 
     public void evaluateAndSend(WeekendAlertPrefJpaEntity pref) {
         var user = userRepository.findByUid(pref.getUid()).orElse(null);
-        if (user == null || user.getFcmToken() == null || user.getFcmToken().isBlank()) return;
+        if (user == null) return;
 
         // Para cada día de la semana elegido, su próxima ocurrencia dentro de
         // los 7 días empezando hoy (hoy cuenta si está elegido).
@@ -115,11 +115,11 @@ public class WeekendAlertUseCase {
         // onMessageReceived y la notificación sale sin icono ni deep link.
         String idsCsv = results.stream().map(SchoolWeekend::schoolId)
                 .reduce((a, b) -> a + "," + b).orElse(winner.schoolId());
-        boolean ok = fcmService.sendDataToToken(user.getFcmToken(), Map.of(
+        boolean ok = fcmService.sendDataToUser(user.getUid(), Map.of(
                 "title", title,
                 "body", body.toString(),
                 "targetType", "compare",
-                "targetId", idsCsv));
+                "targetId", idsCsv)) > 0;
         log.info("weekend alert para {} → {} ({} escuelas)", pref.getUid(), ok ? "enviada" : "FALLO", results.size());
     }
 

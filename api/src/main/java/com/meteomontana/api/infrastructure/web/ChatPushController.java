@@ -109,14 +109,12 @@ public class ChatPushController {
 
         for (String uid : participants) {
             if (uid.equals(sender.uid())) continue;
-            User to = userRepository.findByUid(uid).orElse(null);
-            if (to == null || to.getFcmToken() == null || to.getFcmToken().isBlank()) continue;
             Map<String, String> data = new HashMap<>();
             data.put("targetType", "group");
             data.put("targetId", req.convId());
             data.put("title", fromName);
             data.put("body", preview);
-            fcmService.sendToToken(to.getFcmToken(), fromName, preview, data);
+            fcmService.sendToUser(uid, fromName, preview, data);
         }
         return ResponseEntity.ok().build();
     }
@@ -162,8 +160,8 @@ public class ChatPushController {
         if (sender.uid().equals(req.toUid())) return ResponseEntity.ok().build();
 
         User to = userRepository.findByUid(req.toUid()).orElse(null);
-        if (to == null || to.getFcmToken() == null || to.getFcmToken().isBlank()) {
-            return ResponseEntity.ok().build();   // sin token, simplemente no se manda
+        if (to == null) {
+            return ResponseEntity.ok().build();   // no se filtra si el usuario existe
         }
 
         // Modelo de privacidad del chat: se permite avisar al receptor si
@@ -196,7 +194,7 @@ public class ChatPushController {
         data.put("title", fromName);
         data.put("body", preview);
 
-        fcmService.sendToToken(to.getFcmToken(), fromName, preview, data);
+        fcmService.sendToUser(req.toUid(), fromName, preview, data);
         return ResponseEntity.ok().build();
     }
 }

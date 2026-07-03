@@ -6,6 +6,8 @@ import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.AdminLogRepository;
 import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.domain.port.PushSender;
+import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserDeviceRepository;
+import com.meteomontana.api.infrastructure.persistence.jpa.UserDeviceJpaEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,13 +24,16 @@ public class SendAdminPushUseCase {
     private final PushSender fcmService;
     private final AdminLogRepository adminLogRepository;
     private final AdminGuard adminGuard;
+    private final SpringDataUserDeviceRepository deviceRepository;
 
     public SendAdminPushUseCase(UserRepository userRepository, PushSender fcmService,
-                                AdminLogRepository adminLogRepository, AdminGuard adminGuard) {
+                                AdminLogRepository adminLogRepository, AdminGuard adminGuard,
+                                SpringDataUserDeviceRepository deviceRepository) {
         this.userRepository = userRepository;
         this.fcmService = fcmService;
         this.adminLogRepository = adminLogRepository;
         this.adminGuard = adminGuard;
+        this.deviceRepository = deviceRepository;
     }
 
     public AdminPushResponse execute(String adminUid, AdminPushRequest req) {
@@ -45,13 +50,13 @@ public class SendAdminPushUseCase {
         if (req.targetUid() != null && !req.targetUid().isBlank()) {
             User target_ = userRepository.findByUid(req.targetUid())
                     .orElseThrow(() -> new UserNotFoundException(req.targetUid()));
-            boolean ok = fcmService.sendToToken(target_.getFcmToken(), req.title(), req.body(), null);
-            sent = ok ? 1 : 0;
+            sent = fcmService.sendToUser(target_.getUid(), req.title(), req.body(), null);
             recipients = 1;
             target = "user:" + req.targetUid();
         } else {
-            List<User> users = userRepository.findAllWithFcmToken();
-            List<String> tokens = users.stream().map(User::getFcmToken).toList();
+            // Broadcast a todos los dispositivos registrados (no un token por usuario).
+            List<String> tokens = deviceRepository.findAll().stream()
+                    .map(UserDeviceJpaEntity::getToken).toList();
             sent = fcmService.sendToTokens(tokens, req.title(), req.body(), null);
             recipients = tokens.size();
             target = "broadcast";

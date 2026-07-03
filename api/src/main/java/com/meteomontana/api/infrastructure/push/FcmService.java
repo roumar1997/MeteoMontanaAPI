@@ -6,6 +6,8 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
+import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserDeviceRepository;
+import com.meteomontana.api.infrastructure.persistence.jpa.UserDeviceJpaEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,12 @@ import java.util.Map;
 public class FcmService implements com.meteomontana.api.domain.port.PushSender {
 
     private static final Logger log = LoggerFactory.getLogger(FcmService.class);
+
+    private final SpringDataUserDeviceRepository devices;
+
+    public FcmService(SpringDataUserDeviceRepository devices) {
+        this.devices = devices;
+    }
 
     // Debe coincidir con el canal creado en la app (PushService.CHANNEL_ID) y el
     // icono/color de la marca, para cuando es el SISTEMA quien pinta la notificación
@@ -114,6 +122,33 @@ public class FcmService implements com.meteomontana.api.domain.port.PushSender {
         int ok = 0;
         for (String token : tokens) {
             if (sendToToken(token, title, body, data)) ok++;
+        }
+        return ok;
+    }
+
+    /**
+     * Envía a TODOS los dispositivos del usuario (tabla user_devices). Antes solo
+     * existía users.fcm_token → iniciar sesión en un segundo móvil machacaba el
+     * token del primero y este dejaba de recibir push. Los tokens que FCM rechaza
+     * se borran de la tabla (dispositivo desinstalado/caducado).
+     */
+    @Override
+    public int sendToUser(String uid, String title, String body, Map<String, String> data) {
+        int ok = 0;
+        for (UserDeviceJpaEntity device : devices.findByUid(uid)) {
+            if (sendToToken(device.getToken(), title, body, data)) ok++;
+            else devices.deleteById(device.getToken());
+        }
+        return ok;
+    }
+
+    /** Variante data (ver {@link #sendDataToToken}) a todos los dispositivos del usuario. */
+    @Override
+    public int sendDataToUser(String uid, Map<String, String> data) {
+        int ok = 0;
+        for (UserDeviceJpaEntity device : devices.findByUid(uid)) {
+            if (sendDataToToken(device.getToken(), data)) ok++;
+            else devices.deleteById(device.getToken());
         }
         return ok;
     }
