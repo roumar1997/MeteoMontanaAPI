@@ -22,6 +22,11 @@ spring:
       hibernate:
         format_sql: false
 
+# Radar AEMET: sin key el recolector queda dormido (local/prod hasta activarlo).
+# En Railway staging va como variable de entorno AEMET_API_KEY.
+aemet:
+  api-key: ${AEMET_API_KEY:}
+
 server:
   port: ${PORT:8080}
   error:
