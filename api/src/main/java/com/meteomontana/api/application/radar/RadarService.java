@@ -113,6 +113,7 @@ public class RadarService {
             } catch (IOException e) { /* frame ilegible: ese radar no pinta */ }
         }
         if (!any) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "sin datos en ese ciclo");
+        RadarCumbreRenderer.dilate(canvas);
         try {
             java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream(64 * 1024);
             javax.imageio.ImageIO.write(canvas, "png", bos);

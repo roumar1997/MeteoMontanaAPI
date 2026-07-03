@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RadarCumbreRendererTest {
 
     private static final Set<Integer> CUMBRE_BLUES = Set.of(
-            0xFF5C8FD6, 0xFF3D6FBF, 0xFF274F98);
+            0xFF66A8F5, 0xFF2B6DE3, 0xFF0E3A9C);
 
     @Test
     void repintaSoloAzulesCumbreYFondoTransparente() throws Exception {

@@ -27,10 +27,11 @@ import java.util.List;
 @Component
 public class RadarCumbreRenderer {
 
-    // Azules Cumbre (los del mockup aprobado).
-    private static final int WEAK   = argb(0x5C, 0x8F, 0xD6);
-    private static final int MEDIUM = argb(0x3D, 0x6F, 0xBF);
-    private static final int STRONG = argb(0x27, 0x4F, 0x98);
+    // Azules Cumbre subidos de saturación: a escala país los tonos apagados
+    // del mockup se perdían sobre el mapa topográfico.
+    private static final int WEAK   = argb(0x66, 0xA8, 0xF5);
+    private static final int MEDIUM = argb(0x2B, 0x6D, 0xE3);
+    private static final int STRONG = argb(0x0E, 0x3A, 0x9C);
     private static final int TRANSPARENT = 0;
 
     private static final int PLOT = RadarSites.PLOT_SIZE;
@@ -70,6 +71,34 @@ public class RadarCumbreRenderer {
             }
         }
         return out;
+    }
+
+    /**
+     * Dilatación de 1 px: cada eco contagia a sus vecinos vacíos con su mismo
+     * color. Las motas sueltas pasan a verse como manchas — mucho más legible
+     * a escala país sin inventarse lluvia (medio píxel de radio real).
+     */
+    public static void dilate(java.awt.image.BufferedImage img) {
+        int w = img.getWidth(), h = img.getHeight();
+        int[] src = img.getRGB(0, 0, w, h, null, 0, w);
+        int[] out = src.clone();
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (intensity(src[y * w + x]) > 0) continue;
+                int best = 0, bestColor = 0;
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        int nx = x + dx, ny = y + dy;
+                        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                        int c = src[ny * w + nx];
+                        int inten = intensity(c);
+                        if (inten > best) { best = inten; bestColor = c; }
+                    }
+                }
+                if (best > 0) out[y * w + x] = bestColor;
+            }
+        }
+        img.setRGB(0, 0, w, h, out, 0, w);
     }
 
     /** Prioridad de intensidad para el compuesto (fuerte pisa a débil). */
