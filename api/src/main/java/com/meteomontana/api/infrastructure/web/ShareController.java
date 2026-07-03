@@ -39,13 +39,16 @@ public class ShareController {
     private final SpringDataSchoolBlockRepository blocks;
     private final SchoolRepository schools;
     private final StorageService storage;
+    private final com.meteomontana.api.domain.port.MeetupRepository meetups;
 
     public ShareController(SpringDataSchoolBlockRepository blocks,
                            SchoolRepository schools,
-                           StorageService storage) {
+                           StorageService storage,
+                           com.meteomontana.api.domain.port.MeetupRepository meetups) {
         this.blocks = blocks;
         this.schools = schools;
         this.storage = storage;
+        this.meetups = meetups;
     }
 
     @GetMapping(value = "/s/v/{schoolId}/{lineId}", produces = MediaType.TEXT_HTML_VALUE)
@@ -154,6 +157,22 @@ public class ShareController {
 
     private static String esc(String s) {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace("\"", "&quot;");
+    }
+
+    /** Invitación a una quedada: /s/q/{id}?i={token}. La app la abre directa. */
+    @GetMapping(value = "/s/q/{meetupId}", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> shareMeetup(@PathVariable String meetupId) {
+        var meetup = meetups.findById(meetupId).orElse(null);
+        if (meetup == null) return ResponseEntity.notFound().build();
+        String schoolName = schools.findById(meetup.getSchoolId())
+                .map(School::getName).orElse(meetup.getSchoolId());
+        String title = "Quedada: " + meetup.getName() + " · Cumbre";
+        String days = meetup.getDays() == null ? "" : meetup.getDays().stream()
+                .map(Object::toString).reduce((a, b) -> a + ", " + b).orElse("");
+        String desc = "Te han invitado a escalar en " + schoolName
+                + (days.isEmpty() ? "" : " (" + days + ")")
+                + ". Toca para unirte desde Cumbre.";
+        return ResponseEntity.ok(landing(title, desc, "/s/q/" + meetupId, null));
     }
 
     // ── Ficheros de verificación de App Links ──────────────────────────────
