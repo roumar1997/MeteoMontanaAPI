@@ -39,7 +39,7 @@ server:
 # y Open-Meteo empezó a cortar conexiones desde la IP de Railway).
 spring.cache:
   type: caffeine
-  cache-names: forecast, today-scores, range-scores, schools-catalog, geocode
+  cache-names: forecast, today-scores, range-scores, schools-catalog, geocode, radar-png
   caffeine:
     spec: maximumSize=500,expireAfterWrite=90m
 
