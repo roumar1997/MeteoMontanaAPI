@@ -62,7 +62,7 @@ public class AemetRadarClient {
                     .retrieve()
                     .body(Map.class);
             if (meta == null || !(meta.get("datos") instanceof String datosUrl)) {
-                log.debug("AEMET sin dato en {}: {}", url, meta);
+                log.info("AEMET sin dato en {}: {}", url, meta);
                 return Optional.empty();
             }
             // Paso 2: el GIF real (la URL temporal no requiere key).
@@ -70,9 +70,9 @@ public class AemetRadarClient {
             if (image == null || image.length < 100) return Optional.empty();
             return Optional.of(image);
         } catch (Exception e) {
-            // 404 = "petición sin datos", 429 = rate limit: en ambos casos toca esperar
-            // al siguiente ciclo. No es un fallo nuestro; log en debug para no ensuciar.
-            log.debug("AEMET no disponible ({}): {}", url, e.getMessage());
+            // 404 = "sin datos", 429 = rate limit. En INFO: tragarlo en debug
+            // nos dejó ciegos cuando prod y staging empezaron a pisarse la key.
+            log.info("AEMET no disponible ({}): {}", url, e.getMessage());
             return Optional.empty();
         }
     }

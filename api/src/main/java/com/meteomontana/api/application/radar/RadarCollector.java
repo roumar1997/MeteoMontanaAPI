@@ -55,8 +55,10 @@ public class RadarCollector {
         this.repo = repo;
     }
 
-    /** Cada 10 min, alineado al reloj (00, 10, 20...), 1 min de gracia para AEMET. */
-    @Scheduled(cron = "0 1/10 * * * *", zone = "Europe/Madrid")
+    /** Cada 10 min. Configurable por entorno (RADAR_CRON): producción y
+     *  staging comparten key de AEMET y NO deben disparar en el mismo minuto
+     *  (se pisan el rate limit entre ellos). Prod: "0 6/10 * * * *". */
+    @Scheduled(cron = "${radar.cron:0 1/10 * * * *}", zone = "Europe/Madrid")
     public void collect() {
         if (!client.isConfigured()) {
             return; // sin AEMET_API_KEY (p.ej. local) el recolector queda dormido
