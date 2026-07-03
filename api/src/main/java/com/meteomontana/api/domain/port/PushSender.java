@@ -17,4 +17,10 @@ public interface PushSender {
 
     /** Broadcast simple a varios tokens; devuelve cuántos se enviaron. */
     int sendToTokens(Iterable<String> tokens, String title, String body, Map<String, String> data);
+
+    /** Push a TODOS los dispositivos del usuario (tabla user_devices). Devuelve cuántos llegaron. */
+    int sendToUser(String uid, String title, String body, Map<String, String> data);
+
+    /** Push solo-data a todos los dispositivos del usuario. Devuelve cuántos llegaron. */
+    int sendDataToUser(String uid, Map<String, String> data);
 }

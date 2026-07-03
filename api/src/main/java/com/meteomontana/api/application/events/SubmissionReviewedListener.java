@@ -29,8 +29,8 @@ public class SubmissionReviewedListener {
     @EventListener
     public void onSubmissionReviewed(SubmissionReviewedEvent event) {
         User submitter = userRepository.findByUid(event.submitterUid()).orElse(null);
-        if (submitter == null || submitter.getFcmToken() == null) {
-            log.debug("No FCM token for submitter {}, skipping push", event.submitterUid());
+        if (submitter == null) {
+            log.debug("Submitter {} not found, skipping push", event.submitterUid());
             return;
         }
 
@@ -47,8 +47,8 @@ public class SubmissionReviewedListener {
             body = "Tu propuesta \"" + event.submissionName() + "\" ha sido rechazada." + reason;
         }
 
-        fcmService.sendToToken(
-                submitter.getFcmToken(), title, body,
+        fcmService.sendToUser(
+                submitter.getUid(), title, body,
                 Map.of("type", "submission_reviewed", "submissionId", event.submissionId())
         );
     }

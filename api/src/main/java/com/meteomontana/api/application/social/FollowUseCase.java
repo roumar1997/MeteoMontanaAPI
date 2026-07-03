@@ -69,14 +69,12 @@ public class FollowUseCase {
                     myName + " te ha empezado a seguir",
                     "user", followerUid
             );
-            if (target.getFcmToken() != null) {
-                fcmService.sendDataToToken(
-                        target.getFcmToken(),
-                        pushData("user", followerUid,
-                                myName + " te sigue ahora",
-                                "Pulsa para ver su perfil", myAvatar)
-                );
-            }
+            fcmService.sendDataToUser(
+                    followedUid,
+                    pushData("user", followerUid,
+                            myName + " te sigue ahora",
+                            "Pulsa para ver su perfil", myAvatar)
+            );
         } else {
             // Perfil privado → solicitud pendiente.
             notificationService.create(
@@ -85,14 +83,12 @@ public class FollowUseCase {
                     myName + " quiere seguirte",
                     "follow_request", followerUid
             );
-            if (target.getFcmToken() != null) {
-                fcmService.sendDataToToken(
-                        target.getFcmToken(),
-                        pushData("follow_request", followerUid,
-                                myName + " quiere seguirte",
-                                "Pulsa para aceptar o rechazar", myAvatar)
-                );
-            }
+            fcmService.sendDataToUser(
+                    followedUid,
+                    pushData("follow_request", followerUid,
+                            myName + " quiere seguirte",
+                            "Pulsa para aceptar o rechazar", myAvatar)
+            );
         }
     }
 
@@ -148,14 +144,12 @@ public class FollowUseCase {
                 myName + " ha aceptado tu solicitud",
                 "user", myUid
         );
-        if (requester != null && requester.getFcmToken() != null) {
-            fcmService.sendDataToToken(
-                    requester.getFcmToken(),
-                    pushData("user", myUid,
-                            myName + " ha aceptado tu solicitud",
-                            "Ya puedes ver su perfil", avatarUrlOf(me))
-            );
-        }
+        fcmService.sendDataToUser(
+                requesterUid,
+                pushData("user", myUid,
+                        myName + " ha aceptado tu solicitud",
+                        "Ya puedes ver su perfil", avatarUrlOf(me))
+        );
     }
 
     @Transactional

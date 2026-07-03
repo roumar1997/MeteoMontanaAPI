@@ -53,7 +53,7 @@ public class OptimalWindowAlertUseCase {
         if (today.equals(pref.getOptimalLastSent())) return; // ya avisado hoy
 
         var user = userRepository.findByUid(pref.getUid()).orElse(null);
-        if (user == null || user.getFcmToken() == null || user.getFcmToken().isBlank()) return;
+        if (user == null) return;
 
         List<String> favorites = favoriteRepository.findSchoolIdsByUid(pref.getUid());
         if (favorites.isEmpty()) return;
@@ -80,11 +80,11 @@ public class OptimalWindowAlertUseCase {
                 + ", por encima de tu umbral (" + pref.getOptimalThreshold() + "). ¡Aprovecha!";
 
         // Data-only (como la alerta de tiempo): el tap abre el detalle de la escuela.
-        boolean ok = fcmService.sendDataToToken(user.getFcmToken(), Map.of(
+        boolean ok = fcmService.sendDataToUser(user.getUid(), Map.of(
                 "title", title,
                 "body", body,
                 "targetType", "school",
-                "targetId", best.schoolId()));
+                "targetId", best.schoolId())) > 0;
         if (ok) {
             pref.setOptimalLastSent(today);
             alertRepository.save(pref);

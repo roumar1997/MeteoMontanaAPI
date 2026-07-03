@@ -146,12 +146,8 @@ public class CreateMeetupUseCase {
 
                 notificationService.create(alertUid, "MEETUP_NEW", title, body, "meetup", meetup.getId());
 
-                userRepository.findByUid(alertUid).ifPresent(u -> {
-                    if (u.getFcmToken() != null) {
-                        pushSender.sendToToken(u.getFcmToken(), title, body,
-                                Map.of("targetType", "meetup", "targetId", meetup.getId()));
-                    }
-                });
+                pushSender.sendToUser(alertUid, title, body,
+                        Map.of("targetType", "meetup", "targetId", meetup.getId()));
             }
         } catch (Exception ignored) {
             // Las alertas no deben bloquear la creación
