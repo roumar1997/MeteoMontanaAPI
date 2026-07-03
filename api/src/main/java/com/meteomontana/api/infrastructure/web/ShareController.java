@@ -48,8 +48,8 @@ public class ShareController {
         this.storage = storage;
     }
 
-    @GetMapping(value = "/s/v/{lineId}", produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> shareLine(@PathVariable String lineId) {
+    @GetMapping(value = "/s/v/{schoolId}/{lineId}", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> shareLine(@PathVariable String schoolId, @PathVariable String lineId) {
         SchoolBlockJpaEntity block = blocks.findByLineId(lineId).orElse(null);
         if (block == null) return ResponseEntity.notFound().build();
         var line = block.getLines().stream()
@@ -66,12 +66,12 @@ public class ShareController {
         String desc = (isBoulder ? "Bloque" : "Vía") + " en " + schoolName
                 + ". Toca para verla con la línea dibujada en Cumbre.";
         String photo = line.getPhotoPath() != null ? line.getPhotoPath() : block.getPhotoPath();
-        String img = photo != null ? "/s/v/" + lineId + "/photo" : null;
-        return ResponseEntity.ok(landing(title, desc, "/s/v/" + lineId, img));
+        String img = photo != null ? "/s/v/" + schoolId + "/" + lineId + "/photo" : null;
+        return ResponseEntity.ok(landing(title, desc, "/s/v/" + schoolId + "/" + lineId, img));
     }
 
-    @GetMapping(value = "/s/v/{lineId}/photo")
-    public RedirectView sharePhoto(@PathVariable String lineId) {
+    @GetMapping(value = "/s/v/{schoolId}/{lineId}/photo")
+    public RedirectView sharePhoto(@PathVariable String schoolId, @PathVariable String lineId) {
         SchoolBlockJpaEntity block = blocks.findByLineId(lineId).orElse(null);
         String photo = null;
         if (block != null) {
