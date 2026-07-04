@@ -16,6 +16,9 @@ public interface SpringDataUserRepository
     @Query("select count(u) from UserJpaEntity u where u.isAdmin = true")
     long countAdmins();
 
+    /** Admins (para avisarles por push de denuncias/propuestas nuevas). */
+    List<UserJpaEntity> findByIsAdminTrue();
+
     /** Búsqueda acotada en BD (LIKE + LIMIT 100): evita cargar toda la tabla en
      *  memoria en el endpoint público de búsqueda (riesgo de DoS). */
     List<UserJpaEntity> findTop100ByUsernameContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(

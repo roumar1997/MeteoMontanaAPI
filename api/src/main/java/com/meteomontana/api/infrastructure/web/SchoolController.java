@@ -43,6 +43,7 @@ public class SchoolController {
     private final GetForecastUseCase getForecastUseCase;
     private final CreateNoteUseCase createNoteUseCase;
     private final NoteVotesService noteVotesService;
+    private final com.meteomontana.api.application.moderation.ContentModerationService moderationService;
     private final SearchSchoolsUseCase searchSchoolsUseCase;
     private final GetMonthlyStatsUseCase getMonthlyStatsUseCase;
     private final ObjectMapper objectMapper;
@@ -53,6 +54,7 @@ public class SchoolController {
                             GetForecastUseCase getForecastUseCase,
                             CreateNoteUseCase createNoteUseCase,
                             NoteVotesService noteVotesService,
+                            com.meteomontana.api.application.moderation.ContentModerationService moderationService,
                             SearchSchoolsUseCase searchSchoolsUseCase,
                             GetMonthlyStatsUseCase getMonthlyStatsUseCase,
                             ObjectMapper objectMapper) {
@@ -62,6 +64,7 @@ public class SchoolController {
         this.getForecastUseCase      = getForecastUseCase;
         this.createNoteUseCase       = createNoteUseCase;
         this.noteVotesService        = noteVotesService;
+        this.moderationService       = moderationService;
         this.searchSchoolsUseCase    = searchSchoolsUseCase;
         this.getMonthlyStatsUseCase  = getMonthlyStatsUseCase;
         this.objectMapper            = objectMapper;
@@ -122,9 +125,14 @@ public class SchoolController {
             @AuthenticationPrincipal FirebaseUser user) {
         // Ordenadas por utilidad (me gusta − no me gusta) y con el voto del
         // usuario que consulta (0 si es anónimo).
-        return noteVotesService.enrichAndSort(
-                getNotesBySchoolUseCase.execute(id),
-                user != null ? user.uid() : null);
+        var notes = getNotesBySchoolUseCase.execute(id);
+        if (user != null) {
+            var blocked = moderationService.blockedBy(user.uid());
+            if (!blocked.isEmpty()) {
+                notes = notes.stream().filter(n -> !blocked.contains(n.getUid())).toList();
+            }
+        }
+        return noteVotesService.enrichAndSort(notes, user != null ? user.uid() : null);
     }
 
     @GetMapping("/schools/{id}/forecast")
