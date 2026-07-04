@@ -418,6 +418,10 @@ public class ReviewContributionUseCase {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode arr = mapper.readTree(c.getBloquesJson());
             if (!arr.isArray()) return;
+            // Ids de las vías que EXISTÍAN antes de aplicar esta propuesta (para
+            // la reconciliación de borrados de abajo).
+            java.util.Set<String> preexisting = new java.util.HashSet<>();
+            for (var l : block.getLines()) preexisting.add(l.getId());
             int sortOrder = block.getLines().stream()
                     .mapToInt(BlockLineJpaEntity::getSortOrder).max().orElse(-1) + 1;
             // Mapa foto→orden de cara con las caras ya existentes (para que las vías
@@ -466,6 +470,23 @@ public class ReviewContributionUseCase {
                     created.setDescription(descOf(node));
                     block.addLine(created);
                 }
+            }
+            // Reconciliación de BORRADOS (como en muros): si el payload trae al
+            // menos un targetLineId, viene del editor unificado, que manda TODAS
+            // las vías → las existentes que omite se eliminaron a propósito.
+            // (Payloads sin ningún targetLineId = flujo antiguo "solo añadir" →
+            // no se borra nada.)
+            java.util.Set<String> keptIds = new java.util.HashSet<>();
+            boolean fullEdit = false;
+            for (JsonNode node : arr) {
+                String tId = node.path("targetLineId").isNull() ? null : node.path("targetLineId").asText(null);
+                if (tId != null && !tId.isBlank()) { fullEdit = true; keptIds.add(tId); }
+            }
+            if (fullEdit) {
+                // Se borran las que existían antes y el payload omite; las
+                // creadas en este mismo pase (sin targetLineId) se conservan.
+                block.getLines().removeIf(l ->
+                        preexisting.contains(l.getId()) && !keptIds.contains(l.getId()));
             }
             refreshCover(block);
             blockRepo.save(block);
