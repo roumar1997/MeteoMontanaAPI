@@ -32,15 +32,18 @@ public class ChatPushController {
     private final FollowRepository followRepository;
     private final ChatRepository chatRepository;
     private final FcmService fcmService;
+    private final com.meteomontana.api.application.moderation.ContentModerationService moderationService;
 
     public ChatPushController(UserRepository userRepository,
                               FollowRepository followRepository,
                               ChatRepository chatRepository,
-                              FcmService fcmService) {
+                              FcmService fcmService,
+                              com.meteomontana.api.application.moderation.ContentModerationService moderationService) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.chatRepository = chatRepository;
         this.fcmService = fcmService;
+        this.moderationService = moderationService;
     }
 
     public record NotifyRequest(String toUid, String preview) {}
@@ -139,6 +142,10 @@ public class ChatPushController {
         User to = userRepository.findByUid(req.toUid()).orElse(null);
         if (to == null) return ResponseEntity.notFound().build();
 
+        // Bloqueo en cualquier sentido → no se puede abrir chat.
+        if (moderationService.eitherBlocked(me.uid(), req.toUid())) {
+            return ResponseEntity.status(403).build();
+        }
         boolean allowed = to.isPublic()
                 || followRepository.isFollowing(me.uid(), req.toUid())
                 || followRepository.isFollowing(req.toUid(), me.uid())
@@ -172,6 +179,9 @@ public class ChatPushController {
         //    seguir hablando aunque no haya follow y el receptor sea privado).
         // Si no se cumple ninguna, se ignora silenciosamente (no se filtra si el
         // otro existe o tiene token). El mensaje en sí vive en Firestore aparte.
+        if (moderationService.eitherBlocked(sender.uid(), req.toUid())) {
+            return ResponseEntity.ok().build();   // bloqueado: se ignora en silencio
+        }
         boolean allowed = to.isPublic()
                 || followRepository.isFollowing(sender.uid(), req.toUid())
                 || followRepository.isFollowing(req.toUid(), sender.uid())

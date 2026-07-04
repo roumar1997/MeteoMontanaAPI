@@ -32,20 +32,29 @@ public class LineCommentService {
     private final SpringDataLineCommentRepository comments;
     private final SpringDataLineCommentVoteRepository votes;
     private final UserRepository users;
+    private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository blocks;
 
     public LineCommentService(SpringDataLineCommentRepository comments,
                               SpringDataLineCommentVoteRepository votes,
-                              UserRepository users) {
+                              UserRepository users,
+                              com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository blocks) {
         this.comments = comments;
         this.votes = votes;
         this.users = users;
+        this.blocks = blocks;
     }
 
     /** Comentarios del bloque (y opcionalmente de UNA vía), ordenados por utilidad. */
     @Transactional(readOnly = true)
     public List<CommentView> list(String blockId, String lineId, String uid) {
+        // El bloqueador no ve el contenido de sus bloqueados.
+        java.util.Set<String> blocked = uid == null ? java.util.Set.of()
+                : blocks.findByBlockerUid(uid).stream()
+                    .map(com.meteomontana.api.infrastructure.persistence.jpa.UserBlockJpaEntity::getBlockedUid)
+                    .collect(Collectors.toSet());
         List<LineCommentJpaEntity> all = comments.findByBlockId(blockId).stream()
                 .filter(c -> lineId == null || lineId.equals(c.getLineId()))
+                .filter(c -> !blocked.contains(c.getUid()))
                 .toList();
         Map<String, Integer> mine = (uid == null || all.isEmpty()) ? Map.of()
                 : votes.findByUidAndCommentIdIn(uid, all.stream().map(LineCommentJpaEntity::getId).toList())
