@@ -188,7 +188,8 @@ public class ShareController {
                     "namespace": "android_app",
                     "package_name": "com.meteomontana.android",
                     "sha256_cert_fingerprints": [
-                      "ED:96:47:8A:9D:56:1B:38:50:87:36:9C:D1:84:3B:73:06:1D:0E:58:6E:B0:A8:9A:3B:E2:65:32:D6:CA:07:85"
+                      "ED:96:47:8A:9D:56:1B:38:50:87:36:9C:D1:84:3B:73:06:1D:0E:58:6E:B0:A8:9A:3B:E2:65:32:D6:CA:07:85",
+                      "4B:50:EB:61:CA:5D:22:DE:78:36:0A:EC:47:F9:A7:74:71:6A:B9:48:D8:36:79:DC:E0:A5:43:97:67:B5:D4:BF"
                     ]
                   }
                 }]
