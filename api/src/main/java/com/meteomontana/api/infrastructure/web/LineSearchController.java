@@ -26,7 +26,8 @@ public class LineSearchController {
 
     public record LineHit(String schoolId, String schoolName,
                           String blockId, String blockName,
-                          String lineId, String lineName, String grade) {}
+                          String lineId, String lineName, String grade,
+                          String sectorName) {}
 
     private final EntityManager em;
     private final SchoolRepository schools;
@@ -59,7 +60,7 @@ public class LineSearchController {
             String sName = schoolNames.computeIfAbsent(b.getSchoolId(),
                     id -> schools.findById(id).map(s -> s.getName()).orElse(""));
             out.add(new LineHit(b.getSchoolId(), sName, b.getId(), b.getName(),
-                    l.getId(), l.getName(), l.getGrade()));
+                    l.getId(), l.getName(), l.getGrade(), sectorNameOf(b)));
         }
 
         // Piedras/muros cuyo nombre casa (solo BLOCK con nombre no numérico:
@@ -75,8 +76,16 @@ public class LineSearchController {
             String sName = schoolNames.computeIfAbsent(b.getSchoolId(),
                     id -> schools.findById(id).map(s -> s.getName()).orElse(""));
             out.add(new LineHit(b.getSchoolId(), sName, b.getId(), b.getName(),
-                    null, null, null));
+                    null, null, null, sectorNameOf(b)));
         }
         return out.size() > 20 ? out.subList(0, 20) : out;
+    }
+
+    /** Nombre del sector (ZONE) de la piedra, si lo tiene. */
+    private String sectorNameOf(SchoolBlockJpaEntity b) {
+        String sid = b.getSectorBlockId();
+        if (sid == null || sid.isBlank()) return null;
+        SchoolBlockJpaEntity sector = em.find(SchoolBlockJpaEntity.class, sid);
+        return sector != null ? sector.getName() : null;
     }
 }
