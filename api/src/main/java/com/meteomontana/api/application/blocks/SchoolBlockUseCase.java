@@ -20,7 +20,8 @@ public class SchoolBlockUseCase {
     public record CreateBlockLineRequest(
             String name, String grade, String startType, String linePath,
             String photoPath,   // cara (foto) sobre la que está dibujada esta vía (opcional)
-            Integer faceOrder   // orden de la cara (opcional, default 0)
+            Integer faceOrder,  // orden de la cara (opcional, default 0)
+            String description  // descripción/beta opcional de la vía
     ) {}
 
     public record CreateBlockRequest(
@@ -56,12 +57,13 @@ public class SchoolBlockUseCase {
             String id, String name, String grade, String startType,
             String linePath, int sortOrder, String photoPath, int faceOrder,
             Float avgStars,     // media de valoraciones (null si nadie ha valorado)
-            Integer myStars     // valoración del usuario actual (null si no ha valorado)
+            Integer myStars,    // valoración del usuario actual (null si no ha valorado)
+            String description  // beta/detalle opcional de la vía
     ) {
         // Constructor de compatibilidad para código existente sin ratings
         public BlockLineDto(String id, String name, String grade, String startType,
                             String linePath, int sortOrder, String photoPath, int faceOrder) {
-            this(id, name, grade, startType, linePath, sortOrder, photoPath, faceOrder, null, null);
+            this(id, name, grade, startType, linePath, sortOrder, photoPath, faceOrder, null, null, null);
         }
     }
 
@@ -119,17 +121,20 @@ public class SchoolBlockUseCase {
         }
 
         List<BlockLine> lines = req.lines() == null ? List.of() :
-                req.lines().stream().map(l -> new BlockLine(
-                        UUID.randomUUID().toString(),
-                        "",
-                        l.name(),
-                        l.grade(),
-                        l.startType() != null ? BlockLine.StartType.valueOf(l.startType()) : null,
-                        l.linePath(),
-                        req.lines().indexOf(l),
-                        l.photoPath() != null ? l.photoPath() : req.photoPath(),
-                        l.faceOrder() != null ? l.faceOrder() : 0
-                )).toList();
+                req.lines().stream().map(l -> {
+                    BlockLine bl = new BlockLine(
+                            UUID.randomUUID().toString(),
+                            "",
+                            l.name(),
+                            l.grade(),
+                            l.startType() != null ? BlockLine.StartType.valueOf(l.startType()) : null,
+                            l.linePath(),
+                            req.lines().indexOf(l),
+                            l.photoPath() != null ? l.photoPath() : req.photoPath(),
+                            l.faceOrder() != null ? l.faceOrder() : 0);
+                    bl.setDescription(trimDesc(l.description()));
+                    return bl;
+                }).toList();
 
         SchoolBlock.Discipline discipline = type == SchoolBlock.Type.BLOCK
                 ? parseDiscipline(req.discipline()) : SchoolBlock.Discipline.BOULDER;
@@ -148,6 +153,13 @@ public class SchoolBlockUseCase {
                 parseDirection(req.direction())
         );
         return toDto(blockRepository.save(block));
+    }
+
+    /** Normaliza la descripción de vía: null si vacía, recortada a 500. */
+    private static String trimDesc(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String t = raw.trim();
+        return t.length() > 500 ? t.substring(0, 500) : t;
     }
 
     /** Parsea la modalidad recibida del cliente; default BOULDER si null/desconocida. */
@@ -196,17 +208,20 @@ public class SchoolBlockUseCase {
 
         SchoolBlock.Type type = req.type() != null ? SchoolBlock.Type.valueOf(req.type()) : current.getType();
         List<BlockLine> lines = req.lines() == null ? current.getLines() :
-                req.lines().stream().map(l -> new BlockLine(
-                        UUID.randomUUID().toString(),
-                        blockId,
-                        l.name(),
-                        l.grade(),
-                        l.startType() != null ? BlockLine.StartType.valueOf(l.startType()) : null,
-                        l.linePath(),
-                        req.lines().indexOf(l),
-                        l.photoPath() != null ? l.photoPath() : req.photoPath(),
-                        l.faceOrder() != null ? l.faceOrder() : 0
-                )).toList();
+                req.lines().stream().map(l -> {
+                    BlockLine bl = new BlockLine(
+                            UUID.randomUUID().toString(),
+                            blockId,
+                            l.name(),
+                            l.grade(),
+                            l.startType() != null ? BlockLine.StartType.valueOf(l.startType()) : null,
+                            l.linePath(),
+                            req.lines().indexOf(l),
+                            l.photoPath() != null ? l.photoPath() : req.photoPath(),
+                            l.faceOrder() != null ? l.faceOrder() : 0);
+                    bl.setDescription(trimDesc(l.description()));
+                    return bl;
+                }).toList();
 
         SchoolBlock.Discipline discipline = req.discipline() != null
                 ? parseDiscipline(req.discipline()) : current.getDiscipline();
@@ -266,7 +281,8 @@ public class SchoolBlockUseCase {
                     l.getPhotoPath() != null ? l.getPhotoPath() : b.getPhotoPath(),
                     l.getFaceOrder(),
                     avg == null ? null : avg.floatValue(),
-                    my
+                    my,
+                    l.getDescription()
             );
         }).toList();
         return new BlockDto(
