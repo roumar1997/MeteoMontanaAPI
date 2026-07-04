@@ -42,6 +42,9 @@ public class BlockLineJpaEntity {
     @Column(name = "face_order", nullable = false)
     private int faceOrder;
 
+    @Column(length = 500)
+    private String description;
+
     protected BlockLineJpaEntity() {}
 
     public BlockLineJpaEntity(String id, String name, String grade,
@@ -74,4 +77,6 @@ public class BlockLineJpaEntity {
     public void setPhotoPath(String p){ this.photoPath = p; }
     public int getFaceOrder()         { return faceOrder; }
     public void setFaceOrder(int f)   { this.faceOrder = f; }
+    public String getDescription()    { return description; }
+    public void setDescription(String d) { this.description = d; }
 }

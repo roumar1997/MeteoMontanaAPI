@@ -331,6 +331,7 @@ public class ReviewContributionUseCase {
                         facePhoto,
                         faceOrder
                 );
+                line.setDescription(descOf(node));
                 block.addLine(line);
             }
         } catch (Exception e) {
@@ -451,16 +452,19 @@ public class ReviewContributionUseCase {
                                 line.setStartType(startType);
                                 if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
                                 if (facePhoto != null && !facePhoto.isBlank()) line.setPhotoPath(facePhoto);
+                                if (descOf(node) != null) line.setDescription(descOf(node));
                             });
                 } else {
                     String key = facePhoto == null ? "" : facePhoto;
                     Integer fo = faceOrders.get(key);
                     if (fo == null) { fo = nextFaceOrder[0]++; faceOrders.put(key, fo); }
-                    block.addLine(new BlockLineJpaEntity(
+                    BlockLineJpaEntity created = new BlockLineJpaEntity(
                             UUID.randomUUID().toString(),
                             name.isEmpty() ? String.valueOf(sortOrder + 1) : name,
                             grade, startType, linePath, sortOrder++,
-                            facePhoto, fo));
+                            facePhoto, fo);
+                    created.setDescription(descOf(node));
+                    block.addLine(created);
                 }
             }
             refreshCover(block);
@@ -527,11 +531,14 @@ public class ReviewContributionUseCase {
                     line.setPhotoPath(facePhoto);
                     line.setSortOrder(sortOrder++);
                     line.setFaceOrder(faceOrder);
+                    if (descOf(node) != null) line.setDescription(descOf(node));
                 } else {
-                    toAdd.add(new BlockLineJpaEntity(
+                    BlockLineJpaEntity created = new BlockLineJpaEntity(
                             UUID.randomUUID().toString(),
                             name.isEmpty() ? String.valueOf(sortOrder + 1) : name,
-                            grade, startType, linePath, sortOrder++, facePhoto, faceOrder));
+                            grade, startType, linePath, sortOrder++, facePhoto, faceOrder);
+                    created.setDescription(descOf(node));
+                    toAdd.add(created);
                 }
             }
             // Borra las vías que la propuesta omite (orphanRemoval); añade las nuevas.
@@ -572,9 +579,19 @@ public class ReviewContributionUseCase {
                         name.isEmpty() ? String.valueOf(sortOrder + 1) : name,
                         grade, startType, linePath, sortOrder++
                 );
+                line.setDescription(descOf(node));
                 block.addLine(line);
             }
         } catch (Exception ignored) {}
+    }
+
+    /** Descripción opcional de la vía en el payload (null si vacía). */
+    private static String descOf(JsonNode node) {
+        JsonNode d = node.path("description");
+        if (d.isMissingNode() || d.isNull()) return null;
+        String t = d.asText("").trim();
+        if (t.isEmpty()) return null;
+        return t.length() > 500 ? t.substring(0, 500) : t;
     }
 
     private static BlockLine.StartType mapStartType(String raw) {

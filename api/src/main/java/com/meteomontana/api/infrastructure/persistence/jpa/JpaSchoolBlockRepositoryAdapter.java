@@ -30,11 +30,13 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
         e.setDirection(b.getDirection());
         // Líneas
         b.getLines().forEach(line -> {
-            e.addLine(new BlockLineJpaEntity(
+            BlockLineJpaEntity le = new BlockLineJpaEntity(
                     line.getId(), line.getName(), line.getGrade(),
                     line.getStartType(), line.getLinePath(), line.getSortOrder(),
                     line.getPhotoPath(), line.getFaceOrder()
-            ));
+            );
+            le.setDescription(line.getDescription());
+            e.addLine(le);
         });
         return toDomain(jpaRepo.save(e));
     }
@@ -54,11 +56,14 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
     public void deleteById(String id) { jpaRepo.deleteById(id); }
 
     private SchoolBlock toDomain(SchoolBlockJpaEntity e) {
-        List<BlockLine> lines = e.getLines().stream().map(l -> new BlockLine(
-                l.getId(), e.getId(), l.getName(), l.getGrade(),
-                l.getStartType(), l.getLinePath(), l.getSortOrder(),
-                l.getPhotoPath(), l.getFaceOrder()
-        )).toList();
+        List<BlockLine> lines = e.getLines().stream().map(l -> {
+            BlockLine bl = new BlockLine(
+                    l.getId(), e.getId(), l.getName(), l.getGrade(),
+                    l.getStartType(), l.getLinePath(), l.getSortOrder(),
+                    l.getPhotoPath(), l.getFaceOrder());
+            bl.setDescription(l.getDescription());
+            return bl;
+        }).toList();
         return new SchoolBlock(
                 e.getId(), e.getSchoolId(), e.getType(), e.getDiscipline(), e.getName(),
                 e.getLat(), e.getLon(), e.getPhotoPath(), e.getDescription(),

@@ -12,6 +12,9 @@ public class BlockLine {
     private final int sortOrder;
     private final String photoPath;    // foto (cara) sobre la que está dibujada esta vía
     private final int faceOrder;       // orden de su cara dentro de la piedra
+    // Beta/detalle opcional. Mutable (setter) para no tocar los 8 constructores
+    // repartidos por el código; se rellena solo donde aplica.
+    private String description;
 
     public BlockLine(String id, String blockId, String name, String grade,
                      StartType startType, String linePath, int sortOrder) {
@@ -36,4 +39,6 @@ public class BlockLine {
     public int getSortOrder()       { return sortOrder; }
     public String getPhotoPath()    { return photoPath; }
     public int getFaceOrder()       { return faceOrder; }
+    public String getDescription()  { return description; }
+    public void setDescription(String d) { this.description = d; }
 }
