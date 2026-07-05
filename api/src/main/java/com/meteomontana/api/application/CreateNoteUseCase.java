@@ -19,16 +19,20 @@ public class CreateNoteUseCase {
     private final NoteRepository noteRepository;
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
+    private final com.meteomontana.api.application.moderation.UserModerationService moderation;
 
     public CreateNoteUseCase(NoteRepository noteRepository,
                              SchoolRepository schoolRepository,
-                             UserRepository userRepository) {
+                             UserRepository userRepository,
+                             com.meteomontana.api.application.moderation.UserModerationService moderation) {
         this.noteRepository = noteRepository;
         this.schoolRepository = schoolRepository;
         this.userRepository = userRepository;
+        this.moderation = moderation;
     }
 
     public Note execute(String uid, String schoolId, String text, String photoUrl) {
+        moderation.ensureCanPost(uid);   // baneado/suspendido → 403
         schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new SchoolNotFoundException(schoolId));
 
