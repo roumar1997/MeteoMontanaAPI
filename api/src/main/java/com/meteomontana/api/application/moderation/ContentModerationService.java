@@ -99,6 +99,21 @@ public class ContentModerationService {
 
         ContentReportJpaEntity saved = reports.save(new ContentReportJpaEntity(
                 UUID.randomUUID().toString(), reporterUid, type, targetId, r, snapshot, authorUid));
+
+        // Si quien denuncia es ADMIN, es moderación directa: el contenido se
+        // retira YA (no va a la cola de revisión) y queda como auditoría.
+        boolean isAdmin = userJpa.findById(reporterUid)
+                .map(u -> u.isAdmin()).orElse(false);
+        if (isAdmin) {
+            switch (type) {
+                case "COMMENT" -> comments.findById(targetId).ifPresent(comments::delete);
+                case "NOTE" -> notes.deleteById(targetId);
+                default -> { /* USER: sin acción automática (el bloqueo ya es opción del diálogo) */ }
+            }
+            saved.resolve("USER".equals(type) ? "IGNORED" : "REMOVED");
+            return toView(reports.save(saved));
+        }
+
         notifyAdmins(type, snapshot);
         return toView(saved);
     }
