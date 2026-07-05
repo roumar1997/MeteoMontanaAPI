@@ -40,15 +40,35 @@ public class ShareController {
     private final SchoolRepository schools;
     private final StorageService storage;
     private final com.meteomontana.api.domain.port.MeetupRepository meetups;
+    private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository users;
 
     public ShareController(SpringDataSchoolBlockRepository blocks,
                            SchoolRepository schools,
                            StorageService storage,
-                           com.meteomontana.api.domain.port.MeetupRepository meetups) {
+                           com.meteomontana.api.domain.port.MeetupRepository meetups,
+                           com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository users) {
         this.blocks = blocks;
         this.schools = schools;
         this.storage = storage;
         this.meetups = meetups;
+        this.users = users;
+    }
+
+    /** Landing de un perfil: /s/u/{username o uid}. La app lo abre directo. */
+    @GetMapping(value = "/s/u/{handle}", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> shareUser(@PathVariable String handle) {
+        String h = handle.startsWith("@") ? handle.substring(1) : handle;
+        var user = users.findByUsernameIgnoreCase(h).or(() -> users.findById(h)).orElse(null);
+        if (user == null) return ResponseEntity.notFound().build();
+        String name = user.getUsername() != null ? "@" + user.getUsername()
+                : (user.getDisplayName() != null ? user.getDisplayName() : "Un escalador");
+        String title = name + " · Cumbre";
+        // Solo datos ya públicos en la app; si el perfil es privado, texto genérico.
+        String desc = user.isPublic() && user.getBio() != null && !user.getBio().isBlank()
+                ? user.getBio()
+                : "Mira su perfil, sus bloques y sus vías en Cumbre.";
+        return ResponseEntity.ok(landing(title, desc,
+                "/s/u/" + (user.getUsername() != null ? user.getUsername() : user.getUid()), null));
     }
 
     @GetMapping(value = "/s/v/{schoolId}/{lineId}", produces = MediaType.TEXT_HTML_VALUE)
