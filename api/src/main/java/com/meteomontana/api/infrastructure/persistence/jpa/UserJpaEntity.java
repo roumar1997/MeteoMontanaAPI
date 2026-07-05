@@ -48,6 +48,16 @@ public class UserJpaEntity {
     @Column(name = "gear_json", length = 512)
     private String gearJson;
 
+    // ── Moderación ──────────────────────────────────────────────────────
+    @Column(name = "banned", nullable = false)
+    private boolean banned;
+
+    @Column(name = "suspended_until")
+    private LocalDateTime suspendedUntil;
+
+    @Column(name = "warnings", nullable = false)
+    private int warnings;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -100,4 +110,11 @@ public class UserJpaEntity {
     public String getGearJson()        { return gearJson; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
     public LocalDateTime getUpdatedAt(){ return updatedAt; }
+
+    public boolean isBanned()                { return banned; }
+    public void setBanned(boolean b)         { this.banned = b; }
+    public LocalDateTime getSuspendedUntil() { return suspendedUntil; }
+    public void setSuspendedUntil(LocalDateTime t) { this.suspendedUntil = t; }
+    public int getWarnings()                 { return warnings; }
+    public void setWarnings(int w)           { this.warnings = w; }
 }

@@ -23,7 +23,7 @@ import java.util.Set;
 public class ModerationController {
 
     public record ReportRequest(String targetType, String targetId, String reason) {}
-    public record ResolveRequest(String action) {}
+    public record ResolveRequest(String action, String reason) {}
 
     private final ContentModerationService service;
     private final AdminGuard adminGuard;
@@ -74,6 +74,6 @@ public class ModerationController {
             @PathVariable String id,
             @RequestBody ResolveRequest req) {
         adminGuard.ensureAdmin(user.uid());
-        return service.resolve(id, req.action());
+        return service.resolve(user.uid(), id, req.action(), req.reason());
     }
 }

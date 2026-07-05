@@ -8,4 +8,7 @@ import java.util.List;
 public interface MeetupReportJpaRepository extends JpaRepository<MeetupReportJpaEntity, String> {
     List<MeetupReportJpaEntity> findByStatusOrderByCreatedAtAsc(MeetupReport.Status status);
     boolean existsByReporterUidAndMeetupId(String reporterUid, String meetupId);
+
+    /** Nº de denuncias recibidas por un usuario (como organizador denunciado). */
+    long countByReportedUid(String reportedUid);
 }

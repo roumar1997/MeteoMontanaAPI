@@ -65,6 +65,7 @@ public class MeetupReportJpaEntity {
     }
 
     public String getId()          { return id; }
+    public String getMeetupId()    { return meetupId; }
     public MeetupReport.Status getStatus()   { return status; }
     public String getResolvedBy()  { return resolvedBy; }
     public LocalDateTime getResolvedAt() { return resolvedAt; }

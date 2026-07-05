@@ -19,6 +19,10 @@ public interface SpringDataUserRepository
     /** Admins (para avisarles por push de denuncias/propuestas nuevas). */
     List<UserJpaEntity> findByIsAdminTrue();
 
+    /** ¿Está baneado este uid? (proyección ligera para el filtro de auth). */
+    @Query("select coalesce(u.banned, false) from UserJpaEntity u where u.uid = :uid")
+    Boolean isBanned(String uid);
+
     /** Búsqueda acotada en BD (LIKE + LIMIT 100): evita cargar toda la tabla en
      *  memoria en el endpoint público de búsqueda (riesgo de DoS). */
     List<UserJpaEntity> findTop100ByUsernameContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(

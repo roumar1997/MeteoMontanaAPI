@@ -33,15 +33,18 @@ public class LineCommentService {
     private final SpringDataLineCommentVoteRepository votes;
     private final UserRepository users;
     private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository blocks;
+    private final com.meteomontana.api.application.moderation.UserModerationService moderation;
 
     public LineCommentService(SpringDataLineCommentRepository comments,
                               SpringDataLineCommentVoteRepository votes,
                               UserRepository users,
-                              com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository blocks) {
+                              com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository blocks,
+                              com.meteomontana.api.application.moderation.UserModerationService moderation) {
         this.comments = comments;
         this.votes = votes;
         this.users = users;
         this.blocks = blocks;
+        this.moderation = moderation;
     }
 
     /** Comentarios del bloque (y opcionalmente de UNA vía), ordenados por utilidad. */
@@ -76,6 +79,7 @@ public class LineCommentService {
 
     @Transactional
     public CommentView add(String uid, String blockId, String lineId, String text) {
+        moderation.ensureCanPost(uid);   // baneado/suspendido → 403
         if (text == null || text.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "text is required");
         }

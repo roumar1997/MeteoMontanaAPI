@@ -2,10 +2,12 @@ package com.meteomontana.api.infrastructure.security;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
+import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,6 +30,14 @@ import java.util.List;
 @Component
 public class FirebaseTokenFilter extends OncePerRequestFilter {
 
+    // ObjectProvider = acceso perezoso al repo (evita ciclos en el arranque de
+    // seguridad) para comprobar si el usuario está baneado.
+    private final ObjectProvider<SpringDataUserRepository> users;
+
+    public FirebaseTokenFilter(ObjectProvider<SpringDataUserRepository> users) {
+        this.users = users;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -47,6 +57,17 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
         try {
             // Firebase Admin SDK verifica la firma, expiración y proyecto
             FirebaseToken decoded = FirebaseAuth.getInstance().verifyIdToken(idToken);
+
+            // Usuario BANEADO → cortamos aquí con 403 y un código que la app
+            // reconoce para cerrar sesión. El baneo es reversible (unban).
+            Boolean banned = users.getObject().isBanned(decoded.getUid());
+            if (Boolean.TRUE.equals(banned)) {
+                SecurityContextHolder.clearContext();
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"BANNED\",\"message\":\"Tu cuenta ha sido suspendida por un administrador.\"}");
+                return;
+            }
 
             FirebaseUser user = new FirebaseUser(
                     decoded.getUid(),

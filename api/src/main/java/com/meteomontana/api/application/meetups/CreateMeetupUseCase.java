@@ -32,6 +32,7 @@ public class CreateMeetupUseCase {
     private final NotificationService notificationService;
     private final PushSender pushSender;
     private final MeetupDtoMapper mapper;
+    private final com.meteomontana.api.application.moderation.UserModerationService moderation;
 
     public CreateMeetupUseCase(MeetupRepository meetupRepository,
                                ChatRepository chatRepository,
@@ -41,7 +42,8 @@ public class CreateMeetupUseCase {
                                FollowRepository followRepository,
                                NotificationService notificationService,
                                PushSender pushSender,
-                               MeetupDtoMapper mapper) {
+                               MeetupDtoMapper mapper,
+                               com.meteomontana.api.application.moderation.UserModerationService moderation) {
         this.meetupRepository = meetupRepository;
         this.chatRepository = chatRepository;
         this.schoolRepository = schoolRepository;
@@ -51,10 +53,12 @@ public class CreateMeetupUseCase {
         this.notificationService = notificationService;
         this.pushSender = pushSender;
         this.mapper = mapper;
+        this.moderation = moderation;
     }
 
     @Transactional
     public MeetupDto execute(String creatorUid, CreateMeetupRequest req) {
+        moderation.ensureCanPost(creatorUid);   // baneado/suspendido → 403
         // Validaciones
         if (req.days() == null || req.days().isEmpty())
             throw new IllegalArgumentException("Se necesita al menos un día");
