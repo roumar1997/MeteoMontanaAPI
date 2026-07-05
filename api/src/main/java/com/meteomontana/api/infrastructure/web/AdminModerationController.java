@@ -40,35 +40,43 @@ public class AdminModerationController {
     @PostMapping("/{uid}/warn")
     public UserModerationService.ModerationView warn(
             @AuthenticationPrincipal FirebaseUser user, @PathVariable String uid,
-            @RequestBody(required = false) Map<String, String> body) {
+            @RequestBody(required = false) Map<String, Object> body) {
         adminGuard.ensureAdmin(user.uid());
-        moderation.warn(uid, body != null ? body.get("reason") : null);
+        moderation.warn(user.uid(), uid, reasonOf(body));
         return moderation.summary(uid);
     }
 
     @PostMapping("/{uid}/suspend")
     public UserModerationService.ModerationView suspend(
             @AuthenticationPrincipal FirebaseUser user, @PathVariable String uid,
-            @RequestBody(required = false) Map<String, Integer> body) {
+            @RequestBody(required = false) Map<String, Object> body) {
         adminGuard.ensureAdmin(user.uid());
-        int days = body != null && body.get("days") != null ? body.get("days") : 7;
-        moderation.suspend(uid, days);
+        int days = 7;
+        if (body != null && body.get("days") instanceof Number n) days = n.intValue();
+        moderation.suspend(user.uid(), uid, days, reasonOf(body));
         return moderation.summary(uid);
     }
 
     @PostMapping("/{uid}/ban")
     public UserModerationService.ModerationView ban(
-            @AuthenticationPrincipal FirebaseUser user, @PathVariable String uid) {
+            @AuthenticationPrincipal FirebaseUser user, @PathVariable String uid,
+            @RequestBody(required = false) Map<String, Object> body) {
         adminGuard.ensureAdmin(user.uid());
-        moderation.ban(uid);
+        moderation.ban(user.uid(), uid, reasonOf(body));
         return moderation.summary(uid);
     }
 
     @PostMapping("/{uid}/unban")
     public UserModerationService.ModerationView unban(
-            @AuthenticationPrincipal FirebaseUser user, @PathVariable String uid) {
+            @AuthenticationPrincipal FirebaseUser user, @PathVariable String uid,
+            @RequestBody(required = false) Map<String, Object> body) {
         adminGuard.ensureAdmin(user.uid());
-        moderation.unban(uid);
+        moderation.unban(user.uid(), uid, reasonOf(body));
         return moderation.summary(uid);
+    }
+
+    private static String reasonOf(Map<String, Object> body) {
+        Object r = body == null ? null : body.get("reason");
+        return r == null ? null : r.toString();
     }
 }

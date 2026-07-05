@@ -46,6 +46,7 @@ public class ContentModerationService {
     private final UserRepository users;
     private final SpringDataUserRepository userJpa;
     private final PushSender push;
+    private final UserModerationService userModeration;
 
     public ContentModerationService(SpringDataContentReportRepository reports,
                                     SpringDataUserBlockRepository blocks,
@@ -53,7 +54,8 @@ public class ContentModerationService {
                                     NoteRepository notes,
                                     UserRepository users,
                                     SpringDataUserRepository userJpa,
-                                    PushSender push) {
+                                    PushSender push,
+                                    UserModerationService userModeration) {
         this.reports = reports;
         this.blocks = blocks;
         this.comments = comments;
@@ -61,6 +63,7 @@ public class ContentModerationService {
         this.users = users;
         this.userJpa = userJpa;
         this.push = push;
+        this.userModeration = userModeration;
     }
 
     /** Crea la denuncia (con snapshot del contenido) y avisa a los admins. */
@@ -106,8 +109,14 @@ public class ContentModerationService {
                 .map(u -> u.isAdmin()).orElse(false);
         if (isAdmin) {
             switch (type) {
-                case "COMMENT" -> comments.findById(targetId).ifPresent(comments::delete);
-                case "NOTE" -> notes.deleteById(targetId);
+                case "COMMENT" -> {
+                    comments.findById(targetId).ifPresent(comments::delete);
+                    userModeration.record(reporterUid, authorUid, "DELETE_COMMENT", r, snapshot);
+                }
+                case "NOTE" -> {
+                    notes.deleteById(targetId);
+                    userModeration.record(reporterUid, authorUid, "DELETE_NOTE", r, snapshot);
+                }
                 default -> { /* USER: sin acción automática (el bloqueo ya es opción del diálogo) */ }
             }
             saved.resolve("USER".equals(type) ? "IGNORED" : "REMOVED");
@@ -145,14 +154,22 @@ public class ContentModerationService {
      *  - IGNORE  → la marca revisada sin tocar nada
      */
     @Transactional
-    public ReportView resolve(String reportId, String action) {
+    public ReportView resolve(String adminUid, String reportId, String action, String reason) {
         ContentReportJpaEntity rep = reports.findById(reportId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "denuncia no encontrada"));
         String a = action == null ? "IGNORE" : action.trim().toUpperCase();
         if ("REMOVE".equals(a)) {
+            // Motivo: el que escriba el admin o, en su defecto, el de la denuncia.
+            String why = (reason == null || reason.isBlank()) ? rep.getReason() : reason;
             switch (rep.getTargetType()) {
-                case "COMMENT" -> comments.findById(rep.getTargetId()).ifPresent(comments::delete);
-                case "NOTE" -> notes.deleteById(rep.getTargetId());
+                case "COMMENT" -> {
+                    comments.findById(rep.getTargetId()).ifPresent(comments::delete);
+                    userModeration.record(adminUid, rep.getAuthorUid(), "DELETE_COMMENT", why, rep.getSnapshot());
+                }
+                case "NOTE" -> {
+                    notes.deleteById(rep.getTargetId());
+                    userModeration.record(adminUid, rep.getAuthorUid(), "DELETE_NOTE", why, rep.getSnapshot());
+                }
                 default -> { /* USER: no hay nada que borrar automáticamente */ }
             }
         }
