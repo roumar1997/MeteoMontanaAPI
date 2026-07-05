@@ -93,6 +93,9 @@ public class UserModerationService {
     /** Suspensión temporal: no podrá crear contenido hasta la fecha. */
     @Transactional
     public void suspend(String adminUid, String uid, int days, String reason) {
+        if (uid.equals(adminUid)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes suspenderte a ti mismo.");
+        }
         UserJpaEntity u = require(uid);
         int d = Math.max(1, days);
         u.setSuspendedUntil(LocalDateTime.now().plusDays(d));
@@ -106,6 +109,9 @@ public class UserModerationService {
     /** Baneo de login (reversible). También lo deshabilita en Firebase Auth. */
     @Transactional
     public void ban(String adminUid, String uid, String reason) {
+        if (uid.equals(adminUid)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes banearte a ti mismo.");
+        }
         UserJpaEntity u = require(uid);
         u.setBanned(true);
         users.save(u);
