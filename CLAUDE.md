@@ -688,6 +688,22 @@ consciente).
 
 (Las últimas 5-10 sesiones aproximadamente. Las más antiguas se podan.)
 
+### Sesión 2026-07-07 — Escalado para lanzamiento (EN PROD, merge `29b62a3`)
+
+- **Push asíncrono + en lote** (`sendEachForMulticast`, pool `pushExecutor`,
+  `PushAsyncConfig`): chat 1-a-1/grupo/quedada, follows y aviso de quedada nueva
+  ya no bloquean el hilo de la request → quedadas concurridas escalan a miles.
+  `ChatPushController` pasa a depender del puerto `PushSender` (FcmService es
+  proxy al llevar `@Async`) — lo cazó `contextLoads`.
+- **Subida de fotos** fuera de `@Transactional` (no retiene conexión del pool),
+  `multipart.max-file-size=5MB` (arreglado el 1MB oculto), magic bytes
+  (`ImageValidation`), cliente de Storage reutilizado.
+- Sin migraciones, retrocompatible. Detalle + **ROLLBACK** en `SCALING.md`.
+  Pendiente Rodrigo: `DB_POOL_SIZE=25` en Railway prod + alertas Firebase.
+- Bug reportado (NO tocado aún): en la app iOS, el mapa de Escuelas no ENCOGE el
+  zoom al bajar el radio de distancia — `MapLibreView.swift:311` solo re-encuadra
+  con ids NUEVOS (`ids.subtracting(lastFittedIds)`), y un radio menor es subconjunto.
+
 ### Sesión 2026-06-23 — Open-Meteo blindado (batch + prefetch) + grupos de chat
 
 - **Open-Meteo 429 por pico** (no caída global como en junio-11): cargar scores

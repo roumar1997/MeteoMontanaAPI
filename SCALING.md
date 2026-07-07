@@ -65,3 +65,45 @@
   horizontal; si vas a horizontal, recalcula el pool vs `max_connections`.
 - **Egress de imágenes** (Firebase Storage): muchas descargas de fotos = factura
   Blaze. Coil/caché en cliente lo amortigua.
+
+---
+
+## Cambios de escalado del 2026-07-07 (EN PRODUCCIÓN, commit merge `29b62a3`)
+
+Backend-only, retrocompatible, **sin migraciones**. Las apps ya instaladas se
+benefician sin actualizar. Verificado: `mvnw test` → 31 tests OK (incl.
+`contextLoads` con Postgres real) + `mvnw -DskipTests package` → BUILD SUCCESS.
+
+**Qué se tocó y por qué:**
+1. **Push asíncrono + en lote** — `FcmService` gana `sendDataToUserAsync` /
+   `sendDataToUsersAsync` (en el puerto `PushSender`). Envían con
+   `sendEachForMulticast` (1 llamada a FCM por tanda de 500 tokens en vez de una
+   por dispositivo) en un pool dedicado `pushExecutor` (`PushAsyncConfig`).
+   Usado por chat 1-a-1, chat de grupo/quedada (`ChatPushController`), follows
+   (`FollowUseCase`) y aviso de quedada nueva (`CreateMeetupUseCase`). Antes el
+   fan-out era síncrono y bloqueaba el hilo de la request → cuello en quedadas.
+   - Efecto secundario obligado: `ChatPushController` pasa a depender del puerto
+     `PushSender` (no la clase `FcmService`), porque al llevar `@Async` Spring la
+     expone como proxy de la interfaz.
+2. **Subida de fotos sin retener conexión** — `UploadSchoolPhotoUseCase` y
+   `UpdateProfilePhotoUseCase` dejan de ser `@Transactional` (la subida a
+   Storage tarda segundos y mantenía ocupada una conexión del pool de 10).
+3. **`application.yaml`**: `spring.servlet.multipart.max-file-size=5MB`
+   (el default oculto de 1MB rechazaba fotos a resolución completa).
+4. **Validación de magic bytes** (`ImageValidation`) además del Content-Type.
+5. **`StorageService`** reutiliza el cliente de Storage (antes creaba uno por foto).
+
+**Acción pendiente de Rodrigo (no aplicada por código):**
+- Poner `DB_POOL_SIZE=25` en las variables del servicio de PRODUCCIÓN en Railway
+  (tras confirmar `SHOW max_connections;`). Es lo que más sube el techo real.
+- Alertas de presupuesto en Firebase (Storage/FCM) por el mayor volumen de push.
+
+**ROLLBACK si algo falla en prod:**
+```
+# Revierte SOLO este cambio, deja el resto de main intacto:
+git checkout main && git revert -m 1 29b62a3 && git push origin main
+# Railway redespliega la versión anterior automáticamente.
+```
+Como no hubo migraciones ni cambios de esquema, revertir es seguro y no deja
+datos a medias. Señales de que habría que revertir: los push dejan de llegar,
+`/actuator/health` no da UP, o subir fotos empieza a fallar.
