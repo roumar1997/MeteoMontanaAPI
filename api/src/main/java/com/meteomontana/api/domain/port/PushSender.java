@@ -1,5 +1,6 @@
 package com.meteomontana.api.domain.port;
 
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -23,4 +24,21 @@ public interface PushSender {
 
     /** Push solo-data a todos los dispositivos del usuario. Devuelve cuántos llegaron. */
     int sendDataToUser(String uid, Map<String, String> data);
+
+    /**
+     * Fire-and-forget: envía el push a todos los dispositivos del usuario EN
+     * SEGUNDO PLANO (no bloquea el hilo de la request). El adaptador agrupa los
+     * tokens en una sola llamada a FCM (multicast). Pensado para el path de
+     * follows/mensajes 1-a-1, donde la respuesta al usuario no debe esperar al push.
+     */
+    void sendDataToUserAsync(String uid, Map<String, String> data);
+
+    /**
+     * Fire-and-forget en LOTE: envía el mismo push a los dispositivos de VARIOS
+     * usuarios (chat de grupo / quedadas) en segundo plano, agrupando en tandas
+     * de hasta 500 tokens por llamada a FCM. Antes se hacía un envío bloqueante
+     * por participante × dispositivo dentro de la request → cuello en quedadas
+     * concurridas. Ahora es una (o pocas) llamada(s) fuera del hilo de la request.
+     */
+    void sendDataToUsersAsync(Collection<String> uids, Map<String, String> data);
 }

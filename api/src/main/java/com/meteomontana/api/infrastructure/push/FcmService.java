@@ -2,16 +2,24 @@ package com.meteomontana.api.infrastructure.push;
 
 import com.google.firebase.messaging.AndroidConfig;
 import com.google.firebase.messaging.AndroidNotification;
+import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.MessagingErrorCode;
+import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
+import com.google.firebase.messaging.SendResponse;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserDeviceRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.UserDeviceJpaEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -151,5 +159,72 @@ public class FcmService implements com.meteomontana.api.domain.port.PushSender {
             else devices.deleteById(device.getToken());
         }
         return ok;
+    }
+
+    // Límite de FCM para un envío multicast: 500 tokens por llamada.
+    private static final int MULTICAST_BATCH = 500;
+
+    /** {@inheritDoc} Corre en el pool "pushExecutor" (fuera del hilo de la request). */
+    @Async("pushExecutor")
+    @Override
+    public void sendDataToUserAsync(String uid, Map<String, String> data) {
+        List<String> tokens = tokensOf(devices.findByUid(uid));
+        if (!tokens.isEmpty()) multicast(tokens, data);
+    }
+
+    /** {@inheritDoc} Corre en el pool "pushExecutor"; agrupa en tandas de 500. */
+    @Async("pushExecutor")
+    @Override
+    public void sendDataToUsersAsync(Collection<String> uids, Map<String, String> data) {
+        List<UserDeviceJpaEntity> all = new ArrayList<>();
+        for (String uid : uids) {
+            if (uid != null && !uid.isBlank()) all.addAll(devices.findByUid(uid));
+        }
+        List<String> tokens = tokensOf(all);
+        for (int i = 0; i < tokens.size(); i += MULTICAST_BATCH) {
+            multicast(tokens.subList(i, Math.min(i + MULTICAST_BATCH, tokens.size())), data);
+        }
+    }
+
+    private static List<String> tokensOf(List<UserDeviceJpaEntity> deviceList) {
+        List<String> tokens = new ArrayList<>(deviceList.size());
+        for (UserDeviceJpaEntity d : deviceList) {
+            if (d.getToken() != null && !d.getToken().isBlank()) tokens.add(d.getToken());
+        }
+        return tokens;
+    }
+
+    /**
+     * Envía el MISMO push a muchos dispositivos en UNA sola llamada HTTP a FCM
+     * ({@code sendEachForMulticast}), en vez de una llamada por dispositivo. El
+     * título/cuerpo se leen del propio {@code data} (donde ya viajan "title"/"body").
+     * Los tokens que FCM marca como caducados/inválidos se borran de la tabla.
+     */
+    private void multicast(List<String> tokens, Map<String, String> data) {
+        if (tokens.isEmpty()) return;
+        String title = data != null ? data.getOrDefault("title", "Cumbre") : "Cumbre";
+        String body  = data != null ? data.getOrDefault("body", "") : "";
+        MulticastMessage.Builder msg = MulticastMessage.builder()
+                .addAllTokens(tokens)
+                .setNotification(Notification.builder().setTitle(title).setBody(body).build())
+                .setAndroidConfig(highPriorityAndroid());
+        if (data != null) msg.putAllData(data);
+        try {
+            BatchResponse resp = FirebaseMessaging.getInstance().sendEachForMulticast(msg.build());
+            List<SendResponse> responses = resp.getResponses();
+            for (int i = 0; i < responses.size(); i++) {
+                SendResponse r = responses.get(i);
+                if (r.isSuccessful()) continue;
+                MessagingErrorCode code = r.getException() != null
+                        ? r.getException().getMessagingErrorCode() : null;
+                // Token muerto (app desinstalada / token caducado) → limpiar.
+                if (code == MessagingErrorCode.UNREGISTERED || code == MessagingErrorCode.INVALID_ARGUMENT) {
+                    try { devices.deleteById(tokens.get(i)); } catch (Exception ignored) {}
+                }
+            }
+            log.debug("FCM multicast: {}/{} ok", resp.getSuccessCount(), responses.size());
+        } catch (FirebaseMessagingException e) {
+            log.warn("FCM multicast failed ({} tokens): {}", tokens.size(), e.getMessage());
+        }
     }
 }

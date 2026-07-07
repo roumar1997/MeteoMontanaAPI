@@ -150,8 +150,11 @@ public class CreateMeetupUseCase {
 
                 notificationService.create(alertUid, "MEETUP_NEW", title, body, "meetup", meetup.getId());
 
-                pushSender.sendToUser(alertUid, title, body,
-                        Map.of("targetType", "meetup", "targetId", meetup.getId()));
+                // Push en segundo plano: el fan-out de avisos NO debe retener la
+                // conexión de BD de la transacción de creación mientras habla con FCM.
+                pushSender.sendDataToUserAsync(alertUid, Map.of(
+                        "targetType", "meetup", "targetId", meetup.getId(),
+                        "title", title, "body", body));
             }
         } catch (Exception ignored) {
             // Las alertas no deben bloquear la creación
