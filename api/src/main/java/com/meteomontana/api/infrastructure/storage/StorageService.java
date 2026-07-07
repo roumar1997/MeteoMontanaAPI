@@ -36,16 +36,37 @@ public class StorageService {
     }
 
     /**
+     * Cliente de Storage reutilizado. Antes cada {@link #signedReadUrl} hacía
+     * {@code StorageOptions.getDefaultInstance().getService()}, que construye un
+     * cliente HTTP/gRPC nuevo — caro y se repetía por CADA foto de CADA petición
+     * de lista. Se cachea con double-checked locking (thread-safe, perezoso).
+     */
+    private volatile Storage storage;
+
+    private Storage storage() {
+        Storage s = storage;
+        if (s == null) {
+            synchronized (this) {
+                s = storage;
+                if (s == null) {
+                    s = StorageOptions.getDefaultInstance().getService();
+                    storage = s;
+                }
+            }
+        }
+        return s;
+    }
+
+    /**
      * Genera una URL firmada de lectura que expira pasados minutesValid minutos.
      * El cliente puede descargar la foto sin tener credenciales de Firebase.
      */
     public URL signedReadUrl(String path, int minutesValid) {
         String bucketName = StorageClient.getInstance().bucket().getName();
-        Storage storage = StorageOptions.getDefaultInstance().getService();
 
         BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucketName, path)).build();
 
-        return storage.signUrl(
+        return storage().signUrl(
                 blobInfo,
                 minutesValid,
                 TimeUnit.MINUTES,

@@ -27,6 +27,14 @@ spring:
 aemet:
   api-key: ${AEMET_API_KEY:}
 
+# Límite de subida de ficheros (fotos de escuela/piedra/perfil). Sin esto,
+# el default de Spring es 1MB y rechaza cualquier foto mayor con
+# MaxUploadSizeExceededException ANTES de llegar al use case (que ya valida 5MB).
+# max-request-size algo mayor que max-file-size por el overhead del multipart.
+spring.servlet.multipart:
+  max-file-size: 5MB
+  max-request-size: 6MB
+
 server:
   port: ${PORT:8080}
   error:

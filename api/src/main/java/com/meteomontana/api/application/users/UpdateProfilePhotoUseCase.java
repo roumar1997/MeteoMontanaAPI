@@ -3,9 +3,9 @@ package com.meteomontana.api.application.users;
 import com.meteomontana.api.domain.exception.UserNotFoundException;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.UserRepository;
+import com.meteomontana.api.infrastructure.storage.ImageValidation;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -22,7 +22,9 @@ public class UpdateProfilePhotoUseCase {
         this.storageService = storageService;
     }
 
-    @Transactional
+    // NO @Transactional: la subida a Firebase Storage (segundos de red) no debe
+    // retener una conexión del pool. findByUid y save cogen/sueltan su conexión
+    // en milisegundos; la subida ocurre entre medias sin ninguna abierta.
     public PrivateProfileDto execute(String uid, MultipartFile file, UserDtoMapper mapper) throws IOException {
         User current = userRepository.findByUid(uid)
                 .orElseThrow(() -> new UserNotFoundException(uid));
@@ -33,6 +35,8 @@ public class UpdateProfilePhotoUseCase {
             throw new IllegalArgumentException("Only image files allowed");
         if (file.getSize() > 5 * 1024 * 1024)
             throw new IllegalArgumentException("File too large (max 5MB)");
+        // Comprueba que los bytes son de una imagen real, no solo el Content-Type.
+        ImageValidation.ensureRealImage(file);
 
         String extension = switch (contentType) {
             case "image/jpeg" -> "jpg";

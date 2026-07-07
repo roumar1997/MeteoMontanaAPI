@@ -4,7 +4,7 @@ import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.ChatRepository;
 import com.meteomontana.api.domain.port.FollowRepository;
 import com.meteomontana.api.domain.port.UserRepository;
-import com.meteomontana.api.infrastructure.push.FcmService;
+import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,13 +31,15 @@ public class ChatPushController {
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
     private final ChatRepository chatRepository;
-    private final FcmService fcmService;
+    // Puerto (no la clase concreta): al llevar FcmService métodos @Async, Spring
+    // lo expone como proxy de la interfaz PushSender, no como FcmService.
+    private final PushSender fcmService;
     private final com.meteomontana.api.application.moderation.ContentModerationService moderationService;
 
     public ChatPushController(UserRepository userRepository,
                               FollowRepository followRepository,
                               ChatRepository chatRepository,
-                              FcmService fcmService,
+                              PushSender fcmService,
                               com.meteomontana.api.application.moderation.ContentModerationService moderationService) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
@@ -110,15 +112,21 @@ public class ChatPushController {
                 req.preview().replaceAll("[\\p{Cc}\\p{Cf}]", "").strip();
         String preview = rawPreview.length() > 80 ? rawPreview.substring(0, 80) + "…" : rawPreview;
 
+        // Destinatarios = todos los participantes menos el emisor. El data es el
+        // mismo para todos (deep-link al grupo) → un ÚNICO envío en lote, fuera
+        // del hilo de la request. Antes se hacía un envío bloqueante por
+        // participante × dispositivo aquí mismo, y el chat de una quedada
+        // concurrida encolaba hilos del servidor.
+        List<String> recipients = new ArrayList<>();
         for (String uid : participants) {
-            if (uid.equals(sender.uid())) continue;
-            Map<String, String> data = new HashMap<>();
-            data.put("targetType", "group");
-            data.put("targetId", req.convId());
-            data.put("title", fromName);
-            data.put("body", preview);
-            fcmService.sendToUser(uid, fromName, preview, data);
+            if (!uid.equals(sender.uid())) recipients.add(uid);
         }
+        Map<String, String> data = new HashMap<>();
+        data.put("targetType", "group");
+        data.put("targetId", req.convId());
+        data.put("title", fromName);
+        data.put("body", preview);
+        fcmService.sendDataToUsersAsync(recipients, data);
         return ResponseEntity.ok().build();
     }
 
@@ -204,7 +212,9 @@ public class ChatPushController {
         data.put("title", fromName);
         data.put("body", preview);
 
-        fcmService.sendToUser(req.toUid(), fromName, preview, data);
+        // Envío en segundo plano: el emisor recibe 200 al instante, el push del
+        // receptor no bloquea el hilo de la request.
+        fcmService.sendDataToUserAsync(req.toUid(), data);
         return ResponseEntity.ok().build();
     }
 }

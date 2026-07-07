@@ -4,9 +4,9 @@ import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.model.SchoolPhoto;
 import com.meteomontana.api.domain.port.SchoolPhotoRepository;
 import com.meteomontana.api.domain.port.SchoolRepository;
+import com.meteomontana.api.infrastructure.storage.ImageValidation;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -20,8 +20,12 @@ import java.util.UUID;
  *   2. Sube el archivo a Firebase Storage (school-photos/{schoolId}/{uuid}.{ext}).
  *   3. Inserta la metadata en Postgres.
  *
- * @Transactional: si la inserción en Postgres falla, intentamos borrar la foto
- * de Storage para no dejar huérfanos (best effort).
+ * NO es @Transactional a propósito: la subida a Firebase Storage tarda segundos
+ * (red) y, si estuviera dentro de la transacción, mantendría OCUPADA una
+ * conexión del pool todo ese tiempo → con varias subidas a la vez se agota el
+ * pool y el resto de peticiones esperan/fallan. Aquí cada acceso a BD (findById,
+ * save) coge y suelta su conexión en milisegundos; la subida ocurre entre medias
+ * sin retener ninguna. Si el save falla, borramos la foto huérfana (best effort).
  */
 @Service
 public class UploadSchoolPhotoUseCase {
@@ -38,7 +42,6 @@ public class UploadSchoolPhotoUseCase {
         this.storageService = storageService;
     }
 
-    @Transactional
     public SchoolPhoto execute(String schoolId, String uploaderUid,
                                MultipartFile file, String caption) throws IOException {
         // 1. Validar escuela
@@ -56,6 +59,8 @@ public class UploadSchoolPhotoUseCase {
         if (file.getSize() > 5 * 1024 * 1024) {
             throw new IllegalArgumentException("File too large (max 5MB)");
         }
+        // Comprueba que los bytes son de una imagen real, no solo el Content-Type.
+        ImageValidation.ensureRealImage(file);
 
         // 3. Subir a Storage
         String photoId = UUID.randomUUID().toString();

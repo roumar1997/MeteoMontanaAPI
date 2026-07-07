@@ -69,7 +69,7 @@ public class FollowUseCase {
                     myName + " te ha empezado a seguir",
                     "user", followerUid
             );
-            fcmService.sendDataToUser(
+            fcmService.sendDataToUserAsync(
                     followedUid,
                     pushData("user", followerUid,
                             myName + " te sigue ahora",
@@ -83,7 +83,7 @@ public class FollowUseCase {
                     myName + " quiere seguirte",
                     "follow_request", followerUid
             );
-            fcmService.sendDataToUser(
+            fcmService.sendDataToUserAsync(
                     followedUid,
                     pushData("follow_request", followerUid,
                             myName + " quiere seguirte",
@@ -144,7 +144,7 @@ public class FollowUseCase {
                 myName + " ha aceptado tu solicitud",
                 "user", myUid
         );
-        fcmService.sendDataToUser(
+        fcmService.sendDataToUserAsync(
                 requesterUid,
                 pushData("user", myUid,
                         myName + " ha aceptado tu solicitud",
