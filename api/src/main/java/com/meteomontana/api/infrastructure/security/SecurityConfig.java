@@ -69,6 +69,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/blocks/*/comments").permitAll()
                 // Búsqueda global de vías/bloques (buscador de Escuelas).
                 .requestMatchers(HttpMethod.GET, "/api/search/lines").permitAll()
+                // Ranking de contribuidores: solo datos ya públicos (perfil + count).
+                .requestMatchers(HttpMethod.GET, "/api/community/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                 // Radar de lluvia (datos AEMET): público como el forecast.
                 .requestMatchers(HttpMethod.GET, "/api/radar/**").permitAll()

@@ -49,6 +49,35 @@
 6. (Opcional) **Sentry** free para excepciones del backend; Crashlytics ya cubre la
    app.
 
+## 📊 Capacidad MEDIDA (2026-07-10, día del lanzamiento público)
+
+Prueba de carga real ejecutada contra el backend compilado (jar de este repo,
+migraciones V1..V52, pool 10 como prod) con Postgres 16 local, las 191
+escuelas reales y `forecast_cache` sembrada (= estado estacionario de prod:
+el forecast se sirve de caché sin tocar Open-Meteo). Contenedor 4 vCPU/16 GB,
+comparable a una instancia Railway. Escenario por usuario virtual: catálogo
+(mitad con ETag/304), today-scores de 10 escuelas, detalle, forecast, bloques
+y notas + pausa 0,5-1,5 s. Rate-limit desactivado para medir (ver nota k6
+arriba).
+
+| VUs | req/s | p50 | p95 | p99 | errores |
+|---:|---:|---:|---:|---:|---:|
+| 25 | 144 | 2,5 ms | 14 ms | 85 ms | 0 |
+| 50 | 299 | 1,8 ms | 6 ms | 15 ms | 0 |
+| 100 | 595 | 1,8 ms | 7 ms | 19 ms | 0 |
+| 200 | **1.196** | 2,9 ms | **12 ms** | 30 ms | 0 |
+| 400 | 1.585 | 66 ms | 227 ms | 410 ms | **0** |
+
+Lectura: **lineal hasta ~1.200 req/s con p95 de 12 ms**; saturación de CPU
+entre 200-400 VUs con techo ~1.600 req/s y degradación elegante (latencia
+sube, **cero errores** en 152k peticiones). El generador corría en la misma
+máquina → el techo real es algo mayor. Un usuario real activo genera ~5-15
+req/min → **~6.000 usuarios usando la app A LA VEZ** en confort, ~8.000 en
+el techo ≈ decenas de miles de usuarios/día por UNA instancia. No probado:
+rutas autenticadas (verificación JWT + isBanned por request; minoría del
+tráfico). El primer límite real sigue siendo el orden del TL;DR: cuotas de
+Firebase antes que este backend.
+
 ## Validar ANTES de publicar — prueba de carga
 - Script listo en `loadtest/cumbre-loadtest.js` (k6).
 - Lánzalo **contra staging**: `k6 run loadtest/cumbre-loadtest.js`.

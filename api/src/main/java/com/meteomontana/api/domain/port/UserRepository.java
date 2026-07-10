@@ -8,6 +8,8 @@ import java.util.Optional;
 public interface UserRepository {
     Optional<User> findByUid(String uid);
     Optional<User> findByUsername(String username);
+    /** Varios usuarios de una vez (una sola query — evita N+1 en rankings/listas). */
+    List<User> findByUids(java.util.Collection<String> uids);
     User save(User user);
     boolean usernameTakenByOtherUser(String username, String currentUid);
     List<User> findAllWithFcmToken();
