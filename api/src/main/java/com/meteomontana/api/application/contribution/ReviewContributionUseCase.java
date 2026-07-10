@@ -33,6 +33,9 @@ import java.util.UUID;
 @Service
 public class ReviewContributionUseCase {
 
+    private static final org.slf4j.Logger log =
+        org.slf4j.LoggerFactory.getLogger(ReviewContributionUseCase.class);
+
     private final SpringDataContributionRepository repo;
     private final SpringDataSchoolBlockRepository  blockRepo;
     private final SpringDataSchoolRepository       schoolRepo;
@@ -60,8 +63,23 @@ public class ReviewContributionUseCase {
     }
 
     private void sendReviewEmail(PendingContribution c, boolean approved, String reason) {
+        // Un fallo construyendo/enviando el email NUNCA debe tumbar la revisión
+        // (esto corre dentro de la transacción del approve/reject).
+        try {
+            doSendReviewEmail(c, approved, reason);
+        } catch (Exception e) {
+            log.warn("Email de revisión (approved={}) de {} FALLÓ: {}",
+                approved, c.getId(), e.toString());
+        }
+    }
+
+    private void doSendReviewEmail(PendingContribution c, boolean approved, String reason) {
         var user = userRepository.findByUid(c.getSubmittedByUid()).orElse(null);
-        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) return;
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+            log.info("Email de revisión (approved={}) de {} OMITIDO: autor {} sin email en BD",
+                approved, c.getId(), c.getSubmittedByUid());
+            return;
+        }
         String typeLabel = switch (c.getType()) {
             case PARKING -> "parking"; case BOULDER -> "piedra";
             case SECTOR -> "sector"; case POSITION_CORRECTION -> "corrección de posición";
@@ -114,8 +132,12 @@ public class ReviewContributionUseCase {
         String preheader = approved
                 ? "Tu " + proposalLabel + " ya está publicada."
                 : "Hemos revisado tu " + proposalLabel + ".";
-        emailService.send(user.getEmail(), subject,
+        boolean sent = emailService.send(user.getEmail(), subject,
                 com.meteomontana.api.infrastructure.email.EmailTemplates.wrap(preheader, inner));
+        // Rastro para diagnosticar "el email no llega": buscar "Email de revisión"
+        // en los logs de Railway dice si se intentó, a quién y si Resend lo aceptó.
+        log.info("Email de revisión (approved={}) de {} a {}: enviado={}",
+                approved, c.getId(), user.getEmail(), sent);
     }
 
     @Transactional

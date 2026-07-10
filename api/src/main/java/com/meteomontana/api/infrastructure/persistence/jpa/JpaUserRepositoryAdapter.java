@@ -27,6 +27,12 @@ public class JpaUserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public List<User> findByUids(java.util.Collection<String> uids) {
+        // uid es la @Id de UserJpaEntity → findAllById resuelve en UNA query.
+        return jpaRepo.findAllById(uids).stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public User save(User u) {
         UserJpaEntity entity = new UserJpaEntity(
                 u.getUid(), u.getEmail(), u.getUsername(), u.getDisplayName(),
