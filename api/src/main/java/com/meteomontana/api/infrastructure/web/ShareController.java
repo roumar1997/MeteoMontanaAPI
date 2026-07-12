@@ -124,6 +124,48 @@ public class ShareController {
         return ResponseEntity.ok(landing(title, desc, "/s/e/" + schoolId, null));
     }
 
+    /**
+     * Enlace único de descarga para QR físicos (pegatinas): URL FIJA y
+     * permanente. Redirige por dispositivo: iPhone/iPad → App Store,
+     * Android → Play; ordenador u otros → página con los dos botones.
+     * NO cambiar la ruta /app: hay QR impresos apuntando aquí.
+     */
+    @GetMapping(value = "/app")
+    public Object downloadApp(
+            @org.springframework.web.bind.annotation.RequestHeader(value = "User-Agent", required = false)
+            String userAgent) {
+        String ua = userAgent == null ? "" : userAgent;
+        if (ua.matches("(?i).*(iphone|ipad|ipod).*")) return new RedirectView(APPSTORE_URL);
+        if (ua.matches("(?i).*android.*")) return new RedirectView(PLAY_URL);
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_HTML)
+                .body("""
+                <!DOCTYPE html><html lang="es"><head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>Descarga Cumbre</title>
+                <meta property="og:title" content="Cumbre · Escalada">
+                <meta property="og:description" content="Escuelas, piedras, previsión y comunidad de escalada. Descarga la app.">
+                <meta property="og:site_name" content="Cumbre">
+                <style>
+                  body{font-family:-apple-system,Roboto,sans-serif;background:#F5F3EE;color:#1C1C1A;
+                       margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center}
+                  .card{max-width:420px;padding:32px 24px;text-align:center}
+                  h1{font-family:Georgia,serif;font-size:26px;margin:16px 0 6px}
+                  p{color:#5A574F;font-size:15px;line-height:1.5}
+                  a.btn{display:block;background:#C2410C;color:#fff;text-decoration:none;
+                        border-radius:10px;padding:14px;margin:10px 0;font-weight:600}
+                  .eyebrow{font-family:monospace;font-size:11px;letter-spacing:2px;color:#C2410C}
+                </style></head><body><div class="card">
+                <div class="eyebrow">CUMBRE · ESCALADA</div>
+                <h1>Descarga Cumbre</h1>
+                <p>Escuelas, piedras, previsión por horas y comunidad de escalada.</p>
+                <a class="btn" href="%PLAY%">Google Play (Android)</a>
+                <a class="btn" href="%APPSTORE%">App Store (iPhone y iPad)</a>
+                </div></body></html>
+                """.replace("%PLAY%", PLAY_URL).replace("%APPSTORE%", APPSTORE_URL));
+    }
+
     /** Página mínima: metadatos OG + botón de la store correcta por dispositivo. */
     private String landing(String title, String desc, String path, String imagePath) {
         String base = "https://api.climbingteams.com";

@@ -77,6 +77,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/mountain/**").permitAll()
                 // Enlaces compartidos + verificación de App Links: públicos.
                 .requestMatchers(HttpMethod.GET, "/s/**").permitAll()
+                // Enlace fijo de descarga para QR físicos (redirige por dispositivo).
+                .requestMatchers(HttpMethod.GET, "/app").permitAll()
                 .requestMatchers(HttpMethod.GET, "/.well-known/**").permitAll()
                 // Healthcheck público para CUALQUIER método (los monitores de
                 // uptime suelen usar HEAD; restringirlo a GET daba 403 → "caído").
