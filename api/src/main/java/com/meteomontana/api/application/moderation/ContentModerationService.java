@@ -269,7 +269,16 @@ public class ContentModerationService {
     }
 
     private ReportView toView(ContentReportJpaEntity e) {
-        return new ReportView(e.getId(), e.getTargetType(), e.getTargetId(), e.getReason(),
+        // FEED_COMMENT: al admin le sirve el POST padre (el botón VER POST abre
+        // GET /api/feed/{id}); el snapshot ya enseña el texto del comentario.
+        // La resolución sigue usando el id del reporte, así que borrar borra
+        // el comentario, no el post.
+        String targetId = e.getTargetId();
+        if ("FEED_COMMENT".equals(e.getTargetType())) {
+            FeedCommentJpaEntity c = feedComments.findById(e.getTargetId()).orElse(null);
+            if (c != null) targetId = String.valueOf(c.getPostId());
+        }
+        return new ReportView(e.getId(), e.getTargetType(), targetId, e.getReason(),
                 e.getSnapshot(), e.getAuthorUid(), e.getReporterUid(),
                 e.getStatus(), e.getResolution(), e.getCreatedAt());
     }
