@@ -1,9 +1,13 @@
 package com.meteomontana.api.application.feed;
 
 import com.meteomontana.api.application.moderation.UserModerationService;
+import com.meteomontana.api.application.social.NotificationService;
 import com.meteomontana.api.application.users.UserDtoMapper;
 import com.meteomontana.api.domain.model.User;
+import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedLikeJpaEntity;
@@ -44,6 +48,8 @@ import java.util.stream.Collectors;
 @Service
 public class FeedService {
 
+    private static final Logger log = LoggerFactory.getLogger(FeedService.class);
+
     public static final String KIND_TICK = "TICK";
     public static final String KIND_PROJECT_DONE = "PROJECT_DONE";
     /** Reservados: los crea el backend al aprobar contribuciones (fase 3). */
@@ -75,6 +81,8 @@ public class FeedService {
     private final UserRepository users;
     private final UserDtoMapper mapper;
     private final UserModerationService moderation;
+    private final NotificationService notifications;
+    private final PushSender push;
 
     public FeedService(SpringDataFeedPostRepository posts,
                        SpringDataFeedLikeRepository likes,
@@ -85,7 +93,9 @@ public class FeedService {
                        SpringDataSchoolRepository schools,
                        UserRepository users,
                        UserDtoMapper mapper,
-                       UserModerationService moderation) {
+                       UserModerationService moderation,
+                       NotificationService notifications,
+                       PushSender push) {
         this.posts = posts;
         this.likes = likes;
         this.comments = comments;
@@ -96,6 +106,8 @@ public class FeedService {
         this.users = users;
         this.mapper = mapper;
         this.moderation = moderation;
+        this.notifications = notifications;
+        this.push = push;
     }
 
     // ------------------------------------------------------------ lectura
@@ -115,6 +127,9 @@ public class FeedService {
             List<String> authors = new ArrayList<>(follows.findFollowingOf(uid));
             authors.add(uid);
             page = posts.pageByAuthors(authors, cursor, capped);
+        } else if ("mine".equalsIgnoreCase(scope)) {
+            // Solo mis posts (pestaña "mi actividad").
+            page = posts.pageByAuthors(List.of(uid), cursor, capped);
         } else {
             page = posts.pageAllPublic(cursor, capped);
         }
@@ -126,6 +141,52 @@ public class FeedService {
         page = page.stream().filter(p -> !blocked.contains(p.getUserUid())).toList();
         if (page.isEmpty()) return List.of();
 
+        return mapViews(uid, page);
+    }
+
+    /**
+     * UN post por id (lo usa la app al tocar una notificación). 404 si no
+     * existe, si el caller bloqueó al autor, o si el autor es privado y el
+     * caller no es él ni un seguidor aceptado (no filtramos "me bloquearon"
+     * ni exponemos que el post existe: siempre 404, nunca 403).
+     */
+    @Transactional(readOnly = true)
+    public FeedPostView single(String uid, long postId) {
+        FeedPostJpaEntity p = posts.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado"));
+
+        String authorUid = p.getUserUid();
+        if (!authorUid.equals(uid)) {
+            boolean iBlockedAuthor = blocks.findByBlockerUid(uid).stream()
+                    .anyMatch(b -> b.getBlockedUid().equals(authorUid));
+            if (iBlockedAuthor) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+            }
+            User author = users.findByUid(authorUid).orElse(null);
+            if (author == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+            }
+            if (!author.isPublic() && !isAcceptedFollower(uid, authorUid)) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+            }
+        }
+
+        List<FeedPostView> views = mapViews(uid, List.of(p));
+        if (views.isEmpty()) { // cuenta del autor borrada
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+        }
+        return views.get(0);
+    }
+
+    /** ¿{@code follower} sigue a {@code followed} con follow ACEPTADO? */
+    private boolean isAcceptedFollower(String follower, String followed) {
+        return follows.findById_FollowerUidAndId_FollowedUid(follower, followed)
+                .map(f -> "ACCEPTED".equals(f.getStatus()))
+                .orElse(false);
+    }
+
+    /** Mapea posts ya filtrados a vistas (contadores, autor, foto/trazo en vivo). */
+    private List<FeedPostView> mapViews(String uid, List<FeedPostJpaEntity> page) {
         List<Long> ids = page.stream().map(FeedPostJpaEntity::getId).toList();
 
         Map<Long, Long> likeCounts = toCountMap(likes.countByPostIds(ids));
@@ -231,13 +292,31 @@ public class FeedService {
     /** Da like (idempotente). Devuelve el contador resultante. */
     @Transactional
     public long like(String uid, long postId) {
-        if (!posts.existsById(postId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
-        }
+        FeedPostJpaEntity post = posts.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado"));
         if (!likes.existsById(new FeedLikeJpaEntity.Key(postId, uid))) {
             likes.save(new FeedLikeJpaEntity(postId, uid));
+            // Solo al CREAR el like (no en repeticiones ni unlike) y nunca a uno mismo.
+            if (!post.getUserUid().equals(uid)) {
+                notifyLike(uid, post);
+            }
         }
         return countLikes(postId);
+    }
+
+    /** Notifica al dueño del post que alguien le ha dado like. Nunca tumba la tx. */
+    private void notifyLike(String likerUid, FeedPostJpaEntity post) {
+        try {
+            User liker = users.findByUid(likerUid).orElse(null);
+            String name = displayNameOf(liker);
+            String body = "A " + name + " le gusta tu ascenso de «" + postLabel(post) + "»";
+            notifications.create(post.getUserUid(), "FEED_LIKE",
+                    "Nuevo me gusta", body, "feed_post", String.valueOf(post.getId()));
+            push.sendDataToUserAsync(post.getUserUid(),
+                    pushData(String.valueOf(post.getId()), "Nuevo me gusta", body, avatarUrlOf(liker)));
+        } catch (Exception e) {
+            log.warn("No se pudo notificar el like del post {}: {}", post.getId(), e.getMessage());
+        }
     }
 
     /** Quita el like (idempotente). Devuelve el contador resultante. */
@@ -278,10 +357,88 @@ public class FeedService {
                         : (u.getDisplayName() != null ? u.getDisplayName() : "Anónimo"))
                 .orElse("Anónimo");
 
+        // Comentaristas previos ANTES de guardar el nuevo (para no notificarse a sí mismo).
+        List<FeedCommentJpaEntity> previous = comments.findByPostIdOrderByCreatedAtAsc(postId);
+
         FeedCommentJpaEntity saved = comments.save(new FeedCommentJpaEntity(
                 UUID.randomUUID().toString(), postId, uid, author, trimmed));
+
+        posts.findById(postId).ifPresent(post -> notifyComment(uid, author, post, previous));
+
         return new FeedCommentView(saved.getId(), saved.getPostId(), saved.getUid(),
                 saved.getAuthor(), saved.getText(), saved.getCreatedAt(), true);
+    }
+
+    /**
+     * Notifica el comentario nuevo al dueño del post y a los demás usuarios que
+     * ya habían comentado (distinct, sin el autor del comentario nuevo y sin
+     * duplicar al dueño). Nunca tumba la transacción.
+     */
+    private void notifyComment(String commenterUid, String commenterName,
+                               FeedPostJpaEntity post, List<FeedCommentJpaEntity> previous) {
+        try {
+            String postIdStr = String.valueOf(post.getId());
+            String avatar = avatarUrlOf(users.findByUid(commenterUid).orElse(null));
+
+            String owner = post.getUserUid();
+            if (!owner.equals(commenterUid)) {
+                String body = "«" + commenterName + "» ha comentado tu ascenso de «" + postLabel(post) + "»";
+                notifications.create(owner, "FEED_COMMENT",
+                        "Nuevo comentario", body, "feed_post", postIdStr);
+                push.sendDataToUserAsync(owner, pushData(postIdStr, "Nuevo comentario", body, avatar));
+            }
+
+            List<String> others = previous.stream()
+                    .map(FeedCommentJpaEntity::getUid)
+                    .distinct()
+                    .filter(u -> !u.equals(commenterUid) && !u.equals(owner))
+                    .toList();
+            if (!others.isEmpty()) {
+                String body = "«" + commenterName + "» ha respondido en un ascenso que comentaste";
+                for (String u : others) {
+                    notifications.create(u, "FEED_COMMENT",
+                            "Nuevo comentario", body, "feed_post", postIdStr);
+                }
+                Map<String, String> data = pushData(postIdStr, "Nuevo comentario", body, avatar);
+                push.sendDataToUsersAsync(others, data);
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo notificar el comentario del post {}: {}", post.getId(), e.getMessage());
+        }
+    }
+
+    /** Data payload de los push del feed (mismas claves que los sociales). */
+    private Map<String, String> pushData(String postId, String title, String body, String avatarUrl) {
+        Map<String, String> data = new HashMap<>();
+        data.put("targetType", "feed_post");
+        data.put("targetId", postId);
+        data.put("title", title);
+        data.put("body", body);
+        if (avatarUrl != null && !avatarUrl.isBlank()) data.put("avatarUrl", avatarUrl);
+        return data;
+    }
+
+    /** «Nombre de la vía» o, si el post no tiene vía, el de la piedra. */
+    private static String postLabel(FeedPostJpaEntity post) {
+        if (post.getLineName() != null && !post.getLineName().isBlank()) return post.getLineName();
+        if (post.getBlockName() != null && !post.getBlockName().isBlank()) return post.getBlockName();
+        return "tu vía";
+    }
+
+    private static String displayNameOf(User u) {
+        if (u == null) return "Alguien";
+        if (u.getUsername() != null) return "@" + u.getUsername();
+        return u.getDisplayName() != null ? u.getDisplayName() : "Alguien";
+    }
+
+    /** URL (firmada si hace falta) de la foto de perfil del actor, o null. */
+    private String avatarUrlOf(User u) {
+        if (u == null) return null;
+        try {
+            return mapper.toPublic(u).photoUrl();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** Borra un comentario propio (o cualquiera si es admin). */

@@ -1,6 +1,7 @@
 package com.meteomontana.api.application.feed;
 
 import com.meteomontana.api.application.moderation.UserModerationService;
+import com.meteomontana.api.application.social.NotificationService;
 import com.meteomontana.api.application.users.PublicProfileDto;
 import com.meteomontana.api.application.users.UserDtoMapper;
 import com.meteomontana.api.domain.model.User;
@@ -13,7 +14,11 @@ import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFollowRepos
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository;
+import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentJpaEntity;
+import com.meteomontana.api.infrastructure.persistence.jpa.FeedLikeJpaEntity;
+import com.meteomontana.api.infrastructure.persistence.jpa.FollowJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.UserBlockJpaEntity;
+import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,13 +51,15 @@ class FeedServiceTest {
     UserRepository users = mock(UserRepository.class);
     UserDtoMapper mapper = mock(UserDtoMapper.class);
     UserModerationService moderation = mock(UserModerationService.class);
+    NotificationService notifications = mock(NotificationService.class);
+    PushSender push = mock(PushSender.class);
 
     FeedService service;
 
     @BeforeEach
     void setUp() {
         service = new FeedService(posts, likes, comments, follows, blocks,
-                schoolBlocks, schools, users, mapper, moderation);
+                schoolBlocks, schools, users, mapper, moderation, notifications, push);
     }
 
     // ------------------------------------------------------------ helpers
@@ -151,6 +158,141 @@ class FeedServiceTest {
         assertThat(v.commentCount()).isEqualTo(2);
         assertThat(v.likedByMe()).isTrue();
         assertThat(v.mine()).isFalse();
+    }
+
+    @Test
+    void mineScopeQueriesOnlySelf() {
+        when(posts.pageByAuthors(anyList(), anyLong(), anyInt())).thenReturn(List.of());
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+
+        service.page("me", "mine", null, 20);
+
+        verify(posts).pageByAuthors(eq(List.of("me")), eq(Long.MAX_VALUE), eq(20));
+        verify(posts, never()).pageAllPublic(anyLong(), anyInt());
+    }
+
+    // ------------------------------------------------------------ single
+
+    private FeedPostJpaEntity singlePost(long id, String authorUid) {
+        FeedPostJpaEntity p = mock(FeedPostJpaEntity.class);
+        when(p.getId()).thenReturn(id);
+        when(p.getUserUid()).thenReturn(authorUid);
+        when(p.getBlockId()).thenReturn("b1");
+        return p;
+    }
+
+    @Test
+    void singleReturns404IfMissing() {
+        when(posts.findById(5L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.single("me", 5L))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("404");
+    }
+
+    @Test
+    void singleReturns404IfAuthorPrivateAndCallerNotFollower() {
+        FeedPostJpaEntity p = singlePost(5L, "ana");
+        User ana = user("ana", false);
+        when(posts.findById(5L)).thenReturn(Optional.of(p));
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+        when(users.findByUid("ana")).thenReturn(Optional.of(ana));
+        // follows.findById_... → Optional.empty() por defecto (no la sigue)
+
+        assertThatThrownBy(() -> service.single("me", 5L))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("404");
+    }
+
+    @Test
+    void singleReturns404IfCallerBlockedAuthor() {
+        FeedPostJpaEntity p = singlePost(5L, "troll");
+        when(posts.findById(5L)).thenReturn(Optional.of(p));
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of(new UserBlockJpaEntity("me", "troll")));
+
+        assertThatThrownBy(() -> service.single("me", 5L))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("404");
+    }
+
+    @Test
+    void singleAllowsAcceptedFollowerOfPrivateAuthor() {
+        FeedPostJpaEntity p = singlePost(5L, "ana");
+        User ana = user("ana", false);
+        when(posts.findById(5L)).thenReturn(Optional.of(p));
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+        when(users.findByUid("ana")).thenReturn(Optional.of(ana));
+        FollowJpaEntity accepted = mock(FollowJpaEntity.class);
+        when(accepted.getStatus()).thenReturn("ACCEPTED");
+        when(follows.findById_FollowerUidAndId_FollowedUid("me", "ana"))
+                .thenReturn(Optional.of(accepted));
+        when(users.findByUids(anyList())).thenReturn(List.of(ana));
+        when(mapper.toPublicLocked(ana)).thenReturn(profile("ana", "ana"));
+        when(schoolBlocks.findAllById(any())).thenReturn(List.of());
+
+        var v = service.single("me", 5L);
+
+        assertThat(v.id()).isEqualTo(5L);
+        assertThat(v.author().username()).isEqualTo("ana");
+    }
+
+    // ------------------------------------------------------------ notificaciones
+
+    @Test
+    void likeNotifiesOwnerOnlyOnCreation() {
+        FeedPostJpaEntity p = singlePost(1L, "ana");
+        when(posts.findById(1L)).thenReturn(Optional.of(p));
+        when(likes.existsById(any(FeedLikeJpaEntity.Key.class))).thenReturn(false);
+
+        service.like("me", 1L);
+
+        verify(notifications).create(eq("ana"), eq("FEED_LIKE"), any(), any(),
+                eq("feed_post"), eq("1"));
+        verify(push).sendDataToUserAsync(eq("ana"), any());
+    }
+
+    @Test
+    void likeDoesNotNotifyOnRepeatOrSelfLike() {
+        FeedPostJpaEntity p = singlePost(1L, "ana");
+        when(posts.findById(1L)).thenReturn(Optional.of(p));
+        when(likes.existsById(any(FeedLikeJpaEntity.Key.class))).thenReturn(true);
+        service.like("me", 1L); // repetido → nada
+
+        FeedPostJpaEntity own = singlePost(2L, "me");
+        when(posts.findById(2L)).thenReturn(Optional.of(own));
+        when(likes.existsById(any(FeedLikeJpaEntity.Key.class))).thenReturn(false);
+        service.like("me", 2L); // auto-like → nada
+
+        verify(notifications, never()).create(any(), any(), any(), any(), any(), any());
+    }
+
+    private FeedCommentJpaEntity comment(String uid) {
+        FeedCommentJpaEntity c = mock(FeedCommentJpaEntity.class);
+        when(c.getUid()).thenReturn(uid);
+        return c;
+    }
+
+    @Test
+    void commentNotifiesOwnerAndPreviousCommentersWithoutDuplicates() {
+        FeedPostJpaEntity p = singlePost(2L, "ana");
+        when(posts.existsById(2L)).thenReturn(true);
+        when(posts.findById(2L)).thenReturn(Optional.of(p));
+        // Comentaristas previos: la dueña, bob dos veces y yo mismo.
+        List<FeedCommentJpaEntity> previous = List.of(
+                comment("ana"), comment("bob"), comment("bob"), comment("me"));
+        when(comments.findByPostIdOrderByCreatedAtAsc(2L)).thenReturn(previous);
+        when(comments.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.addComment("me", 2L, "¡Qué máquina!");
+
+        // Dueña: una sola vez (aunque también comentó antes).
+        verify(notifications).create(eq("ana"), eq("FEED_COMMENT"), any(), any(),
+                eq("feed_post"), eq("2"));
+        verify(push).sendDataToUserAsync(eq("ana"), any());
+        // Bob: una sola vez pese a sus dos comentarios; yo nunca.
+        verify(notifications).create(eq("bob"), eq("FEED_COMMENT"), any(), any(),
+                eq("feed_post"), eq("2"));
+        verify(notifications, never()).create(eq("me"), any(), any(), any(), any(), any());
+        verify(push).sendDataToUsersAsync(eq(List.of("bob")), any());
     }
 
     // ------------------------------------------------------------ publish

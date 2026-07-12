@@ -4,8 +4,12 @@ import com.meteomontana.api.domain.port.NoteRepository;
 import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.ContentReportJpaEntity;
+import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentJpaEntity;
+import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.LineCommentJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataContentReportRepository;
+import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentRepository;
+import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataLineCommentRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
@@ -36,7 +40,8 @@ public class ContentModerationService {
                              String snapshot, String authorUid, String reporterUid,
                              String status, String resolution, LocalDateTime createdAt) {}
 
-    private static final Set<String> TARGET_TYPES = Set.of("COMMENT", "NOTE", "USER");
+    private static final Set<String> TARGET_TYPES =
+            Set.of("COMMENT", "NOTE", "USER", "FEED_POST", "FEED_COMMENT");
     private static final Set<String> REASONS = Set.of("SPAM", "OFFENSIVE", "FALSE_INFO", "OTHER");
 
     private final SpringDataContentReportRepository reports;
@@ -47,6 +52,8 @@ public class ContentModerationService {
     private final SpringDataUserRepository userJpa;
     private final PushSender push;
     private final UserModerationService userModeration;
+    private final SpringDataFeedPostRepository feedPosts;
+    private final SpringDataFeedCommentRepository feedComments;
 
     public ContentModerationService(SpringDataContentReportRepository reports,
                                     SpringDataUserBlockRepository blocks,
@@ -55,7 +62,9 @@ public class ContentModerationService {
                                     UserRepository users,
                                     SpringDataUserRepository userJpa,
                                     PushSender push,
-                                    UserModerationService userModeration) {
+                                    UserModerationService userModeration,
+                                    SpringDataFeedPostRepository feedPosts,
+                                    SpringDataFeedCommentRepository feedComments) {
         this.reports = reports;
         this.blocks = blocks;
         this.comments = comments;
@@ -64,6 +73,8 @@ public class ContentModerationService {
         this.userJpa = userJpa;
         this.push = push;
         this.userModeration = userModeration;
+        this.feedPosts = feedPosts;
+        this.feedComments = feedComments;
     }
 
     /** Crea la denuncia (con snapshot del contenido) y avisa a los admins. */
@@ -98,6 +109,14 @@ public class ContentModerationService {
                     authorUid = targetId;
                 }
             }
+            case "FEED_POST" -> {
+                FeedPostJpaEntity p = feedPostById(targetId);
+                if (p != null) { snapshot = feedPostSnapshot(p); authorUid = p.getUserUid(); }
+            }
+            case "FEED_COMMENT" -> {
+                FeedCommentJpaEntity c = feedComments.findById(targetId).orElse(null);
+                if (c != null) { snapshot = c.getAuthor() + ": " + c.getText(); authorUid = c.getUid(); }
+            }
         }
 
         ContentReportJpaEntity saved = reports.save(new ContentReportJpaEntity(
@@ -117,6 +136,15 @@ public class ContentModerationService {
                     notes.deleteById(targetId);
                     userModeration.record(reporterUid, authorUid, "DELETE_NOTE", r, snapshot);
                 }
+                case "FEED_POST" -> {
+                    FeedPostJpaEntity p = feedPostById(targetId);
+                    if (p != null) feedPosts.delete(p); // likes/comentarios caen en cascada
+                    userModeration.record(reporterUid, authorUid, "DELETE_FEED_POST", r, snapshot);
+                }
+                case "FEED_COMMENT" -> {
+                    feedComments.findById(targetId).ifPresent(feedComments::delete);
+                    userModeration.record(reporterUid, authorUid, "DELETE_FEED_COMMENT", r, snapshot);
+                }
                 default -> { /* USER: sin acción automática (el bloqueo ya es opción del diálogo) */ }
             }
             saved.resolve("USER".equals(type) ? "IGNORED" : "REMOVED");
@@ -133,6 +161,8 @@ public class ContentModerationService {
         String what = switch (type) {
             case "COMMENT" -> "un comentario";
             case "NOTE" -> "una nota";
+            case "FEED_POST" -> "un post del feed";
+            case "FEED_COMMENT" -> "un comentario del feed";
             default -> "un usuario";
         };
         String body = snapshot == null ? "Toca para revisarla en el panel de admin"
@@ -169,6 +199,15 @@ public class ContentModerationService {
                 case "NOTE" -> {
                     notes.deleteById(rep.getTargetId());
                     userModeration.record(adminUid, rep.getAuthorUid(), "DELETE_NOTE", why, rep.getSnapshot());
+                }
+                case "FEED_POST" -> {
+                    FeedPostJpaEntity p = feedPostById(rep.getTargetId());
+                    if (p != null) feedPosts.delete(p); // likes/comentarios caen en cascada
+                    userModeration.record(adminUid, rep.getAuthorUid(), "DELETE_FEED_POST", why, rep.getSnapshot());
+                }
+                case "FEED_COMMENT" -> {
+                    feedComments.findById(rep.getTargetId()).ifPresent(feedComments::delete);
+                    userModeration.record(adminUid, rep.getAuthorUid(), "DELETE_FEED_COMMENT", why, rep.getSnapshot());
                 }
                 default -> { /* USER: no hay nada que borrar automáticamente */ }
             }
@@ -208,6 +247,25 @@ public class ContentModerationService {
     public boolean eitherBlocked(String a, String b) {
         return blocks.existsByBlockerUidAndBlockedUid(a, b)
                 || blocks.existsByBlockerUidAndBlockedUid(b, a);
+    }
+
+    /** El id de feed_posts es numérico; el targetId de la denuncia llega como String. */
+    private FeedPostJpaEntity feedPostById(String targetId) {
+        try {
+            return feedPosts.findById(Long.parseLong(targetId)).orElse(null);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** Snapshot legible del post para que el admin lo juzgue aunque se borre. */
+    private String feedPostSnapshot(FeedPostJpaEntity p) {
+        String author = users.findByUid(p.getUserUid())
+                .map(u -> u.getUsername() != null ? "@" + u.getUsername() : u.getDisplayName())
+                .orElse(p.getUserUid());
+        String what = p.getLineName() != null ? p.getLineName() : p.getBlockName();
+        return author + ": " + p.getKind() + " «" + what + "»"
+                + (p.getSchoolName() != null ? " · " + p.getSchoolName() : "");
     }
 
     private ReportView toView(ContentReportJpaEntity e) {

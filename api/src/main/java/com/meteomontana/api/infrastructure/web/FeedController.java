@@ -38,7 +38,7 @@ public class FeedController {
         this.users = users;
     }
 
-    /** Página del feed. scope=following|all; before = id del último post visto. */
+    /** Página del feed. scope=following|all|mine; before = id del último post visto. */
     @GetMapping
     public List<FeedService.FeedPostView> page(
             @RequestParam(defaultValue = "all") String scope,
@@ -46,6 +46,14 @@ public class FeedController {
             @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal FirebaseUser user) {
         return service.page(user.uid(), scope, before, limit);
+    }
+
+    /** UN post por id (destino de las notificaciones de like/comentario). */
+    @GetMapping("/{postId}")
+    public FeedService.FeedPostView single(
+            @PathVariable long postId,
+            @AuthenticationPrincipal FirebaseUser user) {
+        return service.single(user.uid(), postId);
     }
 
     @PostMapping
