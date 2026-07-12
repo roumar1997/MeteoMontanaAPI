@@ -27,7 +27,8 @@ import java.util.Map;
 @RequestMapping("/api/feed")
 public class FeedController {
 
-    public record PublishRequest(String blockId, String lineId, String kind) {}
+    /** discipline es opcional (BOULDER | ROUTE); si falta, se deriva de la piedra. */
+    public record PublishRequest(String blockId, String lineId, String kind, String discipline) {}
     public record CommentRequest(String text) {}
 
     private final FeedService service;
@@ -38,13 +39,21 @@ public class FeedController {
         this.users = users;
     }
 
-    /** Página del feed. scope=following|all|mine; before = id del último post visto. */
+    /**
+     * Página del feed. scope=following|all|mine|user; before = id del último
+     * post visto. Con scope=user, uid = autor cuyos posts se piden (sección
+     * "actividad" del perfil público; privado sin follow aceptado → lista vacía).
+     */
     @GetMapping
     public List<FeedService.FeedPostView> page(
             @RequestParam(defaultValue = "all") String scope,
+            @RequestParam(required = false) String uid,
             @RequestParam(required = false) Long before,
             @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal FirebaseUser user) {
+        if ("user".equalsIgnoreCase(scope)) {
+            return service.pageOfUser(user.uid(), uid, before, limit);
+        }
         return service.page(user.uid(), scope, before, limit);
     }
 
@@ -61,7 +70,8 @@ public class FeedController {
     public Map<String, Long> publish(
             @RequestBody PublishRequest req,
             @AuthenticationPrincipal FirebaseUser user) {
-        return Map.of("id", service.publish(user.uid(), req.blockId(), req.lineId(), req.kind()));
+        return Map.of("id", service.publish(user.uid(), req.blockId(), req.lineId(),
+                req.kind(), req.discipline()));
     }
 
     @DeleteMapping("/{postId}")

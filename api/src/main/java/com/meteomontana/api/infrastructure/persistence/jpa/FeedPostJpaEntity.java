@@ -50,6 +50,14 @@ public class FeedPostJpaEntity {
     @Column(nullable = false, length = 16)
     private String kind;
 
+    /** Modalidad snapshoteada al publicar: BOULDER | ROUTE (null en posts viejos). */
+    @Column(length = 20)
+    private String discipline;
+
+    /** Tipo de roca de la escuela snapshoteado al publicar (null en posts viejos). */
+    @Column(name = "rock_type", length = 40)
+    private String rockType;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -81,5 +89,9 @@ public class FeedPostJpaEntity {
     public String getLineName() { return lineName; }
     public String getGrade() { return grade; }
     public String getKind() { return kind; }
+    public String getDiscipline() { return discipline; }
+    public void setDiscipline(String discipline) { this.discipline = discipline; }
+    public String getRockType() { return rockType; }
+    public void setRockType(String rockType) { this.rockType = rockType; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

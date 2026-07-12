@@ -42,19 +42,38 @@ public class ReviewContributionUseCase {
     private final com.meteomontana.api.infrastructure.email.ResendEmailService emailService;
     private final com.meteomontana.api.domain.port.UserRepository userRepository;
     private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository journalRepo;
+    private final com.meteomontana.api.application.feed.FeedService feedService;
 
     public ReviewContributionUseCase(SpringDataContributionRepository repo,
                                      SpringDataSchoolBlockRepository blockRepo,
                                      SpringDataSchoolRepository schoolRepo,
                                      com.meteomontana.api.infrastructure.email.ResendEmailService emailService,
                                      com.meteomontana.api.domain.port.UserRepository userRepository,
-                                     com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository journalRepo) {
+                                     com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository journalRepo,
+                                     com.meteomontana.api.application.feed.FeedService feedService) {
         this.repo       = repo;
         this.blockRepo  = blockRepo;
         this.schoolRepo = schoolRepo;
         this.emailService = emailService;
         this.userRepository = userRepository;
         this.journalRepo = journalRepo;
+        this.feedService = feedService;
+    }
+
+    /**
+     * Post automático del feed al aprobar (NEW_BLOCK para piedra nueva, NEW_LINE
+     * si se añadieron vías a una piedra ya existente), con autor = autor de la
+     * contribución. Sin push. Un fallo aquí NUNCA tumba la aprobación.
+     */
+    private void publishFeedPost(PendingContribution c, SchoolBlockJpaEntity block,
+                                 BlockLineJpaEntity firstNewLine, String kind) {
+        try {
+            if (block == null || c.getSubmittedByUid() == null) return;
+            feedService.publishSystem(c.getSubmittedByUid(), block, firstNewLine, kind);
+        } catch (Exception e) {
+            log.warn("Post de feed ({}) de la contribución {} FALLÓ: {}",
+                    kind, c.getId(), e.toString());
+        }
     }
 
     /** Propaga el grado nuevo de una vía al diario de todos (si la vía tiene id). */
@@ -160,16 +179,29 @@ public class ReviewContributionUseCase {
                     // Edición de MURO: el payload es el estado COMPLETO propuesto
                     // (vías con su lineId + path + dirección) → reconciliar
                     // preservando ids (los enganches del diario sobreviven).
-                    reconcileWall(c);
+                    // Si la edición CREÓ vías nuevas → un post NEW_LINE (uno por
+                    // contribución, referenciando la primera vía nueva).
+                    BlockLineJpaEntity firstNew = reconcileWall(c);
+                    if (firstNew != null) {
+                        publishFeedPost(c, blockRepo.findById(c.getTargetBlockId()).orElse(null),
+                                firstNew, com.meteomontana.api.application.feed.FeedService.KIND_NEW_LINE);
+                    }
                 } else if (c.getTargetBlockId() != null && c.getTargetLineId() != null) {
                     // Corrección de una vía concreta: actualiza la línea existente
-                    // con los datos del primer bloque del JSON.
+                    // con los datos del primer bloque del JSON. Sin post de feed.
                     updateExistingLine(c);
                 } else if (c.getTargetBlockId() != null) {
-                    // Añadir vías al bloque existente.
-                    addLinesToExistingBlock(c);
+                    // Añadir vías al bloque existente → NEW_LINE si creó alguna.
+                    BlockLineJpaEntity firstNew = addLinesToExistingBlock(c);
+                    if (firstNew != null) {
+                        publishFeedPost(c, blockRepo.findById(c.getTargetBlockId()).orElse(null),
+                                firstNew, com.meteomontana.api.application.feed.FeedService.KIND_NEW_LINE);
+                    }
                 } else {
-                    createBlock(c, SchoolBlock.Type.BLOCK, admin.uid());
+                    // Piedra NUEVA → un post NEW_BLOCK (por piedra, no por vía).
+                    SchoolBlockJpaEntity created = createBlock(c, SchoolBlock.Type.BLOCK, admin.uid());
+                    publishFeedPost(c, created, null,
+                            com.meteomontana.api.application.feed.FeedService.KIND_NEW_BLOCK);
                 }
             }
             case SECTOR  -> createBlock(c, SchoolBlock.Type.ZONE,    admin.uid());
@@ -242,7 +274,7 @@ public class ReviewContributionUseCase {
         return entity;
     }
 
-    private void createBlock(PendingContribution c, SchoolBlock.Type type, String adminUid) {
+    private SchoolBlockJpaEntity createBlock(PendingContribution c, SchoolBlock.Type type, String adminUid) {
         // Las PIEDRAS (BLOCK) no llevan nombre libre: se les asigna un NÚMERO
         // secuencial único en la escuela en el momento de materializarse (al
         // aprobar o al crear el admin). Así dos propuestas simultáneas nunca
@@ -280,7 +312,7 @@ public class ReviewContributionUseCase {
             parseAndAttachLines(block, c.getBloquesJson());
         }
 
-        blockRepo.save(block);
+        return blockRepo.save(block);
     }
 
     /** Modalidad de la piedra propuesta; default BOULDER si null/desconocida. */
@@ -430,16 +462,20 @@ public class ReviewContributionUseCase {
      * nueva. Así una sola propuesta corrige varias vías y/o añade nuevas
      * (editor unificado de iOS). Retrocompatible: las propuestas antiguas de
      * solo-añadir no traen targetLineId y caen en el "añadir".
+     *
+     * @return la PRIMERA vía creada (para el post NEW_LINE del feed), o null si
+     *         la propuesta solo corrigió/borró vías existentes.
      */
-    private void addLinesToExistingBlock(PendingContribution c) {
+    private BlockLineJpaEntity addLinesToExistingBlock(PendingContribution c) {
         var blockOpt = blockRepo.findById(c.getTargetBlockId());
-        if (blockOpt.isEmpty()) return;
+        if (blockOpt.isEmpty()) return null;
         var block = blockOpt.get();
-        if (c.getBloquesJson() == null || c.getBloquesJson().isBlank()) return;
+        if (c.getBloquesJson() == null || c.getBloquesJson().isBlank()) return null;
+        BlockLineJpaEntity firstCreated = null;
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode arr = mapper.readTree(c.getBloquesJson());
-            if (!arr.isArray()) return;
+            if (!arr.isArray()) return null;
             // Ids de las vías que EXISTÍAN antes de aplicar esta propuesta (para
             // la reconciliación de borrados de abajo).
             java.util.Set<String> preexisting = new java.util.HashSet<>();
@@ -491,6 +527,7 @@ public class ReviewContributionUseCase {
                             facePhoto, fo);
                     created.setDescription(descOf(node));
                     block.addLine(created);
+                    if (firstCreated == null) firstCreated = created;
                 }
             }
             // Reconciliación de BORRADOS (como en muros): si el payload trae al
@@ -512,7 +549,8 @@ public class ReviewContributionUseCase {
             }
             refreshCover(block);
             blockRepo.save(block);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) { return null; }
+        return firstCreated;
     }
 
     /**
@@ -522,10 +560,13 @@ public class ReviewContributionUseCase {
      * en sitio; las nuevas (sin lineId) se CREAN; las existentes que el payload
      * OMITE se BORRAN (orphanRemoval). sortOrder = orden en el payload; faceOrder
      * por foto. Actualiza path/dirección/geometría del muro.
+     *
+     * @return la PRIMERA vía creada (para el post NEW_LINE del feed), o null si
+     *         la edición no añadió vías nuevas.
      */
-    private void reconcileWall(PendingContribution c) {
+    private BlockLineJpaEntity reconcileWall(PendingContribution c) {
         var blockOpt = blockRepo.findById(c.getTargetBlockId());
-        if (blockOpt.isEmpty()) return;
+        if (blockOpt.isEmpty()) return null;
         var block = blockOpt.get();
 
         SchoolBlock.Geometry geom = parseGeometry(c.getGeometry());
@@ -535,12 +576,12 @@ public class ReviewContributionUseCase {
 
         if (c.getBloquesJson() == null || c.getBloquesJson().isBlank()) {
             blockRepo.save(block);
-            return;
+            return null;
         }
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode arr = mapper.readTree(c.getBloquesJson());
-            if (!arr.isArray()) { blockRepo.save(block); return; }
+            if (!arr.isArray()) { blockRepo.save(block); return null; }
 
             java.util.Map<String, BlockLineJpaEntity> existingById = new java.util.HashMap<>();
             for (var l : block.getLines()) existingById.put(l.getId(), l);
@@ -589,7 +630,9 @@ public class ReviewContributionUseCase {
             for (var l : toAdd) block.addLine(l);
             refreshCover(block);
             blockRepo.save(block);
+            return toAdd.isEmpty() ? null : toAdd.get(0);
         } catch (Exception ignored) {}
+        return null;
     }
 
     private static String textOrNull(JsonNode node, String field) {

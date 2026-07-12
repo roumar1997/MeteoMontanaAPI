@@ -171,6 +171,57 @@ class FeedServiceTest {
         verify(posts, never()).pageAllPublic(anyLong(), anyInt());
     }
 
+    // ------------------------------------------------------------ scope user (perfil público)
+
+    @Test
+    void userScopeReturnsEmptyIfTargetPrivateAndCallerNotFollower() {
+        User ana = user("ana", false);
+        when(users.findByUid("ana")).thenReturn(Optional.of(ana));
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+        // follows → Optional.empty() por defecto (no la sigue)
+
+        var result = service.pageOfUser("me", "ana", null, 20);
+
+        assertThat(result).isEmpty();
+        verify(posts, never()).pageByAuthors(anyList(), anyLong(), anyInt());
+    }
+
+    @Test
+    void userScopeReturnsEmptyIfCallerBlockedTarget() {
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of(new UserBlockJpaEntity("me", "troll")));
+
+        var result = service.pageOfUser("me", "troll", null, 20);
+
+        assertThat(result).isEmpty();
+        verify(posts, never()).pageByAuthors(anyList(), anyLong(), anyInt());
+    }
+
+    @Test
+    void userScopeAllowsAcceptedFollowerOfPrivateTarget() {
+        User ana = user("ana", false);
+        when(users.findByUid("ana")).thenReturn(Optional.of(ana));
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+        FollowJpaEntity accepted = mock(FollowJpaEntity.class);
+        when(accepted.getStatus()).thenReturn("ACCEPTED");
+        when(follows.findById_FollowerUidAndId_FollowedUid("me", "ana"))
+                .thenReturn(Optional.of(accepted));
+        when(posts.pageByAuthors(anyList(), anyLong(), anyInt())).thenReturn(List.of());
+
+        service.pageOfUser("me", "ana", null, 20);
+
+        verify(posts).pageByAuthors(eq(List.of("ana")), eq(Long.MAX_VALUE), eq(20));
+    }
+
+    @Test
+    void userScopeOnSelfSkipsPrivacyChecks() {
+        when(posts.pageByAuthors(anyList(), anyLong(), anyInt())).thenReturn(List.of());
+
+        service.pageOfUser("me", "me", null, 20);
+
+        verify(posts).pageByAuthors(eq(List.of("me")), eq(Long.MAX_VALUE), eq(20));
+        verify(users, never()).findByUid(any());
+    }
+
     // ------------------------------------------------------------ single
 
     private FeedPostJpaEntity singlePost(long id, String authorUid) {
@@ -333,6 +384,81 @@ class FeedServiceTest {
 
         assertThatThrownBy(() -> service.publish("me", "b1", "other-line", FeedService.KIND_TICK))
                 .isInstanceOf(ResponseStatusException.class);
+    }
+
+    // ------------------------------------------------------------ snapshot discipline/rock
+
+    /** Piedra ROUTE en una escuela de arenisca, con save que devuelve el arg con id. */
+    private SchoolBlockJpaEntity blockWithSchool() {
+        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
+        when(block.getSchoolId()).thenReturn("s1");
+        when(block.getLines()).thenReturn(List.of());
+        when(block.getDiscipline())
+                .thenReturn(com.meteomontana.api.domain.model.SchoolBlock.Discipline.ROUTE);
+        when(schoolBlocks.findById("b1")).thenReturn(Optional.of(block));
+
+        var school = mock(com.meteomontana.api.infrastructure.persistence.jpa.SchoolJpaEntity.class);
+        when(school.getName()).thenReturn("Albarracín");
+        when(school.getRockType()).thenReturn("Arenisca");
+        when(schools.findById("s1")).thenReturn(Optional.of(school));
+
+        when(posts.save(any())).thenAnswer(inv -> {
+            FeedPostJpaEntity e = org.mockito.Mockito.spy((FeedPostJpaEntity) inv.getArgument(0));
+            org.mockito.Mockito.doReturn(7L).when(e).getId();
+            return e;
+        });
+        return block;
+    }
+
+    @Test
+    void publishSnapshotsRockTypeAndDerivesDisciplineFromBlock() {
+        blockWithSchool();
+
+        service.publish("me", "b1", null, FeedService.KIND_TICK, null);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
+        verify(posts).save(captor.capture());
+        assertThat(captor.getValue().getDiscipline()).isEqualTo("ROUTE"); // de la piedra
+        assertThat(captor.getValue().getRockType()).isEqualTo("Arenisca");
+        assertThat(captor.getValue().getSchoolName()).isEqualTo("Albarracín");
+    }
+
+    @Test
+    void publishPrefersValidClientDisciplineAndIgnoresGarbage() {
+        blockWithSchool();
+
+        service.publish("me", "b1", null, FeedService.KIND_TICK, "boulder");
+        var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
+        verify(posts).save(captor.capture());
+        assertThat(captor.getValue().getDiscipline()).isEqualTo("BOULDER"); // normalizada
+
+        org.mockito.Mockito.clearInvocations(posts);
+        service.publish("me", "b1", null, FeedService.KIND_TICK, "SPEED");
+        verify(posts).save(captor.capture());
+        assertThat(captor.getValue().getDiscipline()).isEqualTo("ROUTE"); // desconocida → piedra
+    }
+
+    // ------------------------------------------------------------ posts automáticos
+
+    @Test
+    void publishSystemCreatesNewBlockPostWithSnapshots() {
+        SchoolBlockJpaEntity block = blockWithSchool();
+
+        long id = service.publishSystem("author", block, null, FeedService.KIND_NEW_BLOCK);
+
+        assertThat(id).isEqualTo(7L);
+        var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
+        verify(posts).save(captor.capture());
+        assertThat(captor.getValue().getKind()).isEqualTo(FeedService.KIND_NEW_BLOCK);
+        assertThat(captor.getValue().getUserUid()).isEqualTo("author");
+        assertThat(captor.getValue().getRockType()).isEqualTo("Arenisca");
+    }
+
+    @Test
+    void publishSystemRejectsClientKinds() {
+        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
+        assertThatThrownBy(() -> service.publishSystem("author", block, null, FeedService.KIND_TICK))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     // ------------------------------------------------------------ delete

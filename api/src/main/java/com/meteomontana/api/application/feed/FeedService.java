@@ -65,6 +65,7 @@ public class FeedService {
             String schoolId, String schoolName,
             String blockId, String blockName,
             String lineId, String lineName, String grade,
+            String discipline, String rockType,
             String photoPath, String linePath,
             long likeCount, boolean likedByMe, long commentCount, boolean mine) {}
 
@@ -141,6 +142,33 @@ public class FeedService {
         page = page.stream().filter(p -> !blocked.contains(p.getUserUid())).toList();
         if (page.isEmpty()) return List.of();
 
+        return mapViews(uid, page);
+    }
+
+    /**
+     * Posts de UN usuario (sección "actividad" de su perfil público). Mismas
+     * reglas de privacidad que {@link #single}, pero devolviendo lista VACÍA
+     * en vez de 404 (es una sección del perfil, no un recurso):
+     *  - target inexistente, o privado y el caller no es él ni seguidor
+     *    ACEPTADO → vacía;
+     *  - el caller bloqueó al target → vacía.
+     */
+    @Transactional(readOnly = true)
+    public List<FeedPostView> pageOfUser(String uid, String targetUid, Long before, int limit) {
+        if (targetUid == null || targetUid.isBlank()) return List.of();
+        int capped = Math.max(1, Math.min(limit, MAX_PAGE));
+        long cursor = before == null ? Long.MAX_VALUE : before;
+
+        if (!targetUid.equals(uid)) {
+            boolean iBlockedTarget = blocks.findByBlockerUid(uid).stream()
+                    .anyMatch(b -> b.getBlockedUid().equals(targetUid));
+            if (iBlockedTarget) return List.of();
+            User target = users.findByUid(targetUid).orElse(null);
+            if (target == null) return List.of();
+            if (!target.isPublic() && !isAcceptedFollower(uid, targetUid)) return List.of();
+        }
+        List<FeedPostJpaEntity> page = posts.pageByAuthors(List.of(targetUid), cursor, capped);
+        if (page.isEmpty()) return List.of();
         return mapViews(uid, page);
     }
 
@@ -225,6 +253,7 @@ public class FeedService {
                     p.getSchoolId(), p.getSchoolName(),
                     p.getBlockId(), p.getBlockName(),
                     p.getLineId(), p.getLineName(), p.getGrade(),
+                    p.getDiscipline(), p.getRockType(),
                     photoPath, linePath,
                     likeCounts.getOrDefault(p.getId(), 0L),
                     mine.contains(p.getId()),
@@ -243,6 +272,16 @@ public class FeedService {
      */
     @Transactional
     public long publish(String uid, String blockId, String lineId, String kind) {
+        return publish(uid, blockId, lineId, kind, null);
+    }
+
+    /**
+     * @param discipline modalidad opcional enviada por el cliente (BOULDER | ROUTE).
+     *        Si viene null/desconocida se deriva de la piedra (toda piedra tiene
+     *        modalidad); se snapshotea en el post junto al rock_type de la escuela.
+     */
+    @Transactional
+    public long publish(String uid, String blockId, String lineId, String kind, String discipline) {
         moderation.ensureCanPost(uid);
         if (!KIND_TICK.equals(kind) && !KIND_PROJECT_DONE.equals(kind)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -262,18 +301,54 @@ public class FeedService {
             if (existing.isPresent()) return existing.get().getId();
         }
 
-        String schoolName = block.getSchoolId() == null ? null
-                : schools.findById(block.getSchoolId())
-                        .map(s -> s.getName()).orElse(null);
+        FeedPostJpaEntity saved = posts.save(newPost(uid, block, line, kind, discipline));
+        return saved.getId();
+    }
 
-        FeedPostJpaEntity saved = posts.save(new FeedPostJpaEntity(
-                uid, block.getSchoolId(), schoolName,
+    /**
+     * Construye un post con los snapshots (nombres, grado, modalidad, roca).
+     * Modalidad: la del cliente si es válida; si no, la de la propia piedra.
+     */
+    private FeedPostJpaEntity newPost(String uid, SchoolBlockJpaEntity block,
+                                      BlockLineJpaEntity line, String kind, String discipline) {
+        var school = block.getSchoolId() == null ? null
+                : schools.findById(block.getSchoolId()).orElse(null);
+
+        FeedPostJpaEntity post = new FeedPostJpaEntity(
+                uid, block.getSchoolId(),
+                school != null ? school.getName() : null,
                 block.getId(), block.getName(),
                 line != null ? line.getId() : null,
                 line != null ? line.getName() : null,
                 line != null ? line.getGrade() : null,
-                kind));
-        return saved.getId();
+                kind);
+        post.setDiscipline(normalizeDiscipline(discipline, block));
+        post.setRockType(school != null ? school.getRockType() : null);
+        return post;
+    }
+
+    /** BOULDER | ROUTE del cliente, o derivada de la piedra si null/desconocida. */
+    private static String normalizeDiscipline(String raw, SchoolBlockJpaEntity block) {
+        if (raw != null) {
+            String d = raw.trim().toUpperCase();
+            if ("BOULDER".equals(d) || "ROUTE".equals(d)) return d;
+        }
+        return block.getDiscipline() != null ? block.getDiscipline().name() : null;
+    }
+
+    /**
+     * Post AUTOMÁTICO al aprobar una contribución (NEW_BLOCK / NEW_LINE), con
+     * autor = autor de la contribución. Sin push ni notificación (decisión de
+     * diseño: la aprobación ya avisa por email). El que llama debe envolverlo
+     * en try/catch: crear el post nunca puede tumbar la aprobación.
+     */
+    @Transactional
+    public long publishSystem(String authorUid, SchoolBlockJpaEntity block,
+                              BlockLineJpaEntity line, String kind) {
+        if (!KIND_NEW_BLOCK.equals(kind) && !KIND_NEW_LINE.equals(kind)) {
+            throw new IllegalArgumentException("kind debe ser NEW_BLOCK o NEW_LINE");
+        }
+        return posts.save(newPost(authorUid, block, line, kind, null)).getId();
     }
 
     /** Borra un post propio (o cualquiera si es admin). */
