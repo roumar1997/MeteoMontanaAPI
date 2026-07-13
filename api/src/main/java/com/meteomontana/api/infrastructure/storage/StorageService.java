@@ -9,6 +9,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -17,6 +19,19 @@ import java.util.concurrent.TimeUnit;
  */
 @Service
 public class StorageService {
+
+    /**
+     * Caché de URLs firmadas. Firmar es una operación RSA (~ms); una página de
+     * feed con 20 fotos firma 20 URLs, y cada scroll/refresco re-firma las
+     * MISMAS fotos. Cachear la URL firmada por ruta evita re-firmar hasta que
+     * está a punto de caducar → recorta mucha CPU cuando el feed se usa mucho.
+     * La servimos solo mientras le quede holgura (80% de su validez) para no
+     * devolver nunca una URL casi caducada.
+     */
+    private record CachedUrl(URL url, long serveUntilMillis) {}
+
+    private final Map<String, CachedUrl> urlCache = new ConcurrentHashMap<>();
+    private static final int URL_CACHE_MAX = 20_000;
 
     /** Sube un archivo a la ruta indicada dentro del bucket por defecto. */
     public String upload(String path, MultipartFile file) throws IOException {
@@ -49,19 +64,38 @@ public class StorageService {
     }
 
     /**
-     * Genera una URL firmada de lectura que expira pasados minutesValid minutos.
-     * El cliente puede descargar la foto sin tener credenciales de Firebase.
+     * Genera (o reutiliza de caché) una URL firmada de lectura que expira
+     * pasados minutesValid minutos. El cliente puede descargar la foto sin
+     * tener credenciales de Firebase.
      */
     public URL signedReadUrl(String path, int minutesValid) {
+        String key = minutesValid + ":" + path;
+        long now = System.currentTimeMillis();
+
+        CachedUrl cached = urlCache.get(key);
+        if (cached != null && now < cached.serveUntilMillis()) {
+            return cached.url();
+        }
+
         String bucketName = StorageClient.getInstance().bucket().getName();
-
         BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucketName, path)).build();
-
-        return storage().signUrl(
+        URL url = storage().signUrl(
                 blobInfo,
                 minutesValid,
                 TimeUnit.MINUTES,
                 Storage.SignUrlOption.withV4Signature()
         );
+
+        // Servir de caché solo el 80% de la validez → la URL devuelta siempre
+        // tiene ≥20% de vida por delante.
+        long serveUntil = now + (long) (minutesValid * 60_000L * 0.8);
+        // Cota de memoria: si crece demasiado (muchas rutas distintas con el
+        // tiempo), purgamos las caducadas; si aun así sigue grande, se vacía.
+        if (urlCache.size() >= URL_CACHE_MAX) {
+            urlCache.entrySet().removeIf(e -> now >= e.getValue().serveUntilMillis());
+            if (urlCache.size() >= URL_CACHE_MAX) urlCache.clear();
+        }
+        urlCache.put(key, new CachedUrl(url, serveUntil));
+        return url;
     }
 }
