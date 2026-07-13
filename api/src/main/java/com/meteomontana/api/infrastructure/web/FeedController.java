@@ -35,7 +35,8 @@ public class FeedController {
      */
     public record PublishRequest(String blockId, String lineId, String kind,
                                  String discipline, String caption) {}
-    public record CommentRequest(String text) {}
+    /** parentId opcional (V57): comentario al que se responde (puede ser una respuesta). */
+    public record CommentRequest(String text, String parentId) {}
 
     private final FeedService service;
     private final UserRepository users;
@@ -126,7 +127,21 @@ public class FeedController {
             @PathVariable long postId,
             @RequestBody CommentRequest req,
             @AuthenticationPrincipal FirebaseUser user) {
-        return service.addComment(user.uid(), postId, req.text());
+        return service.addComment(user.uid(), postId, req.text(), req.parentId());
+    }
+
+    @PostMapping("/comments/{commentId}/like")
+    public Map<String, Long> likeComment(
+            @PathVariable String commentId,
+            @AuthenticationPrincipal FirebaseUser user) {
+        return Map.of("likeCount", service.likeComment(user.uid(), commentId));
+    }
+
+    @DeleteMapping("/comments/{commentId}/like")
+    public Map<String, Long> unlikeComment(
+            @PathVariable String commentId,
+            @AuthenticationPrincipal FirebaseUser user) {
+        return Map.of("likeCount", service.unlikeComment(user.uid(), commentId));
     }
 
     @DeleteMapping("/comments/{commentId}")

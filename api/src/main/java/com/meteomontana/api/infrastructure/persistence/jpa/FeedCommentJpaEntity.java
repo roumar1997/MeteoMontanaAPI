@@ -34,14 +34,24 @@ public class FeedCommentJpaEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    /** Comentario al que responde (V57), null = comentario raíz. */
+    @Column(name = "parent_id", length = 80)
+    private String parentId;
+
     protected FeedCommentJpaEntity() {}
 
     public FeedCommentJpaEntity(String id, Long postId, String uid, String author, String text) {
+        this(id, postId, uid, author, text, null);
+    }
+
+    public FeedCommentJpaEntity(String id, Long postId, String uid, String author,
+                                String text, String parentId) {
         this.id = id;
         this.postId = postId;
         this.uid = uid;
         this.author = author;
         this.text = text;
+        this.parentId = parentId;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -51,4 +61,5 @@ public class FeedCommentJpaEntity {
     public String getAuthor() { return author; }
     public String getText() { return text; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getParentId() { return parentId; }
 }

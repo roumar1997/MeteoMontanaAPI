@@ -44,6 +44,7 @@ class FeedServiceTest {
     SpringDataFeedPostRepository posts = mock(SpringDataFeedPostRepository.class);
     SpringDataFeedLikeRepository likes = mock(SpringDataFeedLikeRepository.class);
     SpringDataFeedCommentRepository comments = mock(SpringDataFeedCommentRepository.class);
+    com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentLikeRepository commentLikes = mock(com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentLikeRepository.class);
     SpringDataFollowRepository follows = mock(SpringDataFollowRepository.class);
     SpringDataUserBlockRepository blocks = mock(SpringDataUserBlockRepository.class);
     SpringDataSchoolBlockRepository schoolBlocks = mock(SpringDataSchoolBlockRepository.class);
@@ -60,7 +61,7 @@ class FeedServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new FeedService(posts, likes, comments, follows, blocks,
+        service = new FeedService(posts, likes, comments, commentLikes, follows, blocks,
                 schoolBlocks, schools, users, mapper, moderation, notifications, push, storage);
     }
 
@@ -335,7 +336,7 @@ class FeedServiceTest {
         when(comments.findByPostIdOrderByCreatedAtAsc(2L)).thenReturn(previous);
         when(comments.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.addComment("me", 2L, "¡Qué máquina!");
+        service.addComment("me", 2L, "¡Qué máquina!", null);
 
         // Dueña: una sola vez (aunque también comentó antes).
         verify(notifications).create(eq("ana"), eq("FEED_COMMENT"), any(), any(),

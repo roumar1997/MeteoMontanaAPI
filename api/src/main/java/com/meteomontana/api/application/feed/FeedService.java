@@ -13,6 +13,8 @@ import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedLikeJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
+import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentLikeJpaEntity;
+import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentLikeRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedLikeRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
@@ -81,12 +83,15 @@ public class FeedService {
     // author como OBJETO (no String): las apps deserializan FeedAuthorDto —
     // mandar el snapshot "@usuario" rompía el parseo y los comentarios ni se
     // listaban ni parecían enviarse (aunque el POST sí insertaba).
+    // likeCount/likedByMe/parentId (V57): likes y respuestas de comentarios.
     public record FeedCommentView(String id, long postId, String uid, FeedAuthor author,
-                                  String text, LocalDateTime createdAt, boolean mine) {}
+                                  String text, LocalDateTime createdAt, boolean mine,
+                                  long likeCount, boolean likedByMe, String parentId) {}
 
     private final SpringDataFeedPostRepository posts;
     private final SpringDataFeedLikeRepository likes;
     private final SpringDataFeedCommentRepository comments;
+    private final SpringDataFeedCommentLikeRepository commentLikes;
     private final SpringDataFollowRepository follows;
     private final SpringDataUserBlockRepository blocks;
     private final SpringDataSchoolBlockRepository schoolBlocks;
@@ -101,6 +106,7 @@ public class FeedService {
     public FeedService(SpringDataFeedPostRepository posts,
                        SpringDataFeedLikeRepository likes,
                        SpringDataFeedCommentRepository comments,
+                       SpringDataFeedCommentLikeRepository commentLikes,
                        SpringDataFollowRepository follows,
                        SpringDataUserBlockRepository blocks,
                        SpringDataSchoolBlockRepository schoolBlocks,
@@ -114,6 +120,7 @@ public class FeedService {
         this.posts = posts;
         this.likes = likes;
         this.comments = comments;
+        this.commentLikes = commentLikes;
         this.follows = follows;
         this.blocks = blocks;
         this.schoolBlocks = schoolBlocks;
@@ -529,22 +536,43 @@ public class FeedService {
         List<FeedCommentJpaEntity> page = comments.findByPostIdOrderByCreatedAtAsc(postId);
         Map<String, FeedAuthor> authors = loadAuthors(
                 page.stream().map(FeedCommentJpaEntity::getUid).distinct().toList());
+        List<String> ids = page.stream().map(FeedCommentJpaEntity::getId).toList();
+        Map<String, Long> likeCounts = ids.isEmpty() ? Map.of()
+                : commentLikes.countByCommentIds(ids).stream()
+                        .collect(Collectors.toMap(r -> (String) r[0], r -> (Long) r[1]));
+        Set<String> likedByMe = ids.isEmpty() ? Set.of()
+                : Set.copyOf(commentLikes.likedCommentIds(uid, ids));
         return page.stream()
                 .filter(c -> !blocked.contains(c.getUid()))
                 .map(c -> new FeedCommentView(c.getId(), c.getPostId(), c.getUid(),
                         commentAuthor(authors, c), c.getText(), c.getCreatedAt(),
-                        c.getUid().equals(uid)))
+                        c.getUid().equals(uid),
+                        likeCounts.getOrDefault(c.getId(), 0L),
+                        likedByMe.contains(c.getId()), c.getParentId()))
                 .toList();
     }
 
+    /**
+     * @param parentId comentario al que se responde (null = comentario raíz).
+     *                 Puede ser una respuesta (se responde a respuestas); las
+     *                 apps agrupan visualmente bajo el comentario raíz del hilo
+     *                 y mencionan al autor respondido.
+     */
     @Transactional
-    public FeedCommentView addComment(String uid, long postId, String text) {
+    public FeedCommentView addComment(String uid, long postId, String text, String parentId) {
         moderation.ensureCanPost(uid);
         if (text == null || text.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "text is required");
         }
         if (!posts.existsById(postId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+        }
+        if (parentId != null) {
+            FeedCommentJpaEntity parent = comments.findById(parentId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "comentario no encontrado"));
+            if (parent.getPostId() != postId) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "el comentario no es de este post");
+            }
         }
         String trimmed = text.trim();
         if (trimmed.length() > 1000) trimmed = trimmed.substring(0, 1000);
@@ -558,13 +586,53 @@ public class FeedService {
         List<FeedCommentJpaEntity> previous = comments.findByPostIdOrderByCreatedAtAsc(postId);
 
         FeedCommentJpaEntity saved = comments.save(new FeedCommentJpaEntity(
-                UUID.randomUUID().toString(), postId, uid, author, trimmed));
+                UUID.randomUUID().toString(), postId, uid, author, trimmed, parentId));
 
         posts.findById(postId).ifPresent(post -> notifyComment(uid, author, post, previous));
 
         return new FeedCommentView(saved.getId(), saved.getPostId(), saved.getUid(),
                 commentAuthor(loadAuthors(List.of(uid)), saved),
-                saved.getText(), saved.getCreatedAt(), true);
+                saved.getText(), saved.getCreatedAt(), true,
+                0L, false, saved.getParentId());
+    }
+
+    // ------------------------------------------------------ likes de comentario
+
+    /** Da like a un comentario (idempotente). Devuelve el contador resultante. */
+    @Transactional
+    public long likeComment(String uid, String commentId) {
+        FeedCommentJpaEntity c = comments.findById(commentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "comentario no encontrado"));
+        if (!commentLikes.existsById(new FeedCommentLikeJpaEntity.Key(commentId, uid))) {
+            commentLikes.save(new FeedCommentLikeJpaEntity(commentId, uid));
+            // Solo al CREAR el like y nunca a uno mismo (mismo criterio que el post).
+            if (!c.getUid().equals(uid)) notifyCommentLike(uid, c);
+        }
+        return commentLikes.countByCommentId(commentId);
+    }
+
+    /** Quita el like a un comentario (idempotente). Devuelve el contador. */
+    @Transactional
+    public long unlikeComment(String uid, String commentId) {
+        FeedCommentLikeJpaEntity.Key key = new FeedCommentLikeJpaEntity.Key(commentId, uid);
+        if (commentLikes.existsById(key)) commentLikes.deleteById(key);
+        return commentLikes.countByCommentId(commentId);
+    }
+
+    /** Notifica al autor del comentario que alguien le ha dado like. Nunca tumba la tx. */
+    private void notifyCommentLike(String likerUid, FeedCommentJpaEntity c) {
+        try {
+            User liker = users.findByUid(likerUid).orElse(null);
+            String name = displayNameOf(liker);
+            String body = "A " + name + " le gusta tu comentario";
+            String postIdStr = String.valueOf(c.getPostId());
+            notifications.create(c.getUid(), "FEED_COMMENT_LIKE",
+                    "Nuevo me gusta", body, "feed_post", postIdStr);
+            push.sendDataToUserAsync(c.getUid(),
+                    pushData(postIdStr, "Nuevo me gusta", body, avatarUrlOf(liker)));
+        } catch (Exception e) {
+            log.warn("No se pudo notificar el like del comentario {}: {}", c.getId(), e.getMessage());
+        }
     }
 
     /**
