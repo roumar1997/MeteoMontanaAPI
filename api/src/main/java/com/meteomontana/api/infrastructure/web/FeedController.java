@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -76,6 +78,18 @@ public class FeedController {
             @AuthenticationPrincipal FirebaseUser user) {
         return Map.of("id", service.publish(user.uid(), req.blockId(), req.lineId(),
                 req.kind(), req.discipline(), req.caption()));
+    }
+
+    /**
+     * Sube (o reemplaza) la foto de celebración de un post PROPIO (multipart,
+     * campo "file", máx 5MB, magic bytes validados). 403 si no eres el dueño.
+     */
+    @PostMapping("/{postId}/photo")
+    public Map<String, String> uploadPhoto(
+            @PathVariable long postId,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal FirebaseUser user) throws IOException {
+        return Map.of("photoUrl", service.uploadPhoto(user.uid(), postId, file));
     }
 
     @DeleteMapping("/{postId}")

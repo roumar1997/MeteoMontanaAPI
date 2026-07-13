@@ -62,6 +62,13 @@ public class FeedPostJpaEntity {
     @Column(length = 500)
     private String caption;
 
+    /**
+     * Ruta en Firebase Storage de la foto de celebración opcional
+     * (feed-photos/{postId}/{uuid}.{ext}). La URL firmada se genera al leer. Ver V56.
+     */
+    @Column(name = "photo_path", length = 500)
+    private String photoPath;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -99,5 +106,7 @@ public class FeedPostJpaEntity {
     public void setRockType(String rockType) { this.rockType = rockType; }
     public String getCaption() { return caption; }
     public void setCaption(String caption) { this.caption = caption; }
+    public String getPhotoPath() { return photoPath; }
+    public void setPhotoPath(String photoPath) { this.photoPath = photoPath; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

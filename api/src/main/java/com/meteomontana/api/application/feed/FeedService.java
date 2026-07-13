@@ -21,11 +21,15 @@ import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlock
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.UserBlockJpaEntity;
+import com.meteomontana.api.infrastructure.storage.ImageValidation;
+import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,6 +62,10 @@ public class FeedService {
 
     private static final int MAX_PAGE = 50;
 
+    /** URL firmada válida 60 min (mismo TTL que las fotos de escuela). */
+    private static final int PHOTO_URL_TTL_MINUTES = 60;
+    private static final long MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
     public record FeedAuthor(String uid, String username, String displayName, String photoUrl) {}
 
     public record FeedPostView(
@@ -68,7 +76,7 @@ public class FeedService {
             String discipline, String rockType,
             String photoPath, String linePath,
             long likeCount, boolean likedByMe, long commentCount, boolean mine,
-            String startType, String caption) {}
+            String startType, String caption, String photoUrl) {}
 
     public record FeedCommentView(String id, long postId, String uid, String author,
                                   String text, LocalDateTime createdAt, boolean mine) {}
@@ -85,6 +93,7 @@ public class FeedService {
     private final UserModerationService moderation;
     private final NotificationService notifications;
     private final PushSender push;
+    private final StorageService storage;
 
     public FeedService(SpringDataFeedPostRepository posts,
                        SpringDataFeedLikeRepository likes,
@@ -97,7 +106,8 @@ public class FeedService {
                        UserDtoMapper mapper,
                        UserModerationService moderation,
                        NotificationService notifications,
-                       PushSender push) {
+                       PushSender push,
+                       StorageService storage) {
         this.posts = posts;
         this.likes = likes;
         this.comments = comments;
@@ -110,6 +120,7 @@ public class FeedService {
         this.moderation = moderation;
         this.notifications = notifications;
         this.push = push;
+        this.storage = storage;
     }
 
     // ------------------------------------------------------------ lectura
@@ -262,8 +273,23 @@ public class FeedService {
                     mine.contains(p.getId()),
                     commentCounts.getOrDefault(p.getId(), 0L),
                     p.getUserUid().equals(uid),
-                    startType, p.getCaption());
+                    startType, p.getCaption(), signedPhotoUrl(p.getPhotoPath()));
         }).filter(v -> v != null).toList();
+    }
+
+    /**
+     * URL firmada ({@value #PHOTO_URL_TTL_MINUTES} min, como las fotos de
+     * escuela) de la foto de celebración, o null si el post no tiene o la
+     * firma falla (una foto rota nunca tumba la página del feed).
+     */
+    private String signedPhotoUrl(String photoPath) {
+        if (photoPath == null || photoPath.isBlank()) return null;
+        try {
+            return storage.signedReadUrl(photoPath, PHOTO_URL_TTL_MINUTES).toString();
+        } catch (Exception e) {
+            log.warn("No se pudo firmar la foto del feed {}: {}", photoPath, e.getMessage());
+            return null;
+        }
     }
 
     // ------------------------------------------------------------ publicar
@@ -376,6 +402,79 @@ public class FeedService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "solo puedes borrar tus posts");
         }
         posts.delete(p); // likes y comentarios caen por ON DELETE CASCADE
+        deletePhotoQuietly(p.getPhotoPath());
+    }
+
+    /** Borra una foto del Storage, best effort: nunca tumba la operación. */
+    private void deletePhotoQuietly(String photoPath) {
+        if (photoPath == null || photoPath.isBlank()) return;
+        try {
+            storage.delete(photoPath);
+        } catch (Exception e) {
+            log.warn("No se pudo borrar la foto del feed {}: {}", photoPath, e.getMessage());
+        }
+    }
+
+    // ------------------------------------------------------------ foto de celebración
+
+    /**
+     * Sube (o reemplaza) la foto de celebración de un post PROPIO. Mismo patrón
+     * que {@link com.meteomontana.api.application.photos.UploadSchoolPhotoUseCase}:
+     * NO es @Transactional a propósito — la subida a Storage tarda segundos y
+     * retendría una conexión del pool; cada acceso a BD coge y suelta la suya.
+     * Si el post ya tenía foto, la anterior se borra del Storage (best effort)
+     * DESPUÉS de guardar la nueva ruta.
+     *
+     * @return URL firmada ({@value #PHOTO_URL_TTL_MINUTES} min) de la foto subida.
+     */
+    public String uploadPhoto(String uid, long postId, MultipartFile file) throws IOException {
+        FeedPostJpaEntity post = posts.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado"));
+        if (!post.getUserUid().equals(uid)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "solo puedes añadir foto a tus posts");
+        }
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Empty file");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Only image files are allowed");
+        }
+        if (file.getSize() > MAX_PHOTO_BYTES) {
+            throw new IllegalArgumentException("File too large (max 5MB)");
+        }
+        // Comprueba que los bytes son de una imagen real, no solo el Content-Type.
+        ImageValidation.ensureRealImage(file);
+
+        String previousPath = post.getPhotoPath();
+        String storagePath = "feed-photos/" + postId + "/" + UUID.randomUUID()
+                + "." + guessExtension(contentType);
+        storage.upload(storagePath, file);
+
+        try {
+            post.setPhotoPath(storagePath);
+            posts.save(post);
+        } catch (RuntimeException ex) {
+            // Si Postgres falla, intentamos limpiar el archivo huérfano.
+            deletePhotoQuietly(storagePath);
+            throw ex;
+        }
+        // Reemplazo: la foto anterior ya no está referenciada → fuera del Storage.
+        if (previousPath != null && !previousPath.equals(storagePath)) {
+            deletePhotoQuietly(previousPath);
+        }
+        return storage.signedReadUrl(storagePath, PHOTO_URL_TTL_MINUTES).toString();
+    }
+
+    private static String guessExtension(String contentType) {
+        return switch (contentType) {
+            case "image/jpeg" -> "jpg";
+            case "image/png"  -> "png";
+            case "image/webp" -> "webp";
+            case "image/gif"  -> "gif";
+            default           -> "bin";
+        };
     }
 
     // ------------------------------------------------------------ likes
