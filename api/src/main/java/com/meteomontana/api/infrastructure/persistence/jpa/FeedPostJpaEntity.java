@@ -58,6 +58,10 @@ public class FeedPostJpaEntity {
     @Column(name = "rock_type", length = 40)
     private String rockType;
 
+    /** Descripción opcional escrita por el autor al publicar (null en posts automáticos). Ver V55. */
+    @Column(length = 500)
+    private String caption;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -93,5 +97,7 @@ public class FeedPostJpaEntity {
     public void setDiscipline(String discipline) { this.discipline = discipline; }
     public String getRockType() { return rockType; }
     public void setRockType(String rockType) { this.rockType = rockType; }
+    public String getCaption() { return caption; }
+    public void setCaption(String caption) { this.caption = caption; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }
