@@ -3,7 +3,6 @@ package com.meteomontana.api.infrastructure.storage;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 import com.google.firebase.cloud.StorageClient;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,25 +35,17 @@ public class StorageService {
     }
 
     /**
-     * Cliente de Storage reutilizado. Antes cada {@link #signedReadUrl} hacía
-     * {@code StorageOptions.getDefaultInstance().getService()}, que construye un
-     * cliente HTTP/gRPC nuevo — caro y se repetía por CADA foto de CADA petición
-     * de lista. Se cachea con double-checked locking (thread-safe, perezoso).
+     * Cliente de Storage para FIRMAR URLs: el del SDK de Firebase Admin, que
+     * lleva las credenciales de la service account (clave privada → puede
+     * firmar). El {@code StorageOptions.getDefaultInstance()} de antes
+     * dependía de las Application Default Credentials del entorno, que en
+     * Railway NO existen → "Signing key was not provided and could not be
+     * derived" (la firma llevaba rota en staging y prod; lo destapó la foto
+     * de celebración del feed el 2026-07-13). Firebase Admin cachea su
+     * instancia internamente, no hace falta double-checked locking.
      */
-    private volatile Storage storage;
-
     private Storage storage() {
-        Storage s = storage;
-        if (s == null) {
-            synchronized (this) {
-                s = storage;
-                if (s == null) {
-                    s = StorageOptions.getDefaultInstance().getService();
-                    storage = s;
-                }
-            }
-        }
-        return s;
+        return StorageClient.getInstance().bucket().getStorage();
     }
 
     /**
