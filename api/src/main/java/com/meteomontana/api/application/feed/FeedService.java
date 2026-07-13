@@ -78,7 +78,10 @@ public class FeedService {
             long likeCount, boolean likedByMe, long commentCount, boolean mine,
             String startType, String caption, String photoUrl) {}
 
-    public record FeedCommentView(String id, long postId, String uid, String author,
+    // author como OBJETO (no String): las apps deserializan FeedAuthorDto —
+    // mandar el snapshot "@usuario" rompía el parseo y los comentarios ni se
+    // listaban ni parecían enviarse (aunque el POST sí insertaba).
+    public record FeedCommentView(String id, long postId, String uid, FeedAuthor author,
                                   String text, LocalDateTime createdAt, boolean mine) {}
 
     private final SpringDataFeedPostRepository posts;
@@ -523,10 +526,14 @@ public class FeedService {
     public List<FeedCommentView> listComments(String uid, long postId) {
         Set<String> blocked = blocks.findByBlockerUid(uid).stream()
                 .map(UserBlockJpaEntity::getBlockedUid).collect(Collectors.toSet());
-        return comments.findByPostIdOrderByCreatedAtAsc(postId).stream()
+        List<FeedCommentJpaEntity> page = comments.findByPostIdOrderByCreatedAtAsc(postId);
+        Map<String, FeedAuthor> authors = loadAuthors(
+                page.stream().map(FeedCommentJpaEntity::getUid).distinct().toList());
+        return page.stream()
                 .filter(c -> !blocked.contains(c.getUid()))
                 .map(c -> new FeedCommentView(c.getId(), c.getPostId(), c.getUid(),
-                        c.getAuthor(), c.getText(), c.getCreatedAt(), c.getUid().equals(uid)))
+                        commentAuthor(authors, c), c.getText(), c.getCreatedAt(),
+                        c.getUid().equals(uid)))
                 .toList();
     }
 
@@ -556,7 +563,19 @@ public class FeedService {
         posts.findById(postId).ifPresent(post -> notifyComment(uid, author, post, previous));
 
         return new FeedCommentView(saved.getId(), saved.getPostId(), saved.getUid(),
-                saved.getAuthor(), saved.getText(), saved.getCreatedAt(), true);
+                commentAuthor(loadAuthors(List.of(uid)), saved),
+                saved.getText(), saved.getCreatedAt(), true);
+    }
+
+    /**
+     * Autor de un comentario para la vista: la ficha real si existe; si la
+     * cuenta ya no está, el snapshot guardado como displayName (nunca null,
+     * las apps pintan avatar+nombre desde este objeto).
+     */
+    private static FeedAuthor commentAuthor(Map<String, FeedAuthor> authors,
+                                            FeedCommentJpaEntity c) {
+        FeedAuthor a = authors.get(c.getUid());
+        return a != null ? a : new FeedAuthor(c.getUid(), null, c.getAuthor(), null);
     }
 
     /**
