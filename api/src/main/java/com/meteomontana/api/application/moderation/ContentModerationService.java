@@ -14,6 +14,9 @@ import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataLineComment
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.UserBlockJpaEntity;
+import com.meteomontana.api.infrastructure.storage.StorageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -54,6 +57,9 @@ public class ContentModerationService {
     private final UserModerationService userModeration;
     private final SpringDataFeedPostRepository feedPosts;
     private final SpringDataFeedCommentRepository feedComments;
+    private final StorageService storage;
+
+    private static final Logger log = LoggerFactory.getLogger(ContentModerationService.class);
 
     public ContentModerationService(SpringDataContentReportRepository reports,
                                     SpringDataUserBlockRepository blocks,
@@ -64,7 +70,8 @@ public class ContentModerationService {
                                     PushSender push,
                                     UserModerationService userModeration,
                                     SpringDataFeedPostRepository feedPosts,
-                                    SpringDataFeedCommentRepository feedComments) {
+                                    SpringDataFeedCommentRepository feedComments,
+                                    StorageService storage) {
         this.reports = reports;
         this.blocks = blocks;
         this.comments = comments;
@@ -75,6 +82,7 @@ public class ContentModerationService {
         this.userModeration = userModeration;
         this.feedPosts = feedPosts;
         this.feedComments = feedComments;
+        this.storage = storage;
     }
 
     /** Crea la denuncia (con snapshot del contenido) y avisa a los admins. */
@@ -138,7 +146,10 @@ public class ContentModerationService {
                 }
                 case "FEED_POST" -> {
                     FeedPostJpaEntity p = feedPostById(targetId);
-                    if (p != null) feedPosts.delete(p); // likes/comentarios caen en cascada
+                    if (p != null) {
+                        feedPosts.delete(p); // likes/comentarios caen en cascada
+                        deleteFeedPhotoQuietly(p.getPhotoPath());
+                    }
                     userModeration.record(reporterUid, authorUid, "DELETE_FEED_POST", r, snapshot);
                 }
                 case "FEED_COMMENT" -> {
@@ -202,7 +213,10 @@ public class ContentModerationService {
                 }
                 case "FEED_POST" -> {
                     FeedPostJpaEntity p = feedPostById(rep.getTargetId());
-                    if (p != null) feedPosts.delete(p); // likes/comentarios caen en cascada
+                    if (p != null) {
+                        feedPosts.delete(p); // likes/comentarios caen en cascada
+                        deleteFeedPhotoQuietly(p.getPhotoPath());
+                    }
                     userModeration.record(adminUid, rep.getAuthorUid(), "DELETE_FEED_POST", why, rep.getSnapshot());
                 }
                 case "FEED_COMMENT" -> {
@@ -264,8 +278,21 @@ public class ContentModerationService {
                 .map(u -> u.getUsername() != null ? "@" + u.getUsername() : u.getDisplayName())
                 .orElse(p.getUserUid());
         String what = p.getLineName() != null ? p.getLineName() : p.getBlockName();
+        // "(con foto)": aviso al admin de que el post tiene foto de celebración
+        // que debe revisar (la ve en VER POST — photoUrl va en el FeedPostView).
         return author + ": " + p.getKind() + " «" + what + "»"
-                + (p.getSchoolName() != null ? " · " + p.getSchoolName() : "");
+                + (p.getSchoolName() != null ? " · " + p.getSchoolName() : "")
+                + (p.getPhotoPath() != null ? " (con foto)" : "");
+    }
+
+    /** Borra la foto de celebración del Storage, best effort: nunca tumba el borrado. */
+    private void deleteFeedPhotoQuietly(String photoPath) {
+        if (photoPath == null || photoPath.isBlank()) return;
+        try {
+            storage.delete(photoPath);
+        } catch (Exception e) {
+            log.warn("No se pudo borrar la foto del feed {}: {}", photoPath, e.getMessage());
+        }
     }
 
     private ReportView toView(ContentReportJpaEntity e) {

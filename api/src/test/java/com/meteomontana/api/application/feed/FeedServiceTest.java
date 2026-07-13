@@ -53,13 +53,15 @@ class FeedServiceTest {
     UserModerationService moderation = mock(UserModerationService.class);
     NotificationService notifications = mock(NotificationService.class);
     PushSender push = mock(PushSender.class);
+    com.meteomontana.api.infrastructure.storage.StorageService storage =
+            mock(com.meteomontana.api.infrastructure.storage.StorageService.class);
 
     FeedService service;
 
     @BeforeEach
     void setUp() {
         service = new FeedService(posts, likes, comments, follows, blocks,
-                schoolBlocks, schools, users, mapper, moderation, notifications, push);
+                schoolBlocks, schools, users, mapper, moderation, notifications, push, storage);
     }
 
     // ------------------------------------------------------------ helpers
@@ -531,5 +533,91 @@ class FeedServiceTest {
 
         service.delete("me", 1L, true); // admin sí puede
         verify(posts).delete(p);
+    }
+
+    // ------------------------------------------------------------ foto de celebración
+
+    /** MultipartFile con magic bytes de JPEG real. */
+    private org.springframework.mock.web.MockMultipartFile jpeg() {
+        return new org.springframework.mock.web.MockMultipartFile(
+                "file", "celebracion.jpg", "image/jpeg",
+                new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0, 0, 0, 0, 0, 0, 0});
+    }
+
+    @Test
+    void uploadPhotoRejectsNonOwner() {
+        FeedPostJpaEntity p = post("ana");
+        when(posts.findById(1L)).thenReturn(Optional.of(p));
+
+        assertThatThrownBy(() -> service.uploadPhoto("me", 1L, jpeg()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("403");
+    }
+
+    @Test
+    void uploadPhotoStoresPathReplacesOldAndReturnsSignedUrl() throws Exception {
+        FeedPostJpaEntity p = post("me");
+        when(p.getPhotoPath()).thenReturn("feed-photos/1/old.jpg");
+        when(posts.findById(1L)).thenReturn(Optional.of(p));
+        when(posts.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(storage.signedReadUrl(any(), anyInt()))
+                .thenReturn(java.net.URI.create("https://signed.example/foto").toURL());
+
+        String url = service.uploadPhoto("me", 1L, jpeg());
+
+        assertThat(url).isEqualTo("https://signed.example/foto");
+        var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(p).setPhotoPath(pathCaptor.capture());
+        assertThat(pathCaptor.getValue()).startsWith("feed-photos/1/").endsWith(".jpg");
+        verify(storage).upload(eq(pathCaptor.getValue()), any());
+        verify(storage).delete("feed-photos/1/old.jpg"); // la anterior se limpia
+    }
+
+    @Test
+    void uploadPhotoRejectsNonImageBytes() {
+        FeedPostJpaEntity p = post("me");
+        when(posts.findById(1L)).thenReturn(Optional.of(p));
+        var fake = new org.springframework.mock.web.MockMultipartFile(
+                "file", "evil.jpg", "image/jpeg", "MZ ejecutable".getBytes());
+
+        assertThatThrownBy(() -> service.uploadPhoto("me", 1L, fake))
+                .isInstanceOf(IllegalArgumentException.class);
+        org.mockito.Mockito.verifyNoInteractions(storage);
+    }
+
+    @Test
+    void viewPhotoUrlIsNullWithoutPhotoAndSignedWithPhoto() throws Exception {
+        FeedPostJpaEntity noPhoto = post("ana");
+        FeedPostJpaEntity withPhoto = post("ana");
+        when(withPhoto.getId()).thenReturn(2L);
+        when(withPhoto.getPhotoPath()).thenReturn("feed-photos/2/x.jpg");
+        when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(noPhoto, withPhoto));
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+        User ana = user("ana", true);
+        when(users.findByUids(anyList())).thenReturn(List.of(ana));
+        when(mapper.toPublic(ana)).thenReturn(profile("ana", "ana"));
+        when(schoolBlocks.findAllById(any())).thenReturn(List.of());
+        when(storage.signedReadUrl(eq("feed-photos/2/x.jpg"), anyInt()))
+                .thenReturn(java.net.URI.create("https://signed.example/x").toURL());
+
+        var result = service.page("me", "all", null, 20);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).photoUrl()).isNull();
+        assertThat(result.get(1).photoUrl()).isEqualTo("https://signed.example/x");
+    }
+
+    @Test
+    void deleteRemovesPhotoFromStorageAndSurvivesStorageFailure() {
+        FeedPostJpaEntity p = post("me");
+        when(p.getPhotoPath()).thenReturn("feed-photos/1/x.jpg");
+        when(posts.findById(1L)).thenReturn(Optional.of(p));
+        org.mockito.Mockito.doThrow(new RuntimeException("storage caído"))
+                .when(storage).delete("feed-photos/1/x.jpg");
+
+        service.delete("me", 1L, false); // no lanza pese al fallo del Storage
+
+        verify(posts).delete(p);
+        verify(storage).delete("feed-photos/1/x.jpg");
     }
 }
