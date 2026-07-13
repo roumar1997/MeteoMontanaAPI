@@ -414,7 +414,7 @@ class FeedServiceTest {
     void publishSnapshotsRockTypeAndDerivesDisciplineFromBlock() {
         blockWithSchool();
 
-        service.publish("me", "b1", null, FeedService.KIND_TICK, null);
+        service.publish("me", "b1", null, FeedService.KIND_TICK, null, null);
 
         var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
         verify(posts).save(captor.capture());
@@ -427,15 +427,73 @@ class FeedServiceTest {
     void publishPrefersValidClientDisciplineAndIgnoresGarbage() {
         blockWithSchool();
 
-        service.publish("me", "b1", null, FeedService.KIND_TICK, "boulder");
+        service.publish("me", "b1", null, FeedService.KIND_TICK, "boulder", null);
         var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
         verify(posts).save(captor.capture());
         assertThat(captor.getValue().getDiscipline()).isEqualTo("BOULDER"); // normalizada
 
         org.mockito.Mockito.clearInvocations(posts);
-        service.publish("me", "b1", null, FeedService.KIND_TICK, "SPEED");
+        service.publish("me", "b1", null, FeedService.KIND_TICK, "SPEED", null);
         verify(posts).save(captor.capture());
         assertThat(captor.getValue().getDiscipline()).isEqualTo("ROUTE"); // desconocida → piedra
+    }
+
+    // ------------------------------------------------------------ caption
+
+    @Test
+    void publishSavesCaptionTrimmedAndTruncatedTo500() {
+        blockWithSchool();
+        String longCaption = "  " + "x".repeat(600) + "  ";
+
+        service.publish("me", "b1", null, FeedService.KIND_TICK, null, longCaption);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
+        verify(posts).save(captor.capture());
+        assertThat(captor.getValue().getCaption()).hasSize(500).startsWith("xxx");
+
+        org.mockito.Mockito.clearInvocations(posts);
+        service.publish("me", "b1", null, FeedService.KIND_TICK, null, "  ¡Pegue duro!  ");
+        verify(posts).save(captor.capture());
+        assertThat(captor.getValue().getCaption()).isEqualTo("¡Pegue duro!"); // trimmed
+    }
+
+    @Test
+    void publishBlankCaptionBecomesNull() {
+        blockWithSchool();
+
+        service.publish("me", "b1", null, FeedService.KIND_TICK, null, "   ");
+
+        var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
+        verify(posts).save(captor.capture());
+        assertThat(captor.getValue().getCaption()).isNull();
+    }
+
+    // ------------------------------------------------------------ startType en la vista
+
+    @Test
+    void viewExposesStartTypeReadLiveFromLine() {
+        FeedPostJpaEntity p = post("ana");
+        when(p.getLineId()).thenReturn("l1");
+        when(p.getCaption()).thenReturn("brutal");
+        when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(p));
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+        User ana = user("ana", true);
+        when(users.findByUids(anyList())).thenReturn(List.of(ana));
+        when(mapper.toPublic(ana)).thenReturn(profile("ana", "ana"));
+
+        var line = mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
+        when(line.getId()).thenReturn("l1");
+        when(line.getStartType()).thenReturn(com.meteomontana.api.domain.model.BlockLine.StartType.SIT);
+        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
+        when(block.getId()).thenReturn("b1");
+        when(block.getLines()).thenReturn(List.of(line));
+        when(schoolBlocks.findAllById(any())).thenReturn(List.of(block));
+
+        var result = service.page("me", "all", null, 20);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).startType()).isEqualTo("SIT");
+        assertThat(result.get(0).caption()).isEqualTo("brutal");
     }
 
     // ------------------------------------------------------------ posts automáticos

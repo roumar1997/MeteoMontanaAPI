@@ -67,7 +67,8 @@ public class FeedService {
             String lineId, String lineName, String grade,
             String discipline, String rockType,
             String photoPath, String linePath,
-            long likeCount, boolean likedByMe, long commentCount, boolean mine) {}
+            long likeCount, boolean likedByMe, long commentCount, boolean mine,
+            String startType, String caption) {}
 
     public record FeedCommentView(String id, long postId, String uid, String author,
                                   String text, LocalDateTime createdAt, boolean mine) {}
@@ -236,6 +237,7 @@ public class FeedService {
 
             String photoPath = null;
             String linePath = null;
+            String startType = null;
             SchoolBlockJpaEntity block = blocksById.get(p.getBlockId());
             if (block != null) {
                 photoPath = block.getPhotoPath();
@@ -246,6 +248,7 @@ public class FeedService {
                     if (line != null) {
                         linePath = line.getLinePath();
                         if (line.getPhotoPath() != null) photoPath = line.getPhotoPath();
+                        if (line.getStartType() != null) startType = line.getStartType().name();
                     }
                 }
             }
@@ -258,7 +261,8 @@ public class FeedService {
                     likeCounts.getOrDefault(p.getId(), 0L),
                     mine.contains(p.getId()),
                     commentCounts.getOrDefault(p.getId(), 0L),
-                    p.getUserUid().equals(uid));
+                    p.getUserUid().equals(uid),
+                    startType, p.getCaption());
         }).filter(v -> v != null).toList();
     }
 
@@ -272,16 +276,19 @@ public class FeedService {
      */
     @Transactional
     public long publish(String uid, String blockId, String lineId, String kind) {
-        return publish(uid, blockId, lineId, kind, null);
+        return publish(uid, blockId, lineId, kind, null, null);
     }
 
     /**
      * @param discipline modalidad opcional enviada por el cliente (BOULDER | ROUTE).
      *        Si viene null/desconocida se deriva de la piedra (toda piedra tiene
      *        modalidad); se snapshotea en el post junto al rock_type de la escuela.
+     * @param caption descripción opcional del autor: se trimea, vacía → null,
+     *        truncada a 500. Si el post ya existía (idempotencia) NO se toca.
      */
     @Transactional
-    public long publish(String uid, String blockId, String lineId, String kind, String discipline) {
+    public long publish(String uid, String blockId, String lineId, String kind,
+                        String discipline, String caption) {
         moderation.ensureCanPost(uid);
         if (!KIND_TICK.equals(kind) && !KIND_PROJECT_DONE.equals(kind)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -301,8 +308,17 @@ public class FeedService {
             if (existing.isPresent()) return existing.get().getId();
         }
 
-        FeedPostJpaEntity saved = posts.save(newPost(uid, block, line, kind, discipline));
-        return saved.getId();
+        FeedPostJpaEntity post = newPost(uid, block, line, kind, discipline);
+        post.setCaption(normalizeCaption(caption));
+        return posts.save(post).getId();
+    }
+
+    /** Trim; vacía → null; truncada a 500 (el límite de la columna, V55). */
+    private static String normalizeCaption(String raw) {
+        if (raw == null) return null;
+        String c = raw.trim();
+        if (c.isEmpty()) return null;
+        return c.length() > 500 ? c.substring(0, 500) : c;
     }
 
     /**

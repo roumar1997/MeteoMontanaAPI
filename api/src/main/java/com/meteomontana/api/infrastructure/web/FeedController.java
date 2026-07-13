@@ -27,8 +27,12 @@ import java.util.Map;
 @RequestMapping("/api/feed")
 public class FeedController {
 
-    /** discipline es opcional (BOULDER | ROUTE); si falta, se deriva de la piedra. */
-    public record PublishRequest(String blockId, String lineId, String kind, String discipline) {}
+    /**
+     * discipline es opcional (BOULDER | ROUTE); si falta, se deriva de la piedra.
+     * caption es opcional: descripción del autor (trim, vacía → null, máx 500).
+     */
+    public record PublishRequest(String blockId, String lineId, String kind,
+                                 String discipline, String caption) {}
     public record CommentRequest(String text) {}
 
     private final FeedService service;
@@ -71,7 +75,7 @@ public class FeedController {
             @RequestBody PublishRequest req,
             @AuthenticationPrincipal FirebaseUser user) {
         return Map.of("id", service.publish(user.uid(), req.blockId(), req.lineId(),
-                req.kind(), req.discipline()));
+                req.kind(), req.discipline(), req.caption()));
     }
 
     @DeleteMapping("/{postId}")
