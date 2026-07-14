@@ -44,6 +44,7 @@ public class AdminController {
     private final ResolveReportUseCase resolveReport;
     private final SchoolRepository schoolRepository;
     private final AdminGuard adminGuard;
+    private final com.meteomontana.api.infrastructure.storage.StorageMigrationService storageMigration;
 
     public AdminController(ListPendingSubmissionsUseCase listPending,
                            ApproveSubmissionUseCase approveUseCase,
@@ -54,7 +55,8 @@ public class AdminController {
                            ListReportsUseCase listReports,
                            ResolveReportUseCase resolveReport,
                            SchoolRepository schoolRepository,
-                           AdminGuard adminGuard) {
+                           AdminGuard adminGuard,
+                           com.meteomontana.api.infrastructure.storage.StorageMigrationService storageMigration) {
         this.listPending = listPending;
         this.approveUseCase = approveUseCase;
         this.rejectUseCase = rejectUseCase;
@@ -65,6 +67,7 @@ public class AdminController {
         this.resolveReport = resolveReport;
         this.schoolRepository = schoolRepository;
         this.adminGuard = adminGuard;
+        this.storageMigration = storageMigration;
     }
 
     /** Mover una escuela directamente (admin). Body: {"lat": ..., "lon": ...}. */
@@ -92,6 +95,19 @@ public class AdminController {
     @GetMapping("/stats")
     public AdminStatsUseCase.AdminStats stats(@AuthenticationPrincipal FirebaseUser user) {
         return statsUseCase.compute(user.uid());
+    }
+
+    /**
+     * Copia las fotos de Firebase → R2 (migración manual, admin). ?dryRun=true
+     * solo cuenta cuántas faltan en R2 sin copiar. Idempotente y no destructivo
+     * (nunca borra de Firebase). Devuelve total/copiadas/ya-estaban/fallos.
+     */
+    @PostMapping("/storage/migrate")
+    public com.meteomontana.api.infrastructure.storage.StorageMigrationService.Result migrateStorage(
+            @AuthenticationPrincipal FirebaseUser user,
+            @RequestParam(defaultValue = "true") boolean dryRun) {
+        adminGuard.ensureAdmin(user.uid());
+        return storageMigration.migrate(dryRun);
     }
 
     @PostMapping("/push")

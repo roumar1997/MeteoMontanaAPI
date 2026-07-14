@@ -1,72 +1,74 @@
 package com.meteomontana.api.infrastructure.storage;
 
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.Storage;
-import com.google.firebase.cloud.StorageClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 /**
- * Encapsula Firebase Storage. El resto de la app no toca com.google.* —
- * habla con este service.
+ * Fachada de almacenamiento de objetos (fotos). El resto de la app habla SOLO
+ * con este service, no con com.google.* ni con el SDK de S3.
+ *
+ * Elige el backend según la variable {@code STORAGE_BACKEND}:
+ *  - {@code r2}       → Cloudflare R2 (egress gratis).
+ *  - cualquier otro   → Firebase Storage (histórico, por defecto).
+ *
+ * Migración segura: se despliega con STORAGE_BACKEND=firebase (sin cambio de
+ * comportamiento), se copian las fotos a R2 con el endpoint de migración, y
+ * solo entonces se pone STORAGE_BACKEND=r2. Volver atrás = poner firebase.
  */
 @Service
 public class StorageService {
 
-    /**
-     * Caché de URLs firmadas. Firmar es una operación RSA (~ms); una página de
-     * feed con 20 fotos firma 20 URLs, y cada scroll/refresco re-firma las
-     * MISMAS fotos. Cachear la URL firmada por ruta evita re-firmar hasta que
-     * está a punto de caducar → recorta mucha CPU cuando el feed se usa mucho.
-     * La servimos solo mientras le quede holgura (80% de su validez) para no
-     * devolver nunca una URL casi caducada.
-     */
+    private static final Logger log = LoggerFactory.getLogger(StorageService.class);
+
     private record CachedUrl(URL url, long serveUntilMillis) {}
 
     private final Map<String, CachedUrl> urlCache = new ConcurrentHashMap<>();
     private static final int URL_CACHE_MAX = 20_000;
 
-    /** Sube un archivo a la ruta indicada dentro del bucket por defecto. */
+    private final StorageBackend backend;
+    private final FirebaseStorageBackend firebase;
+    private final R2StorageBackend r2;
+
+    public StorageService(
+            @Value("${STORAGE_BACKEND:firebase}") String backendName,
+            FirebaseStorageBackend firebase,
+            R2StorageBackend r2) {
+        this.firebase = firebase;
+        this.r2 = r2;
+        boolean useR2 = "r2".equalsIgnoreCase(backendName.trim());
+        if (useR2 && !r2.isConfigured()) {
+            // Fallar rápido y claro en el arranque en vez de romper la 1ª foto.
+            throw new IllegalStateException(
+                    "STORAGE_BACKEND=r2 pero R2 no está configurado (faltan variables R2_*).");
+        }
+        this.backend = useR2 ? r2 : firebase;
+        log.info("StorageService usando backend: {}", useR2 ? "R2" : "Firebase");
+    }
+
+    /** Sube un archivo (multipart) a [path]. Devuelve la ruta guardada. */
     public String upload(String path, MultipartFile file) throws IOException {
-        StorageClient.getInstance().bucket().create(
-                path,
-                file.getBytes(),
-                file.getContentType()
-        );
+        backend.upload(path, file.getBytes(), file.getContentType());
         return path;
     }
 
-    /** Borra un archivo del bucket. */
+    /** Borra un archivo. Invalida su URL cacheada. */
     public void delete(String path) {
-        var blob = StorageClient.getInstance().bucket().get(path);
-        if (blob != null) blob.delete();
+        backend.delete(path);
+        urlCache.keySet().removeIf(k -> k.endsWith(":" + path));
     }
 
     /**
-     * Cliente de Storage para FIRMAR URLs: el del SDK de Firebase Admin, que
-     * lleva las credenciales de la service account (clave privada → puede
-     * firmar). El {@code StorageOptions.getDefaultInstance()} de antes
-     * dependía de las Application Default Credentials del entorno, que en
-     * Railway NO existen → "Signing key was not provided and could not be
-     * derived" (la firma llevaba rota en staging y prod; lo destapó la foto
-     * de celebración del feed el 2026-07-13). Firebase Admin cachea su
-     * instancia internamente, no hace falta double-checked locking.
-     */
-    private Storage storage() {
-        return StorageClient.getInstance().bucket().getStorage();
-    }
-
-    /**
-     * Genera (o reutiliza de caché) una URL firmada de lectura que expira
-     * pasados minutesValid minutos. El cliente puede descargar la foto sin
-     * tener credenciales de Firebase.
+     * URL firmada de lectura (caché por el 80% de su validez, para no re-firmar
+     * las mismas fotos en cada scroll del feed; ver histórico del 2026-07-13).
      */
     public URL signedReadUrl(String path, int minutesValid) {
         String key = minutesValid + ":" + path;
@@ -77,20 +79,9 @@ public class StorageService {
             return cached.url();
         }
 
-        String bucketName = StorageClient.getInstance().bucket().getName();
-        BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucketName, path)).build();
-        URL url = storage().signUrl(
-                blobInfo,
-                minutesValid,
-                TimeUnit.MINUTES,
-                Storage.SignUrlOption.withV4Signature()
-        );
+        URL url = backend.signedReadUrl(path, minutesValid);
 
-        // Servir de caché solo el 80% de la validez → la URL devuelta siempre
-        // tiene ≥20% de vida por delante.
         long serveUntil = now + (long) (minutesValid * 60_000L * 0.8);
-        // Cota de memoria: si crece demasiado (muchas rutas distintas con el
-        // tiempo), purgamos las caducadas; si aun así sigue grande, se vacía.
         if (urlCache.size() >= URL_CACHE_MAX) {
             urlCache.entrySet().removeIf(e -> now >= e.getValue().serveUntilMillis());
             if (urlCache.size() >= URL_CACHE_MAX) urlCache.clear();
@@ -98,4 +89,10 @@ public class StorageService {
         urlCache.put(key, new CachedUrl(url, serveUntil));
         return url;
     }
+
+    // ---------------------------------------------------------------- migración
+
+    /** Backends crudos para el migrador (copia Firebase → R2). */
+    FirebaseStorageBackend firebaseBackend() { return firebase; }
+    R2StorageBackend r2Backend() { return r2; }
 }
