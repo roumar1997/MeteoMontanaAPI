@@ -23,27 +23,51 @@ public class R2MigrationRunner implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(R2MigrationRunner.class);
 
     private final String mode;
+    private final String rewriteMode;
+    private final String photoBase;
     private final StorageMigrationService migration;
+    private final PhotoUrlRewriteService urlRewrite;
 
     public R2MigrationRunner(@Value("${R2_MIGRATE:}") String mode,
-                             StorageMigrationService migration) {
+                             @Value("${R2_REWRITE_URLS:}") String rewriteMode,
+                             @Value("${PHOTO_BASE_URL:https://api.climbingteams.com}") String photoBase,
+                             StorageMigrationService migration,
+                             PhotoUrlRewriteService urlRewrite) {
         this.mode = mode == null ? "" : mode.trim().toLowerCase();
+        this.rewriteMode = rewriteMode == null ? "" : rewriteMode.trim().toLowerCase();
+        this.photoBase = photoBase == null ? "" : photoBase.trim().replaceAll("/+$", "");
         this.migration = migration;
+        this.urlRewrite = urlRewrite;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!mode.equals("dry") && !mode.equals("copy")) return;
-        boolean dryRun = mode.equals("dry");
+        boolean doCopy = mode.equals("dry") || mode.equals("copy");
+        boolean doRewrite = rewriteMode.equals("dry") || rewriteMode.equals("run");
+        if (!doCopy && !doRewrite) return;
         // En hilo aparte: la copia puede tardar y no debe frenar el arranque.
         Thread t = new Thread(() -> {
-            try {
-                log.info("R2_MIGRATE={} → arrancando migración Firebase→R2...", mode);
-                var r = migration.migrate(dryRun);
-                log.info("R2_MIGRATE fin: total={}, copiadas/pendientes={}, ya-estaban={}, fallos={}",
-                        r.total(), r.copied(), r.skipped(), r.failed());
-            } catch (Exception e) {
-                log.error("R2_MIGRATE falló: {}", e.getMessage(), e);
+            if (doCopy) {
+                boolean dryRun = mode.equals("dry");
+                try {
+                    log.info("R2_MIGRATE={} → migración de objetos Firebase→R2...", mode);
+                    var r = migration.migrate(dryRun);
+                    log.info("R2_MIGRATE fin: total={}, copiadas/pendientes={}, ya-estaban={}, fallos={}",
+                            r.total(), r.copied(), r.skipped(), r.failed());
+                } catch (Exception e) {
+                    log.error("R2_MIGRATE falló: {}", e.getMessage(), e);
+                }
+            }
+            if (doRewrite) {
+                boolean dryRun = rewriteMode.equals("dry");
+                try {
+                    log.info("R2_REWRITE_URLS={} → reescritura de URLs (base {})...", rewriteMode, photoBase);
+                    var r = urlRewrite.rewriteAll(photoBase, dryRun);
+                    log.info("R2_REWRITE_URLS fin: escaneadas={}, reescritas={}, saltadas={}",
+                            r.scanned(), r.rewritten(), r.skipped());
+                } catch (Exception e) {
+                    log.error("R2_REWRITE_URLS falló: {}", e.getMessage(), e);
+                }
             }
         }, "r2-migration");
         t.setDaemon(true);

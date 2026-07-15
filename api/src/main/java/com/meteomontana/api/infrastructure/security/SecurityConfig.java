@@ -75,6 +75,9 @@ public class SecurityConfig {
                 // Radar de lluvia (datos AEMET): público como el forecast.
                 .requestMatchers(HttpMethod.GET, "/api/radar/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/mountain/**").permitAll()
+                // Lectura de fotos Tipo A (piedra/perfil/nota/quedada) servidas
+                // desde R2 por redirect: públicas (como lo eran en Firebase).
+                .requestMatchers(HttpMethod.GET, "/api/photo/**").permitAll()
                 // Enlaces compartidos + verificación de App Links: públicos.
                 .requestMatchers(HttpMethod.GET, "/s/**").permitAll()
                 // Enlace fijo de descarga para QR físicos (redirige por dispositivo).
