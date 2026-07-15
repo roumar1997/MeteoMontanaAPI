@@ -117,6 +117,11 @@ public class R2StorageBackend implements StorageBackend {
             return resp.asByteArray();
         } catch (NoSuchKeyException e) {
             return null;
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            // R2 puede devolver el "no existe" como S3Exception 404 en vez de
+            // NoSuchKeyException → tratarlo como null (no encontrado), no como error.
+            if (e.statusCode() == 404) return null;
+            throw e;
         }
     }
 
