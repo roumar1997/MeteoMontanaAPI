@@ -91,13 +91,13 @@ public class PhotoController {
 
         String uid = user.uid();
         String ext = ext(ct);
-        long ts = System.currentTimeMillis();
+        String u = UUID.randomUUID().toString();   // único (evita colisiones en subidas simultáneas)
         String key = switch (category == null ? "" : category.toLowerCase()) {
-            // Mismas rutas que usaban las apps al subir a Firebase → la copia y la
-            // reescritura de URLs quedan consistentes.
-            case "boulder" -> "piedra-photos-pending/" + uid + "_" + safe(schoolId) + "_" + ts + ".jpg";
-            case "note"    -> "note-photos/" + uid + "_" + safe(schoolId) + "_" + ts + ".jpg";
-            case "meetup"  -> "meetup-photos/" + safe(meetupId) + "_" + uid + "_" + ts + ".jpg";
+            // Mismos prefijos que usaban las apps en Firebase (la whitelist de
+            // lectura los reconoce); el nombre lleva uid + uuid.
+            case "boulder" -> "piedra-photos-pending/" + uid + "_" + safe(schoolId) + "_" + u + ".jpg";
+            case "note"    -> "note-photos/" + uid + "_" + safe(schoolId) + "_" + u + ".jpg";
+            case "meetup"  -> "meetup-photos/" + safe(meetupId) + "_" + uid + "_" + u + ".jpg";
             case "profile" -> "profile-photos/" + uid + "." + ext;   // 1 por usuario (se sobrescribe)
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "categoría no válida");
         };
