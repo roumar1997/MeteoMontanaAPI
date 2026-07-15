@@ -53,7 +53,9 @@ public class PhotoUrlRewriteService {
             String table = e.getKey(), col = e.getValue();
             List<String> urls = jdbc.queryForList(
                     "SELECT " + col + " FROM " + table +
-                    " WHERE " + col + " LIKE 'https://firebasestorage.googleapis.com/%'",
+                    // Sin '/' tras .com: algunas URLs llevan puerto explícito
+                    // (":443") → el patrón antiguo con '/' no las cazaba.
+                    " WHERE " + col + " LIKE 'https://firebasestorage.googleapis.com%'",
                     String.class);
             for (String url : urls) {
                 scanned++;
