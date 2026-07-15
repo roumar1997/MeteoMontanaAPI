@@ -345,8 +345,16 @@ public class FeedService {
         }
 
         FeedPostJpaEntity post = newPost(uid, block, line, kind, discipline);
-        post.setCaption(normalizeCaption(caption));
-        return posts.save(post).getId();
+        String cap = normalizeCaption(caption);
+        post.setCaption(cap);
+        long id = posts.save(post).getId();
+        // Menciones @username en la descripción → notificar a los mencionados.
+        String author = users.findByUid(uid)
+                .map(u -> u.getUsername() != null ? "@" + u.getUsername()
+                        : (u.getDisplayName() != null ? u.getDisplayName() : "Anónimo"))
+                .orElse("Anónimo");
+        notifyMentions(uid, author, cap, id);
+        return id;
     }
 
     /** Trim; vacía → null; truncada a 500 (el límite de la columna, V55). */
@@ -589,11 +597,44 @@ public class FeedService {
                 UUID.randomUUID().toString(), postId, uid, author, trimmed, parentId));
 
         posts.findById(postId).ifPresent(post -> notifyComment(uid, author, post, previous));
+        notifyMentions(uid, author, trimmed, postId);
 
         return new FeedCommentView(saved.getId(), saved.getPostId(), saved.getUid(),
                 commentAuthor(loadAuthors(List.of(uid)), saved),
                 saved.getText(), saved.getCreatedAt(), true,
                 0L, false, saved.getParentId());
+    }
+
+    /** Regex de mención: @ + username (3-20, minúsculas/dígitos/_), sin cortar
+     *  a mitad de palabra. Sobre el texto en minúsculas (los username lo son). */
+    private static final java.util.regex.Pattern MENTION_PATTERN =
+            java.util.regex.Pattern.compile("@([a-z0-9_]{3,20})(?![a-z0-9_])");
+
+    /**
+     * Notifica a los usuarios mencionados con @username en un texto (comentario
+     * o descripción de post). Una vez por username, nunca a uno mismo. Nunca
+     * tumba la transacción.
+     */
+    private void notifyMentions(String authorUid, String authorName, String text, long postId) {
+        if (text == null || text.isEmpty()) return;
+        try {
+            java.util.Set<String> done = new java.util.HashSet<>();
+            var m = MENTION_PATTERN.matcher(text.toLowerCase());
+            String postIdStr = String.valueOf(postId);
+            String avatar = avatarUrlOf(users.findByUid(authorUid).orElse(null));
+            while (m.find()) {
+                String username = m.group(1);
+                if (!done.add(username)) continue;
+                User u = users.findByUsername(username).orElse(null);
+                if (u == null || u.getUid().equals(authorUid)) continue;
+                String body = "«" + authorName + "» te ha mencionado";
+                notifications.create(u.getUid(), "FEED_MENTION",
+                        "Te han mencionado", body, "feed_post", postIdStr);
+                push.sendDataToUserAsync(u.getUid(), pushData(postIdStr, "Te han mencionado", body, avatar));
+            }
+        } catch (Exception e) {
+            log.warn("No se pudieron notificar menciones del post {}: {}", postId, e.getMessage());
+        }
     }
 
     // ------------------------------------------------------ likes de comentario
