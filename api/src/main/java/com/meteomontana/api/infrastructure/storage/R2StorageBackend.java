@@ -48,6 +48,12 @@ public class R2StorageBackend implements StorageBackend {
             @Value("${R2_ACCESS_KEY_ID:}") String accessKeyId,
             @Value("${R2_SECRET_ACCESS_KEY:}") String secretAccessKey,
             @Value("${R2_BUCKET:}") String bucket) {
+        // trim(): un espacio/salto de línea accidental en la variable de Railway
+        // rompía R2 con "bucket name is not valid" (400).
+        endpoint = endpoint == null ? "" : endpoint.trim();
+        accessKeyId = accessKeyId == null ? "" : accessKeyId.trim();
+        secretAccessKey = secretAccessKey == null ? "" : secretAccessKey.trim();
+        bucket = bucket == null ? "" : bucket.trim();
         this.bucket = bucket;
         if (endpoint.isBlank() || accessKeyId.isBlank() || secretAccessKey.isBlank() || bucket.isBlank()) {
             this.client = null;
