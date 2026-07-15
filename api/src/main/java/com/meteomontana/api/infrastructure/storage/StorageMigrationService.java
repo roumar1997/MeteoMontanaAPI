@@ -16,7 +16,7 @@ public class StorageMigrationService {
 
     private static final Logger log = LoggerFactory.getLogger(StorageMigrationService.class);
 
-    public record Result(int total, int copied, int skipped, int failed) {}
+    public record Result(int total, int copied, int skipped, int failed, String firstError) {}
 
     private final FirebaseStorageBackend firebase;
     private final R2StorageBackend r2;
@@ -36,6 +36,7 @@ public class StorageMigrationService {
         }
         var paths = firebase.listAll();
         int total = paths.size(), copied = 0, skipped = 0, failed = 0;
+        String firstError = null;
         log.info("Migración Firebase→R2: {} objetos en Firebase (dryRun={}).", total, dryRun);
 
         for (String path : paths) {
@@ -56,12 +57,13 @@ public class StorageMigrationService {
                 if (copied % 50 == 0) log.info("  ...{} copiadas", copied);
             } catch (Exception e) {
                 log.warn("Fallo copiando {}: {}", path, e.getMessage());
+                if (firstError == null) firstError = e.getClass().getSimpleName() + ": " + e.getMessage();
                 failed++;
             }
         }
         log.info("Migración Firebase→R2 fin: total={}, copiadas/pendientes={}, ya-estaban={}, fallos={}",
                 total, copied, skipped, failed);
-        return new Result(total, copied, skipped, failed);
+        return new Result(total, copied, skipped, failed, firstError);
     }
 
     private static String guessContentType(String path) {
