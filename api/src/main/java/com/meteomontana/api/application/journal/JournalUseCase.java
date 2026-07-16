@@ -52,6 +52,17 @@ public class JournalUseCase {
                 .toList();
     }
 
+    /**
+     * Grado máximo REAL del diario (solo entradas HECHO), o null si no hay
+     * ninguna. Fuente única del "grado máximo" del perfil: es el mismo valor
+     * que muestra el badge "TOPE" en la app. Lo usan los casos de uso de perfil
+     * (GET /api/me y GET /api/users/{id}) para que el grado que se comparte
+     * coincida con el que se ve, en vez del campo `top_grade` viejo y estático.
+     */
+    public String maxGradeFor(String uid) {
+        return statsFor(uid).maxGrade();
+    }
+
     public void delete(String uid, String id) {
         JournalSession s = repository.findById(id)
                 .orElseThrow(() -> new SchoolNotFoundException(id));

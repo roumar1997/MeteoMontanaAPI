@@ -19,13 +19,23 @@ public class UserDtoMapper {
     }
 
     public PublicProfileDto toPublic(User u) {
+        return toPublic(u, null);
+    }
+
+    /**
+     * Igual que {@link #toPublic(User)} pero permite sustituir el grado por uno
+     * calculado en vivo del diario. Si {@code topGradeOverride} es null, cae al
+     * campo guardado {@code top_grade}. Se usa en el perfil individual para que
+     * el grado que se comparte coincida con el que muestra la app.
+     */
+    public PublicProfileDto toPublic(User u, String topGradeOverride) {
         return new PublicProfileDto(
                 u.getUid(),
                 u.getUsername(),
                 u.getDisplayName(),
                 resolvePhotoUrl(u.getPhotoPath()),
                 u.getBio(),
-                u.getTopGrade(),
+                topGradeOverride != null ? topGradeOverride : u.getTopGrade(),
                 false,
                 u.isPublic()
         );
@@ -46,6 +56,14 @@ public class UserDtoMapper {
     }
 
     public PrivateProfileDto toPrivate(User u) {
+        return toPrivate(u, null);
+    }
+
+    /**
+     * Igual que {@link #toPrivate(User)} pero permite sustituir el grado por uno
+     * calculado en vivo del diario (null → cae al campo guardado).
+     */
+    public PrivateProfileDto toPrivate(User u, String topGradeOverride) {
         return new PrivateProfileDto(
                 u.getUid(),
                 u.getEmail(),
@@ -53,7 +71,7 @@ public class UserDtoMapper {
                 u.getDisplayName(),
                 resolvePhotoUrl(u.getPhotoPath()),
                 u.getBio(),
-                u.getTopGrade(),
+                topGradeOverride != null ? topGradeOverride : u.getTopGrade(),
                 u.isPublic(),
                 u.isAdmin(),
                 u.isPremium(),

@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.users;
 
+import com.meteomontana.api.application.journal.JournalUseCase;
 import com.meteomontana.api.domain.exception.UserNotFoundException;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.FollowRepository;
@@ -12,13 +13,16 @@ public class GetPublicProfileUseCase {
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
     private final UserDtoMapper mapper;
+    private final JournalUseCase journalUseCase;
 
     public GetPublicProfileUseCase(UserRepository userRepository,
                                    FollowRepository followRepository,
-                                   UserDtoMapper mapper) {
+                                   UserDtoMapper mapper,
+                                   JournalUseCase journalUseCase) {
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.mapper = mapper;
+        this.journalUseCase = journalUseCase;
     }
 
     /**
@@ -32,12 +36,15 @@ public class GetPublicProfileUseCase {
                 .or(() -> userRepository.findByUsername(identifier))
                 .orElseThrow(() -> new UserNotFoundException(identifier));
 
-        if (user.isPublic()) return mapper.toPublic(user);
+        // Grado calculado del diario (mismo que muestra la app), no el campo viejo.
+        String grade = journalUseCase.maxGradeFor(user.getUid());
+
+        if (user.isPublic()) return mapper.toPublic(user, grade);
 
         boolean isSelf = currentUid != null && currentUid.equals(user.getUid());
         boolean isAcceptedFollower = currentUid != null
                 && followRepository.isFollowing(currentUid, user.getUid());
-        if (isSelf || isAcceptedFollower) return mapper.toPublic(user);
+        if (isSelf || isAcceptedFollower) return mapper.toPublic(user, grade);
 
         return mapper.toPublicLocked(user);
     }

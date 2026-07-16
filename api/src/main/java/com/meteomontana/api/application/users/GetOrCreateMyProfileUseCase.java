@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.users;
 
+import com.meteomontana.api.application.journal.JournalUseCase;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
@@ -19,16 +20,21 @@ public class GetOrCreateMyProfileUseCase {
 
     private final UserRepository userRepository;
     private final UserDtoMapper mapper;
+    private final JournalUseCase journalUseCase;
 
-    public GetOrCreateMyProfileUseCase(UserRepository userRepository, UserDtoMapper mapper) {
+    public GetOrCreateMyProfileUseCase(UserRepository userRepository, UserDtoMapper mapper,
+                                       JournalUseCase journalUseCase) {
         this.userRepository = userRepository;
         this.mapper = mapper;
+        this.journalUseCase = journalUseCase;
     }
 
     public PrivateProfileDto execute(FirebaseUser firebaseUser) {
         User user = userRepository.findByUid(firebaseUser.uid())
                 .orElseGet(() -> createNewUser(firebaseUser));
-        return mapper.toPrivate(user);
+        // Grado calculado del diario (fuente única). Null si no hay entradas →
+        // el mapper cae al campo guardado.
+        return mapper.toPrivate(user, journalUseCase.maxGradeFor(user.getUid()));
     }
 
     private User createNewUser(FirebaseUser firebaseUser) {
