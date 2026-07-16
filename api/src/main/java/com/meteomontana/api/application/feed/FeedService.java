@@ -70,6 +70,9 @@ public class FeedService {
 
     public record FeedAuthor(String uid, String username, String displayName, String photoUrl) {}
 
+    /** Vía de la cara portada en un post NEW_BLOCK (para pintarla sobre la foto). */
+    public record FeedLineView(String name, String grade, String startType, String linePath) {}
+
     public record FeedPostView(
             long id, String kind, LocalDateTime createdAt, FeedAuthor author,
             String schoolId, String schoolName,
@@ -78,7 +81,10 @@ public class FeedService {
             String discipline, String rockType,
             String photoPath, String linePath,
             long likeCount, boolean likedByMe, long commentCount, boolean mine,
-            String startType, String caption, String photoUrl) {}
+            String startType, String caption, String photoUrl,
+            // Solo en NEW_BLOCK: vías de la cara portada (null en el resto).
+            // Campo ADITIVO y nullable → las apps viejas lo ignoran.
+            List<FeedLineView> blockLines) {}
 
     // author como OBJETO (no String): las apps deserializan FeedAuthorDto —
     // mandar el snapshot "@usuario" rompía el parseo y los comentarios ni se
@@ -259,6 +265,7 @@ public class FeedService {
             String photoPath = null;
             String linePath = null;
             String startType = null;
+            List<FeedLineView> blockLines = null;
             SchoolBlockJpaEntity block = blocksById.get(p.getBlockId());
             if (block != null) {
                 photoPath = block.getPhotoPath();
@@ -271,6 +278,21 @@ public class FeedService {
                         if (line.getPhotoPath() != null) photoPath = line.getPhotoPath();
                         if (line.getStartType() != null) startType = line.getStartType().name();
                     }
+                } else if (KIND_NEW_BLOCK.equals(p.getKind())) {
+                    // Piedra nueva: el post no tiene lineId → mandamos las vías de
+                    // la cara PORTADA para que las apps las dibujen sobre la foto
+                    // (antes salía la foto pelada, sin líneas).
+                    String cover = block.getPhotoPath();
+                    blockLines = block.getLines().stream()
+                            .filter(l -> l.getLinePath() != null && !l.getLinePath().isBlank())
+                            .filter(l -> l.getPhotoPath() == null
+                                    || l.getPhotoPath().equals(cover))
+                            .map(l -> new FeedLineView(
+                                    l.getName(), l.getGrade(),
+                                    l.getStartType() != null ? l.getStartType().name() : null,
+                                    l.getLinePath()))
+                            .toList();
+                    if (blockLines.isEmpty()) blockLines = null;
                 }
             }
             return new FeedPostView(p.getId(), p.getKind(), p.getCreatedAt(), author,
@@ -283,7 +305,8 @@ public class FeedService {
                     mine.contains(p.getId()),
                     commentCounts.getOrDefault(p.getId(), 0L),
                     p.getUserUid().equals(uid),
-                    startType, p.getCaption(), signedPhotoUrl(p.getPhotoPath()));
+                    startType, p.getCaption(), signedPhotoUrl(p.getPhotoPath()),
+                    blockLines);
         }).filter(v -> v != null).toList();
     }
 
