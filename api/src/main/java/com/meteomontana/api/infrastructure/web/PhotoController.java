@@ -105,7 +105,16 @@ public class PhotoController {
         storage.upload(key, file);
 
         // URL permanente con el host de ESTE entorno (staging o prod).
-        return Map.of("url", baseUrl(request) + "/api/photo/" + key);
+        String url = baseUrl(request) + "/api/photo/" + key;
+        // La foto de perfil usa una ruta ESTABLE ({uid}.{ext}, se sobrescribe),
+        // así que su URL no cambiaría entre subidas → las apps (AsyncImage/Coil)
+        // servirían la foto vieja desde caché. Añadimos un sufijo ?v único para
+        // "romper" esa caché. La lectura (GET /api/photo/**) usa solo la ruta e
+        // ignora el query, así que el fichero real sigue siendo el mismo.
+        if ("profile".equalsIgnoreCase(category)) {
+            url += "?v=" + UUID.randomUUID().toString().substring(0, 8);
+        }
+        return Map.of("url", url);
     }
 
     // ─────────────────────────────────────────────────────────── helpers
