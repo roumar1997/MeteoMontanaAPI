@@ -41,17 +41,81 @@ public class ShareController {
     private final StorageService storage;
     private final com.meteomontana.api.domain.port.MeetupRepository meetups;
     private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository users;
+    private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository feedPosts;
 
     public ShareController(SpringDataSchoolBlockRepository blocks,
                            SchoolRepository schools,
                            StorageService storage,
                            com.meteomontana.api.domain.port.MeetupRepository meetups,
-                           com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository users) {
+                           com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository users,
+                           com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository feedPosts) {
         this.blocks = blocks;
         this.schools = schools;
         this.storage = storage;
         this.meetups = meetups;
         this.users = users;
+        this.feedPosts = feedPosts;
+    }
+
+    /**
+     * Landing de una publicación del feed: /s/p/{postId}. Si el receptor tiene
+     * la app, se abre el detalle del post; si no, tarjeta OG + descarga.
+     * Solo posts de autores con perfil PÚBLICO (misma regla que el feed
+     * Explorar): un post de perfil privado devuelve 404.
+     */
+    @GetMapping(value = "/s/p/{postId}", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> shareFeedPost(@PathVariable long postId) {
+        var post = feedPosts.findById(postId).orElse(null);
+        if (post == null) return ResponseEntity.notFound().build();
+        var author = users.findById(post.getUserUid()).orElse(null);
+        if (author == null || !author.isPublic()) return ResponseEntity.notFound().build();
+
+        String who = author.getUsername() != null ? "@" + author.getUsername()
+                : (author.getDisplayName() != null ? author.getDisplayName() : "Un escalador");
+        String what = switch (post.getKind()) {
+            case "NEW_BLOCK" -> "ha añadido la piedra «" + nz(post.getBlockName(), "nueva") + "»";
+            case "NEW_LINE" -> "ha abierto «" + nz(post.getLineName(), "una vía") + "»"
+                    + (post.getGrade() != null ? " " + post.getGrade() : "");
+            case "PROJECT_DONE" -> "ha encadenado su proyecto «" + nz(post.getLineName(), "") + "»"
+                    + (post.getGrade() != null ? " " + post.getGrade() : "");
+            default -> "ha escalado «" + nz(post.getLineName(), "una vía") + "»"
+                    + (post.getGrade() != null ? " " + post.getGrade() : "");
+        };
+        String title = who + " " + what + " · Cumbre";
+        String desc = (post.getSchoolName() != null ? "En " + post.getSchoolName() + ". " : "")
+                + "Mira la publicación con la línea dibujada en Cumbre.";
+        // Imagen: foto de celebración del post o, si no, la cara de la piedra.
+        boolean hasImage = post.getPhotoPath() != null || blockCoverPhoto(post.getBlockId()) != null;
+        String img = hasImage ? "/s/p/" + postId + "/photo" : null;
+        return ResponseEntity.ok(landing(title, desc, "/s/p/" + postId, img));
+    }
+
+    @GetMapping(value = "/s/p/{postId}/photo")
+    public RedirectView shareFeedPostPhoto(@PathVariable long postId) {
+        var post = feedPosts.findById(postId).orElse(null);
+        String photo = null;
+        if (post != null) {
+            var author = users.findById(post.getUserUid()).orElse(null);
+            if (author != null && author.isPublic()) {
+                photo = post.getPhotoPath() != null ? post.getPhotoPath()
+                        : blockCoverPhoto(post.getBlockId());
+            }
+        }
+        if (photo == null) {
+            RedirectView rv = new RedirectView("/");
+            rv.setStatusCode(HttpStatus.NOT_FOUND);
+            return rv;
+        }
+        return new RedirectView(storage.signedReadUrl(photo, 10).toString());
+    }
+
+    private String blockCoverPhoto(String blockId) {
+        if (blockId == null) return null;
+        return blocks.findById(blockId).map(SchoolBlockJpaEntity::getPhotoPath).orElse(null);
+    }
+
+    private static String nz(String s, String fallback) {
+        return s == null || s.isBlank() ? fallback : s;
     }
 
     /** Landing de un perfil: /s/u/{username o uid}. La app lo abre directo. */
