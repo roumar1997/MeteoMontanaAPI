@@ -522,6 +522,65 @@ class FeedServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void newBlockPostExposesCoverFaceLinesOnly() {
+        // Post NEW_BLOCK (sin lineId) de una piedra con 3 vías: dos de la cara
+        // portada (photoPath null o == portada) y una de OTRA cara.
+        FeedPostJpaEntity p = post("ana");
+        when(p.getKind()).thenReturn(FeedService.KIND_NEW_BLOCK);
+        when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(p));
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+        User ana = user("ana", true);
+        when(users.findByUids(anyList())).thenReturn(List.of(ana));
+        when(mapper.toPublic(ana)).thenReturn(profile("ana", "ana"));
+
+        var cover = mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
+        when(cover.getName()).thenReturn("Vía portada");
+        when(cover.getGrade()).thenReturn("6a");
+        when(cover.getLinePath()).thenReturn("[{\"x\":0.1,\"y\":0.9}]");
+        // photoPath null → hereda la portada de la piedra
+        var coverExplicit = mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
+        when(coverExplicit.getPhotoPath()).thenReturn("blocks/b1/cover.jpg");
+        when(coverExplicit.getLinePath()).thenReturn("[{\"x\":0.5,\"y\":0.5}]");
+        var otherFace = mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
+        when(otherFace.getPhotoPath()).thenReturn("blocks/b1/otra-cara.jpg");
+        when(otherFace.getLinePath()).thenReturn("[{\"x\":0.2,\"y\":0.2}]");
+
+        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
+        when(block.getId()).thenReturn("b1");
+        when(block.getPhotoPath()).thenReturn("blocks/b1/cover.jpg");
+        when(block.getLines()).thenReturn(List.of(cover, coverExplicit, otherFace));
+        when(schoolBlocks.findAllById(any())).thenReturn(List.of(block));
+
+        var result = service.page("me", "all", null, 20);
+
+        assertThat(result).hasSize(1);
+        var lines = result.get(0).blockLines();
+        assertThat(lines).hasSize(2); // solo la cara portada
+        assertThat(lines.get(0).name()).isEqualTo("Vía portada");
+        assertThat(lines.get(0).grade()).isEqualTo("6a");
+        assertThat(lines.get(0).linePath()).contains("0.9");
+    }
+
+    @Test
+    void tickPostDoesNotExposeBlockLines() {
+        FeedPostJpaEntity p = post("ana"); // kind TICK, sin lineId
+        when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(p));
+        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+        User ana = user("ana", true);
+        when(users.findByUids(anyList())).thenReturn(List.of(ana));
+        when(mapper.toPublic(ana)).thenReturn(profile("ana", "ana"));
+        var line = mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
+        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
+        when(block.getId()).thenReturn("b1");
+        when(block.getLines()).thenReturn(List.of(line));
+        when(schoolBlocks.findAllById(any())).thenReturn(List.of(block));
+
+        var result = service.page("me", "all", null, 20);
+
+        assertThat(result.get(0).blockLines()).isNull();
+    }
+
     // ------------------------------------------------------------ delete
 
     @Test
