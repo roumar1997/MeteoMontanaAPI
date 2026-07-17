@@ -2,6 +2,8 @@ package com.meteomontana.api.application.social;
 
 import com.meteomontana.api.application.social.SocialStoryService.ConditionRow;
 import com.meteomontana.api.application.social.SocialStoryService.ConditionsStory;
+import com.meteomontana.api.application.social.SocialStoryService.NewBlockStory;
+import com.meteomontana.api.application.social.SocialStoryService.NewBlockVia;
 import com.meteomontana.api.application.social.SocialStoryService.NoveltyRow;
 import com.meteomontana.api.application.social.SocialStoryService.NoveltyStory;
 
@@ -217,6 +219,112 @@ public final class SocialStoryHtml {
 
         return page(TERRA, RADAR_DARK + body);
     }
+
+    // ───────────────────────────────────────────────────── piedra nueva
+
+    /** Paleta para las líneas por posición (misma variedad que la app). */
+    private static final String[] LINE_COLORS = {GREEN, TERRA, "#B23B3B", "#3B7DB2", "#8A5AC0", "#C08A2B"};
+
+    public static String newBlock(NewBlockStory story) {
+        // Título: nombre de la piedra si es "de verdad" (no solo un número);
+        // si no, "N vías nuevas en {escuela}".
+        String block = story.blockName();
+        boolean realName = block != null && !block.isBlank() && !block.matches("\\d+");
+        int n = story.vias().size();
+        String title = realName
+                ? esc(block)
+                : n + (n == 1 ? " vía nueva" : " vías nuevas");
+
+        // Líneas (SVG viewBox 0..1000, preserveAspectRatio none = alinea con la
+        // foto estirada) + badges HTML posicionados por %.
+        StringBuilder paths = new StringBuilder();
+        StringBuilder badges = new StringBuilder();
+        StringBuilder list = new StringBuilder();
+        int idx = 0;
+        for (NewBlockVia v : story.vias()) {
+            String color = LINE_COLORS[idx % LINE_COLORS.length];
+            List<double[]> pts = v.points();
+            StringBuilder poly = new StringBuilder();
+            for (double[] p : pts) {
+                poly.append(Math.round(p[0] * 1000)).append(',').append(Math.round(p[1] * 1000)).append(' ');
+            }
+            String pl = poly.toString().trim();
+            // Halo negro + línea de color.
+            paths.append("<polyline points=\"").append(pl)
+                 .append("\" fill=\"none\" stroke=\"#000\" stroke-opacity=\"0.4\" stroke-width=\"20\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>");
+            paths.append("<polyline points=\"").append(pl)
+                 .append("\" fill=\"none\" stroke=\"").append(color)
+                 .append("\" stroke-width=\"11\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>");
+            // Badge numérico en el primer punto.
+            double[] first = pts.get(0);
+            badges.append(badge(first[0], first[1], String.valueOf(idx + 1), color, 30));
+            // Etiqueta de inicio en el último punto.
+            String label = startLabel(v.startType());
+            if (label != null && pts.size() > 1) {
+                double[] last = pts.get(pts.size() - 1);
+                badges.append(badge(last[0], last[1], label, color, 26));
+            }
+            // Fila de la lista.
+            String grade = v.grade() != null && !v.grade().isBlank()
+                    ? "<span style=\"font-family:'JetBrains Mono',monospace;font-weight:700;font-size:34px;color:" + TERRA + "\">" + esc(v.grade()) + "</span>" : "";
+            list.append("""
+                <div style="display:flex;align-items:center;gap:20px">
+                  <div style="width:52px;height:52px;border-radius:50%%;background:%s;color:#fff;font-family:'Source Serif 4',serif;font-weight:700;font-size:30px;display:flex;align-items:center;justify-content:center">%d</div>
+                  <div style="flex:1;font-family:'Source Serif 4',serif;font-size:38px;color:%s">%s</div>%s
+                </div>"""
+                .formatted(color, idx + 1, INK, esc(v.name() != null ? v.name() : "Vía " + (idx + 1)), grade));
+            idx++;
+        }
+
+        String author = story.author() != null && !story.author().isBlank()
+                ? "aportada por <b style=\"color:" + INK + ";font-weight:600\">@" + esc(story.author()) + "</b>"
+                : "aportada por la comunidad";
+
+        String body = """
+            <div style="padding:80px 90px 0;position:relative">
+              <div style="display:flex;align-items:center;gap:22px">%s
+                <div><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:38px;color:%s;line-height:1">Cumbre</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-weight:500;font-size:18px;letter-spacing:5px;color:#8A857B">METEO PARA ESCALAR</div></div>
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:24px;letter-spacing:6px;color:%s;margin-top:44px">PIEDRA NUEVA · %s</div>
+              <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:78px;line-height:1;color:%s;margin-top:14px;letter-spacing:-1px">%s<span style="color:%s">.</span></div>
+              <div style="font-family:Inter;font-size:27px;color:#6B6B6B;margin-top:12px">%s</div>
+              <div style="margin-top:30px;position:relative;width:740px;height:940px;border-radius:24px;overflow:hidden;border:3px solid #E2DCD2">
+                <img src="/s/p/%d/photo" style="width:100%%;height:100%%;object-fit:fill;display:block">
+                <svg viewBox="0 0 1000 1000" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%%;height:100%%">%s</svg>
+                %s
+              </div>
+              <div style="margin-top:30px;display:flex;flex-direction:column;gap:16px">%s</div>
+            </div>
+            <div style="position:absolute;bottom:70px;left:90px;right:90px">
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:20px;letter-spacing:4px;color:#8A857B;text-align:center;margin-bottom:22px">VE LA GUÍA Y APÓRTALA TÚ · DESCARGA CUMBRE</div>
+              %s
+            </div>"""
+            .formatted(LOGO, INK, TERRA, up(shortRegion(story.schoolName())), INK, title, TERRA,
+                    author, story.postId(), paths, badges, list, BADGES);
+
+        return page(PAPER, body);
+    }
+
+    /** Badge circular posicionado por % (alinea con la foto y no se deforma). */
+    private static String badge(double x, double y, String text, String ring, int size) {
+        return """
+            <div style="position:absolute;left:%s%%;top:%s%%;transform:translate(-50%%,-50%%);width:%dpx;height:%dpx;border-radius:50%%;background:#fff;border:6px solid %s;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;font-size:%dpx;color:%s">%s</div>"""
+            .formatted(fmt(x * 100), fmt(y * 100), size + 22, size + 22, ring, size, INK, esc(text));
+    }
+
+    private static String startLabel(String t) {
+        if (t == null) return null;
+        return switch (t.toUpperCase(Locale.ROOT)) {
+            case "PIE", "STAND" -> "PIE";
+            case "SIT" -> "SIT";
+            case "LANCE", "JUMP" -> "LAN";
+            case "TRAV" -> "TRV";
+            default -> null;
+        };
+    }
+
+    private static String fmt(double d) { return String.format(Locale.US, "%.2f", d); }
 
     // ───────────────────────────────────────────────────────── helpers
 

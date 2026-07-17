@@ -82,6 +82,12 @@ public class SocialStoryController {
         return SocialStoryHtml.contributors(people, days > 0);
     }
 
+    /** HTML de la historia de una piedra nueva (post NEW_BLOCK). */
+    @GetMapping(value = "/api/social/newblock/html", produces = MediaType.TEXT_HTML_VALUE)
+    public String newBlockHtml(@RequestParam long postId) {
+        return SocialStoryHtml.newBlock(service.newBlock(postId));
+    }
+
     /** Regiones con escuelas (para saber de cuáles generar historia). */
     @GetMapping("/api/social/regions")
     public List<String> regions() {

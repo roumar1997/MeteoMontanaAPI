@@ -1,13 +1,19 @@
 package com.meteomontana.api.application.social;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meteomontana.api.application.forecast.GetForecastUseCase;
 import com.meteomontana.api.domain.model.School;
 import com.meteomontana.api.domain.port.SchoolRepository;
+import com.meteomontana.api.domain.port.UserRepository;
+import com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.text.Normalizer;
 import java.time.LocalDateTime;
@@ -45,18 +51,84 @@ public class SocialStoryService {
     private static final String KIND_NEW_BLOCK = "NEW_BLOCK";
     private static final String KIND_NEW_LINE = "NEW_LINE";
 
+    /** Una vía de la piedra nueva (con sus puntos normalizados 0..1 para dibujar). */
+    public record NewBlockVia(String name, String grade, String startType, List<double[]> points) {}
+
+    /** Historia "piedra nueva" (post automático al aprobar). */
+    public record NewBlockStory(
+            long postId, String blockName, String schoolName, String author,
+            List<NewBlockVia> vias) {}
+
+    private static final ObjectMapper JSON = new ObjectMapper();
+
     private final SchoolRepository schools;
     private final GetForecastUseCase forecast;
     private final SpringDataFeedPostRepository feedPosts;
     private final SpringDataSchoolBlockRepository schoolBlocks;
+    private final UserRepository users;
 
     public SocialStoryService(SchoolRepository schools, GetForecastUseCase forecast,
                               SpringDataFeedPostRepository feedPosts,
-                              SpringDataSchoolBlockRepository schoolBlocks) {
+                              SpringDataSchoolBlockRepository schoolBlocks,
+                              UserRepository users) {
         this.schools = schools;
         this.forecast = forecast;
         this.feedPosts = feedPosts;
         this.schoolBlocks = schoolBlocks;
+        this.users = users;
+    }
+
+    /**
+     * Datos de la historia de una piedra nueva a partir de su post NEW_BLOCK.
+     * La foto se sirve aparte por {@code /s/p/{postId}/photo}. 404 si el post no
+     * existe o no es una piedra nueva.
+     */
+    public NewBlockStory newBlock(long postId) {
+        FeedPostJpaEntity p = feedPosts.findById(postId).orElse(null);
+        if (p == null || !KIND_NEW_BLOCK.equals(p.getKind())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "no es una piedra nueva");
+        }
+        SchoolBlockJpaEntity block = p.getBlockId() == null ? null
+                : schoolBlocks.findById(p.getBlockId()).orElse(null);
+        String cover = block != null ? block.getPhotoPath() : null;
+
+        List<NewBlockVia> vias = new ArrayList<>();
+        if (block != null && block.getLines() != null) {
+            for (BlockLineJpaEntity l : block.getLines()) {
+                // Solo las vías de la cara PORTADA (misma foto que la portada, o
+                // sin foto propia) — coherente con lo que pinta la app.
+                boolean coverFace = l.getPhotoPath() == null
+                        || (cover != null && cover.equals(l.getPhotoPath()));
+                if (!coverFace) continue;
+                List<double[]> pts = parsePoints(l.getLinePath());
+                if (pts.isEmpty()) continue;
+                vias.add(new NewBlockVia(
+                        l.getName(), l.getGrade(),
+                        l.getStartType() != null ? l.getStartType().name() : null, pts));
+            }
+        }
+
+        String author = users.findByUid(p.getUserUid())
+                .map(u -> u.getUsername() != null ? u.getUsername() : u.getDisplayName())
+                .orElse(null);
+        return new NewBlockStory(postId, p.getBlockName(), p.getSchoolName(), author, vias);
+    }
+
+    /** Parsea linePath (JSON [{x,y},...]) a puntos normalizados 0..1. */
+    private static List<double[]> parsePoints(String linePath) {
+        List<double[]> out = new ArrayList<>();
+        if (linePath == null || linePath.isBlank()) return out;
+        try {
+            JsonNode arr = JSON.readTree(linePath);
+            if (arr.isArray()) {
+                for (JsonNode n : arr) {
+                    if (n.has("x") && n.has("y")) {
+                        out.add(new double[]{n.get("x").asDouble(), n.get("y").asDouble()});
+                    }
+                }
+            }
+        } catch (Exception ignored) { }
+        return out;
     }
 
     /**
