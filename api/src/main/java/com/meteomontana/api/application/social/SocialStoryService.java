@@ -214,12 +214,25 @@ public class SocialStoryService {
                 rows.stream().limit(limit).toList());
     }
 
-    /** Lista de regiones con al menos una escuela (para saber qué historias generar). */
-    public List<String> regions() {
-        return schools.findAll().stream()
-                .map(School::getRegion)
-                .filter(r -> r != null && !r.isBlank())
-                .distinct().sorted().toList();
+    /**
+     * Regiones "publicables": comunidades con al menos {@code minSchools}
+     * escuelas, EXCLUYENDO strings ambiguos (multi-región con "/" y provincias
+     * sueltas) — para que el bucle de n8n solo genere historias con sentido.
+     * Ordenadas de más a menos escuelas.
+     */
+    public List<String> regions(int minSchools) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (School s : schools.findAll()) {
+            String r = s.getRegion();
+            if (r == null || r.isBlank()) continue;
+            if (r.contains("/")) continue;                    // "Aragón / Cataluña"
+            counts.merge(r.trim(), 1, Integer::sum);
+        }
+        return counts.entrySet().stream()
+                .filter(e -> e.getValue() >= Math.max(1, minSchools))
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .map(Map.Entry::getKey)
+                .toList();
     }
 
     private static String norm(String s) {

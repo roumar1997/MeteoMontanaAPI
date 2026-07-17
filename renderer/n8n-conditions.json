@@ -1,0 +1,128 @@
+{
+  "name": "Cumbre — Condiciones diarias (Madrid)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 0 8 * * *" }
+          ]
+        }
+      },
+      "id": "trigger",
+      "name": "Cada mañana 8:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "IG_USER_ID",
+              "value": "PON_AQUI_EL_IG_USER_ID",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "IG_TOKEN",
+              "value": "PON_AQUI_EL_TOKEN_DE_PAGINA",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "RENDERER",
+              "value": "https://PON_AQUI_EL_DOMINIO_DEL_RENDERER",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "HISTORIA_URL",
+              "value": "https://api.climbingteams.com/api/social/conditions/html?region=Comunidad de Madrid",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "config",
+      "name": "Config (edítame)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "image_url",
+              "value": "={{ $json.RENDERER }}/render?url={{ encodeURIComponent($json.HISTORIA_URL) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "include": "all",
+        "options": {}
+      },
+      "id": "buildurl",
+      "name": "Construir image_url",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.IG_USER_ID }}/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "image_url", "value": "={{ $json.image_url }}" },
+            { "name": "media_type", "value": "STORIES" },
+            { "name": "access_token", "value": "={{ $json.IG_TOKEN }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "container",
+      "name": "IG: crear contenedor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Config (edítame)').item.json.IG_USER_ID }}/media_publish",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "creation_id", "value": "={{ $json.id }}" },
+            { "name": "access_token", "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "publish",
+      "name": "IG: publicar story",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 300]
+    }
+  ],
+  "connections": {
+    "Cada mañana 8:00": { "main": [[{ "node": "Config (edítame)", "type": "main", "index": 0 }]] },
+    "Config (edítame)": { "main": [[{ "node": "Construir image_url", "type": "main", "index": 0 }]] },
+    "Construir image_url": { "main": [[{ "node": "IG: crear contenedor", "type": "main", "index": 0 }]] },
+    "IG: crear contenedor": { "main": [[{ "node": "IG: publicar story", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "_comment": "Cumbre — historia de condiciones diaria. Edita el nodo 'Config': pon IG_USER_ID, IG_TOKEN (token de pagina) y RENDERER (dominio del mini-servicio). Para OTRA comunidad, cambia HISTORIA_URL (region=...). Para NOVEDADES/RANKING/PIEDRA, cambia HISTORIA_URL por la URL de esa historia y el cron. Ver INSTAGRAM_AUTOMATION.md."
+  }
+}
