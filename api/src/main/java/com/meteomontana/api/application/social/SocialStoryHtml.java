@@ -128,11 +128,13 @@ public final class SocialStoryHtml {
                 <div style="margin-bottom:22px">
                   <div style="display:flex;justify-content:space-between;align-items:baseline">
                     <span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:40px;color:%s">%s</span>
-                    <span style="font-family:Inter;font-size:27px;color:#6B6B6B"><b style="color:%s;font-family:'Source Serif 4',serif;font-size:34px">%d</b> vías · %d piedras</span>
+                    <span style="font-family:Inter;font-size:27px;color:#6B6B6B"><b style="color:%s;font-family:'Source Serif 4',serif;font-size:34px">%d</b> %s · %d %s</span>
                   </div>
                   <div style="height:14px;background:#E7E1D6;border-radius:8px;margin-top:12px;overflow:hidden"><div style="height:100%%;width:%d%%;background:%s;border-radius:8px"></div></div>
                 </div>"""
-                .formatted(INK, esc(r.school()), TERRA, r.lines(), r.blocks(), pct, TERRA));
+                .formatted(INK, esc(r.school()), TERRA, r.lines(),
+                        r.lines() == 1 ? "vía" : "vías", r.blocks(),
+                        r.blocks() == 1 ? "piedra" : "piedras", pct, TERRA));
         }
 
         String body = """
