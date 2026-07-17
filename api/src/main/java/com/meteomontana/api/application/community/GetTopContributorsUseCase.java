@@ -48,7 +48,20 @@ public class GetTopContributorsUseCase {
 
     public List<TopContributorDto> topContributors(int limit) {
         int capped = Math.max(1, Math.min(limit, MAX_LIMIT));
-        var counts = statsRepo.topContributors(SubmissionStatus.APPROVED, capped);
+        return toDtos(statsRepo.topContributors(SubmissionStatus.APPROVED, capped));
+    }
+
+    /** Ranking de los últimos {@code days} días (por fecha de aprobación).
+     *  Para la historia semanal "aportadores de la semana". */
+    public List<TopContributorDto> topContributorsSince(int days, int limit) {
+        int capped = Math.max(1, Math.min(limit, MAX_LIMIT));
+        var since = java.time.LocalDateTime.now().minusDays(Math.max(1, days));
+        return toDtos(statsRepo.topContributorsSince(SubmissionStatus.APPROVED, since, capped));
+    }
+
+    /** Mapea counts → DTOs con perfil (respeta privacidad), una query de perfiles. */
+    private List<TopContributorDto> toDtos(
+            List<com.meteomontana.api.domain.port.ContributionStatsRepository.ContributorCount> counts) {
         if (counts.isEmpty()) return List.of();
 
         Map<String, User> users = userRepository
@@ -60,7 +73,6 @@ public class GetTopContributorsUseCase {
                 .map(c -> {
                     User u = users.get(c.uid());
                     if (u == null) return null; // cuenta borrada → fuera del ranking
-                    // Misma regla de privacidad que la búsqueda de usuarios.
                     var profile = u.isPublic() ? mapper.toPublic(u) : mapper.toPublicLocked(u);
                     return new TopContributorDto(
                             u.getUid(), profile.username(), profile.displayName(),
