@@ -71,6 +71,19 @@ public class StorageService {
      * las mismas fotos en cada scroll del feed; ver histórico del 2026-07-13).
      */
     public URL signedReadUrl(String path, int minutesValid) {
+        // Algunas fotos "Tipo A" (piedra/nota/quedada/perfil) guardan como
+        // photoPath una URL COMPLETA auto-resolvible: la permanente del backend
+        // ({base}/api/photo/{key}, que redirige a R2) o una vieja pública de
+        // Firebase. Firmarlas como si fueran una key de R2 las malforma
+        // (NoSuchKey). Si ya es una URL http(s), se devuelve tal cual.
+        if (path != null && (path.startsWith("http://") || path.startsWith("https://"))) {
+            try {
+                return java.net.URI.create(path).toURL();
+            } catch (Exception e) {
+                throw new IllegalArgumentException("photoPath no es una URL válida: " + path, e);
+            }
+        }
+
         String key = minutesValid + ":" + path;
         long now = System.currentTimeMillis();
 
