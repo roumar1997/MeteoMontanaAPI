@@ -128,11 +128,13 @@ public final class SocialStoryHtml {
                 <div style="margin-bottom:22px">
                   <div style="display:flex;justify-content:space-between;align-items:baseline">
                     <span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:40px;color:%s">%s</span>
-                    <span style="font-family:Inter;font-size:27px;color:#6B6B6B"><b style="color:%s;font-family:'Source Serif 4',serif;font-size:34px">%d</b> vías · %d piedras</span>
+                    <span style="font-family:Inter;font-size:27px;color:#6B6B6B"><b style="color:%s;font-family:'Source Serif 4',serif;font-size:34px">%d</b> %s · %d %s</span>
                   </div>
                   <div style="height:14px;background:#E7E1D6;border-radius:8px;margin-top:12px;overflow:hidden"><div style="height:100%%;width:%d%%;background:%s;border-radius:8px"></div></div>
                 </div>"""
-                .formatted(INK, esc(r.school()), TERRA, r.lines(), r.blocks(), pct, TERRA));
+                .formatted(INK, esc(r.school()), TERRA, r.lines(),
+                        r.lines() == 1 ? "vía" : "vías", r.blocks(),
+                        r.blocks() == 1 ? "piedra" : "piedras", pct, TERRA));
         }
 
         String body = """
@@ -222,8 +224,31 @@ public final class SocialStoryHtml {
 
     // ───────────────────────────────────────────────────── piedra nueva
 
-    /** Paleta para las líneas por posición (misma variedad que la app). */
-    private static final String[] LINE_COLORS = {GREEN, TERRA, "#B23B3B", "#3B7DB2", "#8A5AC0", "#C08A2B"};
+    /** Color de una vía según su grado (MISMO mapeo que la app: gradeArgb en
+     *  TopoRenderer.kt). dark=true → línea clara (blanca), necesita halo negro
+     *  y texto negro. dashed=true → proyecto (sin grado). */
+    private record LineStyle(String color, boolean dark, boolean dashed) {}
+
+    private static LineStyle gradeStyle(String grade) {
+        String g = (grade == null ? "" : grade.trim().toUpperCase(Locale.ROOT));
+        if (g.isEmpty() || g.equals("PROY") || g.equals("PROYECTO") || g.equals("?")) {
+            return new LineStyle("#FF4FA3", false, true);   // proyecto: rosa punteado
+        }
+        var m = java.util.regex.Pattern.compile("^([3-9])([ABCD])?(\\+)?$").matcher(g);
+        if (!m.matches()) return new LineStyle("#FF4FA3", false, true);
+        int num = Integer.parseInt(m.group(1));
+        int letter = switch (m.group(2) == null ? "A" : m.group(2)) {
+            case "B" -> 1; case "C" -> 2; case "D" -> 3; default -> 0;
+        };
+        int plus = "+".equals(m.group(3)) ? 1 : 0;
+        int score = num * 100 + letter * 10 + plus;
+        if (score <= 521) return new LineStyle("#FFFFFF", true, false);   // 3-5+  blanco
+        if (score <= 611) return new LineStyle("#1FA84E", false, false);  // 6a-6b verde
+        if (score <= 621) return new LineStyle("#1D6DD6", false, false);  // 6c    azul
+        if (score <= 701) return new LineStyle("#8E3FBF", false, false);  // 6c+-7a morado
+        if (score <= 721) return new LineStyle("#D62828", false, false);  // 7a+-7b rojo
+        return new LineStyle("#111111", false, false);                    // 7b+    negro
+    }
 
     public static String newBlock(NewBlockStory story) {
         // Título: nombre de la piedra si es "de verdad" (no solo un número);
@@ -242,37 +267,45 @@ public final class SocialStoryHtml {
         StringBuilder list = new StringBuilder();
         int idx = 0;
         for (NewBlockVia v : story.vias()) {
-            String color = LINE_COLORS[idx % LINE_COLORS.length];
+            LineStyle st = gradeStyle(v.grade());
+            String color = st.color();
             List<double[]> pts = v.points();
             StringBuilder poly = new StringBuilder();
             for (double[] p : pts) {
                 poly.append(Math.round(p[0] * 1000)).append(',').append(Math.round(p[1] * 1000)).append(' ');
             }
             String pl = poly.toString().trim();
-            // Halo negro + línea de color.
-            paths.append("<polyline points=\"").append(pl)
-                 .append("\" fill=\"none\" stroke=\"#000\" stroke-opacity=\"0.4\" stroke-width=\"20\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>");
+            String dash = st.dashed() ? " stroke-dasharray=\"22 18\"" : "";
+            // Halo negro SOLO en líneas claras (blanco), como la app — para que
+            // se vean sobre cielo/roca clara. Las de color no llevan halo.
+            if (st.dark()) {
+                paths.append("<polyline points=\"").append(pl)
+                     .append("\" fill=\"none\" stroke=\"#000\" stroke-opacity=\"0.55\" stroke-width=\"20\" stroke-linecap=\"round\" stroke-linejoin=\"round\"").append(dash).append("/>");
+            }
             paths.append("<polyline points=\"").append(pl)
                  .append("\" fill=\"none\" stroke=\"").append(color)
-                 .append("\" stroke-width=\"11\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>");
-            // Badge numérico en el primer punto.
+                 .append("\" stroke-width=\"11\" stroke-linecap=\"round\" stroke-linejoin=\"round\"").append(dash).append("/>");
+            // Badge numérico en el primer punto (relleno con el color de la vía;
+            // texto blanco, o negro si el color es claro).
             double[] first = pts.get(0);
-            badges.append(badge(first[0], first[1], String.valueOf(idx + 1), color, 30));
+            badges.append(badge(first[0], first[1], String.valueOf(idx + 1), color, st.dark(), 30));
             // Etiqueta de inicio en el último punto.
             String label = startLabel(v.startType());
             if (label != null && pts.size() > 1) {
                 double[] last = pts.get(pts.size() - 1);
-                badges.append(badge(last[0], last[1], label, color, 26));
+                badges.append(badge(last[0], last[1], label, color, st.dark(), 26));
             }
             // Fila de la lista.
             String grade = v.grade() != null && !v.grade().isBlank()
                     ? "<span style=\"font-family:'JetBrains Mono',monospace;font-weight:700;font-size:34px;color:" + TERRA + "\">" + esc(v.grade()) + "</span>" : "";
+            String numText = st.dark() ? INK : "#fff";
+            String numBorder = st.dark() ? ";border:2px solid #1A1A1A" : "";
             list.append("""
                 <div style="display:flex;align-items:center;gap:20px">
-                  <div style="width:52px;height:52px;border-radius:50%%;background:%s;color:#fff;font-family:'Source Serif 4',serif;font-weight:700;font-size:30px;display:flex;align-items:center;justify-content:center">%d</div>
+                  <div style="width:52px;height:52px;border-radius:50%%;background:%s;color:%s%s;font-family:'Source Serif 4',serif;font-weight:700;font-size:30px;display:flex;align-items:center;justify-content:center">%d</div>
                   <div style="flex:1;font-family:'Source Serif 4',serif;font-size:38px;color:%s">%s</div>%s
                 </div>"""
-                .formatted(color, idx + 1, INK, esc(v.name() != null ? v.name() : "Vía " + (idx + 1)), grade));
+                .formatted(color, numText, numBorder, idx + 1, INK, esc(v.name() != null ? v.name() : "Vía " + (idx + 1)), grade));
             idx++;
         }
 
@@ -306,11 +339,15 @@ public final class SocialStoryHtml {
         return page(PAPER, body);
     }
 
-    /** Badge circular posicionado por % (alinea con la foto y no se deforma). */
-    private static String badge(double x, double y, String text, String ring, int size) {
+    /** Badge circular posicionado por % (alinea con la foto y no se deforma).
+     *  Relleno con el color de la vía; borde y texto se adaptan (líneas claras
+     *  → borde oscuro y texto oscuro; de color → borde blanco y texto blanco). */
+    private static String badge(double x, double y, String text, String color, boolean dark, int size) {
+        String border = dark ? "#1A1A1A" : "#FFFFFF";
+        String textColor = dark ? "#1A1A1A" : "#FFFFFF";
         return """
-            <div style="position:absolute;left:%s%%;top:%s%%;transform:translate(-50%%,-50%%);width:%dpx;height:%dpx;border-radius:50%%;background:#fff;border:6px solid %s;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;font-size:%dpx;color:%s">%s</div>"""
-            .formatted(fmt(x * 100), fmt(y * 100), size + 22, size + 22, ring, size, INK, esc(text));
+            <div style="position:absolute;left:%s%%;top:%s%%;transform:translate(-50%%,-50%%);width:%dpx;height:%dpx;border-radius:50%%;background:%s;border:5px solid %s;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;font-size:%dpx;color:%s">%s</div>"""
+            .formatted(fmt(x * 100), fmt(y * 100), size + 22, size + 22, color, border, size, textColor, esc(text));
     }
 
     private static String startLabel(String t) {

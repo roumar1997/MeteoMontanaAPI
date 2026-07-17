@@ -1,0 +1,14 @@
+{
+  "name": "cumbre-renderer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mini-servicio que convierte las historias HTML de Cumbre en PNG (para el proyecto n8n/Instagram). Aislado del backend de producción.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "puppeteer-core": "^23.11.1"
+  }
+}
