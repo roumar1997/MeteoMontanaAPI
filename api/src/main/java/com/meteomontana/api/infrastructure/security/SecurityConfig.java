@@ -71,6 +71,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/search/lines").permitAll()
                 // Ranking de contribuidores: solo datos ya públicos (perfil + count).
                 .requestMatchers(HttpMethod.GET, "/api/community/**").permitAll()
+                // Datos de las historias sociales (n8n/Instagram): solo datos
+                // ya públicos (catálogo + forecast + ranking).
+                .requestMatchers(HttpMethod.GET, "/api/social/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                 // Radar de lluvia (datos AEMET): público como el forecast.
                 .requestMatchers(HttpMethod.GET, "/api/radar/**").permitAll()
