@@ -2,9 +2,11 @@ package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.application.community.GetTopContributorsUseCase;
 import com.meteomontana.api.application.community.GetTopContributorsUseCase.TopContributorDto;
+import com.meteomontana.api.application.social.SocialStoryHtml;
 import com.meteomontana.api.application.social.SocialStoryService;
 import com.meteomontana.api.application.social.SocialStoryService.ConditionsStory;
 import com.meteomontana.api.application.social.SocialStoryService.NoveltyStory;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,6 +52,14 @@ public class SocialStoryController {
             @RequestParam(defaultValue = "7") int days,
             @RequestParam(defaultValue = "5") int limit) {
         return contributors.topContributorsSince(days, limit);
+    }
+
+    /** HTML 1080x1920 de la historia de condiciones (n8n lo captura a PNG). */
+    @GetMapping(value = "/api/social/conditions.html", produces = MediaType.TEXT_HTML_VALUE)
+    public String conditionsHtml(
+            @RequestParam String region,
+            @RequestParam(defaultValue = "5") int limit) {
+        return SocialStoryHtml.conditions(service.conditions(region, limit));
     }
 
     /** Regiones con escuelas (para saber de cuáles generar historia). */
