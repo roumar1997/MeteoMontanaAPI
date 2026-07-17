@@ -54,8 +54,9 @@ public class SocialStoryController {
         return contributors.topContributorsSince(days, limit);
     }
 
-    /** HTML 1080x1920 de la historia de condiciones (n8n lo captura a PNG). */
-    @GetMapping(value = "/api/social/conditions.html", produces = MediaType.TEXT_HTML_VALUE)
+    /** HTML 1080x1920 de la historia de condiciones (n8n lo captura a PNG).
+     *  Ruta con barra (no .html) para que Spring no la trate como recurso estático. */
+    @GetMapping(value = "/api/social/conditions/html", produces = MediaType.TEXT_HTML_VALUE)
     public String conditionsHtml(
             @RequestParam String region,
             @RequestParam(defaultValue = "5") int limit) {
