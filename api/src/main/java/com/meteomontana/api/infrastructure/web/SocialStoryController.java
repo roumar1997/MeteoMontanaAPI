@@ -88,9 +88,10 @@ public class SocialStoryController {
         return SocialStoryHtml.newBlock(service.newBlock(postId));
     }
 
-    /** Regiones con escuelas (para saber de cuáles generar historia). */
+    /** Regiones publicables (comunidades con >= minSchools escuelas, sin
+     *  provincias sueltas ni multi-región). Para el bucle de n8n. */
     @GetMapping("/api/social/regions")
-    public List<String> regions() {
-        return service.regions();
+    public List<String> regions(@RequestParam(defaultValue = "3") int minSchools) {
+        return service.regions(minSchools);
     }
 }
