@@ -36,4 +36,9 @@ public interface SpringDataFeedPostRepository extends JpaRepository<FeedPostJpaE
 
     /** Para publicar idempotente: mismo usuario + misma vía + mismo tipo. */
     Optional<FeedPostJpaEntity> findByUserUidAndLineIdAndKind(String userUid, String lineId, String kind);
+
+    /** Posts de esos tipos (NEW_BLOCK/NEW_LINE) creados desde {@code since}
+     *  — para la historia "novedades de la semana". */
+    List<FeedPostJpaEntity> findByKindInAndCreatedAtAfterOrderByCreatedAtDesc(
+            java.util.Collection<String> kinds, java.time.LocalDateTime since);
 }

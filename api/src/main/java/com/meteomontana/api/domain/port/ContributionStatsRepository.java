@@ -15,4 +15,8 @@ public interface ContributionStatsRepository {
 
     /** Top de contribuidores con ese status, de más a menos, como mucho {@code limit}. */
     List<ContributorCount> topContributors(SubmissionStatus status, int limit);
+
+    /** Igual pero solo lo aprobado (reviewedAt) desde {@code since} — ranking semanal. */
+    List<ContributorCount> topContributorsSince(
+            SubmissionStatus status, java.time.LocalDateTime since, int limit);
 }
