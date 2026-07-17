@@ -2,9 +2,12 @@ package com.meteomontana.api.application.social;
 
 import com.meteomontana.api.application.social.SocialStoryService.ConditionRow;
 import com.meteomontana.api.application.social.SocialStoryService.ConditionsStory;
+import com.meteomontana.api.application.social.SocialStoryService.NoveltyRow;
+import com.meteomontana.api.application.social.SocialStoryService.NoveltyStory;
 
 import java.time.LocalDate;
 import java.time.format.TextStyle;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -51,15 +54,24 @@ public final class SocialStoryHtml {
           </div>
         </div>""";
 
-    /** Anillos de radar (esquina superior derecha). */
-    private static final String RADAR = """
-        <svg style="position:absolute;top:-260px;right:-260px;width:900px;height:900px" viewBox="0 0 900 900">
-          <g fill="none" stroke="#C0532B">
-            <circle cx="450" cy="450" r="150" stroke-opacity="0.13" stroke-width="3"/>
-            <circle cx="450" cy="450" r="255" stroke-opacity="0.11" stroke-width="3"/>
-            <circle cx="450" cy="450" r="355" stroke-opacity="0.09" stroke-width="3"/>
-            <circle cx="450" cy="450" r="450" stroke-opacity="0.07" stroke-width="3"/></g>
-        </svg>""";
+    /** Anillos de radar (esquina superior derecha) sobre fondo papel. */
+    private static final String RADAR = radar("#C0532B");
+    /** Radar sobre fondo oscuro/terracota (anillos negros). */
+    private static final String RADAR_DARK = radar("#000000");
+
+    private static String radar(String color) {
+        return ("""
+            <svg style="position:absolute;top:-260px;right:-260px;width:900px;height:900px" viewBox="0 0 900 900">
+              <g fill="none" stroke="%s">
+                <circle cx="450" cy="450" r="150" stroke-opacity="0.13" stroke-width="3"/>
+                <circle cx="450" cy="450" r="255" stroke-opacity="0.11" stroke-width="3"/>
+                <circle cx="450" cy="450" r="355" stroke-opacity="0.09" stroke-width="3"/>
+                <circle cx="450" cy="450" r="450" stroke-opacity="0.07" stroke-width="3"/></g>
+            </svg>""").formatted(color);
+    }
+
+    /** Badges de tienda sobre fondo oscuro/terracota (caja #1A1A1A en vez de #000). */
+    private static final String BADGES_DARK = BADGES.replace("background:#000", "background:#1A1A1A");
 
     // ─────────────────────────────────────────────── condiciones diarias
 
@@ -101,6 +113,109 @@ public final class SocialStoryHtml {
             .formatted(LOGO, INK, TERRA, up(shortRegion(story.region())), INK, today(), rows, BADGES);
 
         return page(PAPER, RADAR + body);
+    }
+
+    // ─────────────────────────────────────────────── novedades de la semana
+
+    public static String novelties(NoveltyStory story) {
+        int max = story.bySchool().stream().mapToInt(NoveltyRow::lines).max().orElse(1);
+        StringBuilder rows = new StringBuilder();
+        for (NoveltyRow r : story.bySchool()) {
+            int pct = max > 0 ? Math.round(r.lines() * 100f / max) : 0;
+            rows.append("""
+                <div style="margin-bottom:22px">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline">
+                    <span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:40px;color:%s">%s</span>
+                    <span style="font-family:Inter;font-size:27px;color:#6B6B6B"><b style="color:%s;font-family:'Source Serif 4',serif;font-size:34px">%d</b> vías · %d piedras</span>
+                  </div>
+                  <div style="height:14px;background:#E7E1D6;border-radius:8px;margin-top:12px;overflow:hidden"><div style="height:100%%;width:%d%%;background:%s;border-radius:8px"></div></div>
+                </div>"""
+                .formatted(INK, esc(r.school()), TERRA, r.lines(), r.blocks(), pct, TERRA));
+        }
+
+        String body = """
+            <div style="padding:96px 90px 0;position:relative">
+              <div style="display:flex;align-items:center;gap:22px">%s
+                <div><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:40px;color:%s;line-height:1">Cumbre</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-weight:500;font-size:19px;letter-spacing:5px;color:#8A857B">METEO PARA ESCALAR</div></div>
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:26px;letter-spacing:7px;color:%s;margin-top:80px">NOVEDADES DE LA SEMANA</div>
+              <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:92px;line-height:0.98;color:%s;margin-top:20px;letter-spacing:-2px">La guía no para<br>de crecer<span style="color:%s">.</span></div>
+              <div style="display:flex;gap:26px;margin-top:52px">
+                <div style="flex:1;background:#FAF8F3;border:3px solid #E2DCD2;border-radius:26px;padding:30px 34px"><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:96px;color:%s;line-height:1">%d</div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:2px;color:#8A857B;margin-top:6px">VÍAS NUEVAS</div></div>
+                <div style="flex:1;background:#FAF8F3;border:3px solid #E2DCD2;border-radius:26px;padding:30px 34px"><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:96px;color:%s;line-height:1">%d</div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:2px;color:#8A857B;margin-top:6px">PIEDRAS NUEVAS</div></div>
+                <div style="flex:1;background:#FAF8F3;border:3px solid #E2DCD2;border-radius:26px;padding:30px 34px"><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:96px;color:%s;line-height:1">%d</div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:2px;color:#8A857B;margin-top:6px">ESCUELAS</div></div>
+              </div>
+              <div style="font-family:Inter;font-size:27px;color:#6B6B6B;margin-top:44px;margin-bottom:24px">Dónde se ha crecido:</div>
+              %s
+            </div>
+            <div style="position:absolute;bottom:96px;left:90px;right:90px">
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:22px;letter-spacing:5px;color:#8A857B;text-align:center;margin-bottom:26px">AÑADE TU ZONA · DESCARGA CUMBRE</div>
+              %s
+            </div>"""
+            .formatted(LOGO, INK, TERRA, INK, TERRA,
+                    TERRA, story.totalLines(), INK, story.totalBlocks(), GREEN, story.totalSchools(),
+                    rows, BADGES);
+
+        return page(PAPER, RADAR + body);
+    }
+
+    // ─────────────────────────────────────────────── ranking de aportadores
+
+    /** Ranking de aportadores. {@code weekly}=true → "Esta semana"; si no, global.
+     *  Fondo TERRACOTA para diferenciarlo del resto (crema). */
+    public static String contributors(
+            List<com.meteomontana.api.application.community.GetTopContributorsUseCase.TopContributorDto> people,
+            boolean weekly) {
+        String[] medal = {"#E8B84B", "#CFCFCF", "#C88A4A"};
+        StringBuilder rows = new StringBuilder();
+        int i = 0;
+        for (var p : people) {
+            boolean first = i == 0;
+            String name = p.displayName() != null && !p.displayName().isBlank()
+                    ? p.displayName() : (p.username() != null ? "@" + p.username() : "Escalador");
+            String rankColor = i < 3 ? medal[i] : "rgba(255,255,255,0.7)";
+            rows.append("""
+                <div style="display:flex;align-items:center;background:%s;border-radius:26px;padding:%s">
+                  <div style="width:64px;font-family:'Source Serif 4',serif;font-weight:700;font-size:%dpx;color:%s;text-align:center">%d</div>
+                  <div style="flex:1;margin-left:18px">
+                    <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:%dpx;color:%s;line-height:1.05">%s</div>
+                    <div style="font-family:Inter;font-size:22px;color:%s">@%s</div>
+                  </div>
+                  <div style="text-align:right"><span style="font-family:'Source Serif 4',serif;font-weight:700;font-size:%dpx;color:%s">%d</span><div style="font-family:'JetBrains Mono',monospace;font-size:17px;color:%s;letter-spacing:1px">APORTES</div></div>
+                </div>"""
+                .formatted(
+                    first ? PAPER : "rgba(255,255,255,0.12)",
+                    first ? "30px 36px" : "24px 36px",
+                    first ? 52 : 42, rankColor, i + 1,
+                    first ? 42 : 34, first ? INK : "#fff", esc(name),
+                    first ? "#8A857B" : "rgba(255,255,255,0.65)", esc(p.username() != null ? p.username() : ""),
+                    first ? 60 : 46, first ? TERRA : "#fff", p.approvedCount(),
+                    first ? "#8A857B" : "rgba(255,255,255,0.6)"));
+            i++;
+        }
+
+        String eyebrow = weekly ? "APORTADORES DE LA SEMANA" : "LA GUÍA LA HACEMOS ENTRE TODOS";
+        String title = weekly ? "Esta semana" : "Quién más<br>aporta";
+
+        String body = """
+            <div style="padding:96px 90px 0;position:relative">
+              <div style="display:flex;align-items:center;gap:22px">%s
+                <div><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:40px;color:#fff;line-height:1">Cumbre</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-weight:500;font-size:19px;letter-spacing:5px;color:rgba(255,255,255,0.6)">METEO PARA ESCALAR</div></div>
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:26px;letter-spacing:6px;color:#F2E4D0;margin-top:90px">%s</div>
+              <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:96px;line-height:0.98;color:#fff;margin-top:20px;letter-spacing:-2px">%s<span style="color:%s">.</span></div>
+              <div style="font-family:Inter;font-size:28px;color:#F2E4D0;margin-top:18px">Piedras, vías y sectores aprobados</div>
+              <div style="margin-top:52px;display:flex;flex-direction:column;gap:20px">%s</div>
+            </div>
+            <div style="position:absolute;bottom:96px;left:90px;right:90px">
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:22px;letter-spacing:5px;color:rgba(255,255,255,0.65);text-align:center;margin-bottom:26px">SUMA TÚ TAMBIÉN · DESCARGA CUMBRE</div>
+              %s
+            </div>"""
+            .formatted(LOGO, eyebrow, title, INK, rows, BADGES_DARK);
+
+        return page(TERRA, RADAR_DARK + body);
     }
 
     // ───────────────────────────────────────────────────────── helpers

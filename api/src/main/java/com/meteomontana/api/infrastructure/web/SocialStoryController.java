@@ -63,6 +63,25 @@ public class SocialStoryController {
         return SocialStoryHtml.conditions(service.conditions(region, limit));
     }
 
+    /** HTML de la historia de novedades de la semana. */
+    @GetMapping(value = "/api/social/novelties/html", produces = MediaType.TEXT_HTML_VALUE)
+    public String noveltiesHtml(
+            @RequestParam(defaultValue = "7") int days,
+            @RequestParam(defaultValue = "6") int limit) {
+        return SocialStoryHtml.novelties(service.novelties(days, limit));
+    }
+
+    /** HTML del ranking de aportadores. days=0 → global (mensual); days>0 → semanal. */
+    @GetMapping(value = "/api/social/contributors/html", produces = MediaType.TEXT_HTML_VALUE)
+    public String contributorsHtml(
+            @RequestParam(defaultValue = "0") int days,
+            @RequestParam(defaultValue = "5") int limit) {
+        var people = days > 0
+                ? contributors.topContributorsSince(days, limit)
+                : contributors.topContributors(limit);
+        return SocialStoryHtml.contributors(people, days > 0);
+    }
+
     /** Regiones con escuelas (para saber de cuáles generar historia). */
     @GetMapping("/api/social/regions")
     public List<String> regions() {
