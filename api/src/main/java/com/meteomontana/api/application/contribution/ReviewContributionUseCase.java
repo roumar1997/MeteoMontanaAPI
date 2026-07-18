@@ -164,10 +164,21 @@ public class ReviewContributionUseCase {
         return approve(id, admin, true);
     }
 
-    /** @param notify si false, no manda email de "aprobada" (p.ej. el admin se
-     *  auto-aprueba su propia creación → no tiene sentido avisarse a sí mismo). */
     public ContributionResponse approve(String id, FirebaseUser admin, boolean notify) {
+        return approve(id, admin, notify, null);
+    }
+
+    /** @param notify si false, no manda email de "aprobada" (p.ej. el admin se
+     *  auto-aprueba su propia creación → no tiene sentido avisarse a sí mismo).
+     *  @param editedBloquesJson si != null, "EDITAR Y APROBAR": el admin retocó
+     *  la propuesta y se materializa CON sus cambios (se persiste en la
+     *  contribución para que la auditoría refleje lo realmente aplicado). */
+    public ContributionResponse approve(String id, FirebaseUser admin, boolean notify,
+                                        String editedBloquesJson) {
         var entity = findPending(id);
+        if (editedBloquesJson != null && !editedBloquesJson.isBlank()) {
+            entity.setBloquesJson(editedBloquesJson);
+        }
 
         // ── Materializar según tipo ───────────────────────────────────────────
         var c = entity.toDomain();
@@ -449,6 +460,11 @@ public class ReviewContributionUseCase {
             propagateGrade(line.getId(), grade);
             line.setStartType(startType);
             if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
+            // BUG cazado 2026-07-18: esta rama (corrección de UNA vía, la de
+            // "✎ CORREGIR VÍA") no aplicaba descripción NI variante — el resto
+            // de campos sí llegaba y estos se perdían en silencio.
+            if (descOf(node) != null) line.setDescription(descOf(node));
+            if (variantOf(node) != null) line.setVariant(variantOf(node));
             String facePhoto = facePhotoOf(node, block.getPhotoPath());
             if (facePhoto != null && !facePhoto.isBlank()) line.setPhotoPath(facePhoto);
             refreshCover(block);
