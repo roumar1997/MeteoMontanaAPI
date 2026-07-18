@@ -261,7 +261,30 @@ public final class SocialStoryHtml {
                 : n + (n == 1 ? " vía nueva" : " vías nuevas");
 
         // Líneas (SVG viewBox 0..1000, preserveAspectRatio none = alinea con la
-        // foto estirada) + badges HTML posicionados por %.
+        // foto estirada) + badges HTML posicionados por %. ESTILO de la app
+        // 2.19: todas discontinuas, tramos compartidos a FRANJAS (cada vía su
+        // color con fase distinta) y badges coincidentes en ABANICO.
+        final double STRIPE = 34;
+        java.util.Map<String, java.util.List<Integer>> shared = new java.util.HashMap<>();
+        {
+            int li = 0;
+            for (NewBlockVia v : story.vias()) {
+                List<double[]> pts = v.points();
+                for (int i = 0; i + 1 < pts.size(); i++) {
+                    String k = segKey(pts.get(i), pts.get(i + 1));
+                    var set = shared.computeIfAbsent(k, x -> new java.util.ArrayList<>());
+                    if (!set.contains(li)) set.add(li);
+                }
+                li++;
+            }
+            shared.values().removeIf(l -> l.size() < 2);
+            shared.values().forEach(java.util.Collections::sort);
+        }
+        java.util.List<Double> startFan = fanOffsets(
+                story.vias().stream().map(v -> v.points().isEmpty() ? null : v.points().get(0)).toList(), 0.046);
+        java.util.List<Double> endFan = fanOffsets(
+                story.vias().stream().map(v -> v.points().isEmpty() ? null : v.points().get(v.points().size() - 1)).toList(), 0.052);
+
         StringBuilder paths = new StringBuilder();
         StringBuilder badges = new StringBuilder();
         StringBuilder list = new StringBuilder();
@@ -270,30 +293,29 @@ public final class SocialStoryHtml {
             LineStyle st = gradeStyle(v.grade());
             String color = st.color();
             List<double[]> pts = v.points();
-            StringBuilder poly = new StringBuilder();
-            for (double[] p : pts) {
-                poly.append(Math.round(p[0] * 1000)).append(',').append(Math.round(p[1] * 1000)).append(' ');
+            // Rachas propias/compartidas (mismo troceo que renderTopo de la app).
+            int rs = 0;
+            java.util.List<Integer> cur = pts.size() > 1
+                    ? shared.getOrDefault(segKey(pts.get(0), pts.get(1)), java.util.List.of())
+                    : java.util.List.of();
+            for (int i = 1; i <= pts.size() - 1; i++) {
+                java.util.List<Integer> s2 = (i < pts.size() - 1)
+                        ? shared.getOrDefault(segKey(pts.get(i), pts.get(i + 1)), java.util.List.of())
+                        : null;
+                if (s2 == null || !s2.equals(cur)) {
+                    appendRun(paths, pts.subList(rs, i + 1), color, st.dark(), cur, idx, STRIPE);
+                    rs = i;
+                    if (s2 != null) cur = s2;
+                }
             }
-            String pl = poly.toString().trim();
-            String dash = st.dashed() ? " stroke-dasharray=\"22 18\"" : "";
-            // Halo negro SOLO en líneas claras (blanco), como la app — para que
-            // se vean sobre cielo/roca clara. Las de color no llevan halo.
-            if (st.dark()) {
-                paths.append("<polyline points=\"").append(pl)
-                     .append("\" fill=\"none\" stroke=\"#000\" stroke-opacity=\"0.55\" stroke-width=\"20\" stroke-linecap=\"round\" stroke-linejoin=\"round\"").append(dash).append("/>");
-            }
-            paths.append("<polyline points=\"").append(pl)
-                 .append("\" fill=\"none\" stroke=\"").append(color)
-                 .append("\" stroke-width=\"11\" stroke-linecap=\"round\" stroke-linejoin=\"round\"").append(dash).append("/>");
-            // Badge numérico en el primer punto (relleno con el color de la vía;
-            // texto blanco, o negro si el color es claro).
+            // Badge numérico en el primer punto (abanico si coincide con otras).
             double[] first = pts.get(0);
-            badges.append(badge(first[0], first[1], String.valueOf(idx + 1), color, st.dark(), 30));
-            // Etiqueta de inicio en el último punto.
+            badges.append(badge(first[0] + startFan.get(idx), first[1], String.valueOf(idx + 1), color, st.dark(), 30));
+            // Etiqueta de inicio en el último punto (abanico si coincide).
             String label = startLabel(v.startType());
             if (label != null && pts.size() > 1) {
                 double[] last = pts.get(pts.size() - 1);
-                badges.append(badge(last[0], last[1], label, color, st.dark(), 26));
+                badges.append(badge(last[0] + endFan.get(idx), last[1], label, color, st.dark(), 26));
             }
             // Fila de la lista.
             String grade = v.grade() != null && !v.grade().isBlank()
@@ -342,6 +364,65 @@ public final class SocialStoryHtml {
     /** Badge circular posicionado por % (alinea con la foto y no se deforma).
      *  Relleno con el color de la vía; borde y texto se adaptan (líneas claras
      *  → borde oscuro y texto oscuro; de color → borde blanco y texto blanco). */
+    /** Clave canónica de un segmento (redondeo 4 decimales) = renderTopo app. */
+    private static String segKey(double[] a, double[] b) {
+        String ka = Math.round(a[0] * 10000) + "," + Math.round(a[1] * 10000);
+        String kb = Math.round(b[0] * 10000) + "," + Math.round(b[1] * 10000);
+        return ka.compareTo(kb) <= 0 ? ka + "|" + kb : kb + "|" + ka;
+    }
+
+    /** Desplazamiento X (0..1) de cada badge cuando varios coinciden (abanico). */
+    private static java.util.List<Double> fanOffsets(java.util.List<double[]> anchors, double spacing) {
+        java.util.Map<String, java.util.List<Integer>> groups = new java.util.HashMap<>();
+        for (int i = 0; i < anchors.size(); i++) {
+            double[] p = anchors.get(i);
+            if (p != null) {
+                groups.computeIfAbsent(Math.round(p[0] * 10000) + "," + Math.round(p[1] * 10000),
+                        k -> new java.util.ArrayList<>()).add(i);
+            }
+        }
+        Double[] out = new Double[anchors.size()];
+        java.util.Arrays.fill(out, 0.0);
+        for (var mem : groups.values()) {
+            if (mem.size() > 1) {
+                for (int j = 0; j < mem.size(); j++) {
+                    out[mem.get(j)] = (j - (mem.size() - 1) / 2.0) * spacing;
+                }
+            }
+        }
+        return java.util.List.of(out);
+    }
+
+    /** Pinta una racha: discontinua normal, o FRANJA si la comparten 2+ vías. */
+    private static void appendRun(StringBuilder paths, java.util.List<double[]> pts,
+                                  String color, boolean dark,
+                                  java.util.List<Integer> sharers, int lineIdx, double stripe) {
+        if (pts.size() < 2) return;
+        StringBuilder poly = new StringBuilder();
+        for (double[] p : pts) {
+            poly.append(Math.round(p[0] * 1000)).append(',').append(Math.round(p[1] * 1000)).append(' ');
+        }
+        String pl = poly.toString().trim();
+        if (sharers.size() >= 2) {
+            int n = sharers.size();
+            int k = Math.max(0, sharers.indexOf(lineIdx));
+            paths.append("<polyline points=\"").append(pl)
+                 .append("\" fill=\"none\" stroke=\"").append(color)
+                 .append("\" stroke-width=\"12\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"")
+                 .append(" stroke-dasharray=\"").append((int) stripe).append(' ').append((int) (stripe * (n - 1)))
+                 .append("\" stroke-dashoffset=\"").append((int) (-k * stripe)).append("\"/>");
+        } else {
+            String dash = " stroke-dasharray=\"22 18\"";
+            if (dark) {
+                paths.append("<polyline points=\"").append(pl)
+                     .append("\" fill=\"none\" stroke=\"#000\" stroke-opacity=\"0.55\" stroke-width=\"20\" stroke-linecap=\"round\" stroke-linejoin=\"round\"").append(dash).append("/>");
+            }
+            paths.append("<polyline points=\"").append(pl)
+                 .append("\" fill=\"none\" stroke=\"").append(color)
+                 .append("\" stroke-width=\"11\" stroke-linecap=\"round\" stroke-linejoin=\"round\"").append(dash).append("/>");
+        }
+    }
+
     private static String badge(double x, double y, String text, String color, boolean dark, int size) {
         String border = dark ? "#1A1A1A" : "#FFFFFF";
         String textColor = dark ? "#1A1A1A" : "#FFFFFF";
