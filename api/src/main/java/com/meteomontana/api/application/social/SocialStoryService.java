@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.social;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meteomontana.api.application.forecast.GetForecastUseCase;
@@ -31,14 +32,19 @@ import java.util.Map;
 @Service
 public class SocialStoryService {
 
-    /** Una escuela en la historia de condiciones diarias. */
+    /** Una escuela en la historia de condiciones. wind = -1 → desconocido (días
+     *  futuros: el forecast diario no trae viento) → el HTML no lo pinta. */
     public record ConditionRow(
             String schoolId, String name, int score,
             boolean dryRock, int temp, int wind) {}
 
-    /** Historia "condiciones de hoy" de una comunidad autónoma. */
+    /** Un día del finde con sus mejores escuelas. label = "VIERNES 18". */
+    public record WeekendDay(
+            String date, String label, List<ConditionRow> schools) {}
+
+    /** Historia de condiciones: top 3 de HOY + el finde (vie/sáb/dom). */
     public record ConditionsStory(
-            String region, List<ConditionRow> schools) {}
+            String region, List<ConditionRow> today, List<WeekendDay> weekend) {}
 
     /** Una escuela en la historia de novedades de la semana.
      *  boulders = líneas de piedras de BLOQUE; routes = líneas de muros de VÍA
@@ -52,6 +58,9 @@ public class SocialStoryService {
             int days, int totalBlocks, int totalBoulders, int totalRoutes, int totalSchools,
             List<NoveltyRow> bySchool) {
         public int totalLines() { return totalBoulders + totalRoutes; }
+        /** true si no hay NADA nuevo → n8n NO publica la historia (no mentir con un "0"). */
+        @JsonProperty("empty")
+        public boolean empty() { return totalBlocks == 0 && totalBoulders == 0 && totalRoutes == 0; }
     }
 
     private static final String KIND_NEW_BLOCK = "NEW_BLOCK";
@@ -65,6 +74,16 @@ public class SocialStoryService {
     public record NewBlockStory(
             long postId, String blockName, String schoolName, String author,
             String discipline, List<NewBlockVia> vias) {}
+
+    /** Resumen de una piedra nueva reciente (para que n8n elija cuál destacar).
+     *  kindLabel: "BLOQUE NUEVO" / "VÍA NUEVA" (según disciplina). */
+    public record RecentBlock(
+            long postId, String blockName, String schoolName,
+            String discipline, String kindLabel, int lineCount) {}
+
+    /** Lista de piedras nuevas de los últimos {@code days} días (recientes primero).
+     *  empty=true → el workflow del miércoles NO publica nada. */
+    public record RecentBlocks(int days, boolean empty, List<RecentBlock> blocks) {}
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -151,22 +170,97 @@ public class SocialStoryService {
                 .filter(s -> s.getRegion() != null && norm(s.getRegion()).equals(target))
                 .toList();
 
-        List<ConditionRow> rows = new ArrayList<>();
+        // Fechas del finde de ESTA semana (vie/sáb/dom). Solo las que aún no han
+        // pasado y caen dentro del forecast → según avanza la semana, el finde
+        // "encoge" a lo que queda (sábado: sáb+dom; domingo: dom).
+        java.time.ZoneId madrid = java.time.ZoneId.of("Europe/Madrid");
+        java.time.LocalDate today = java.time.LocalDate.now(madrid);
+        java.time.LocalDate monday = today.with(
+                java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+        List<java.time.LocalDate> weekendDates = new ArrayList<>();
+        for (int d : new int[]{4, 5, 6}) {              // viernes, sábado, domingo
+            java.time.LocalDate wd = monday.plusDays(d);
+            if (!wd.isBefore(today)) weekendDates.add(wd);
+        }
+
+        List<ConditionRow> todayRows = new ArrayList<>();
+        // Por cada fecha del finde: escuela -> fila de ese día (score diario).
+        Map<java.time.LocalDate, List<ConditionRow>> byDay = new LinkedHashMap<>();
+        for (java.time.LocalDate wd : weekendDates) byDay.put(wd, new ArrayList<>());
+
         for (School s : inRegion) {
             try {
                 var fc = forecast.execute(s.getId());
                 var cur = fc.current();
-                if (cur == null) continue;
-                rows.add(new ConditionRow(
-                        s.getId(), s.getName(), cur.score(), cur.dryRock(),
-                        (int) Math.round(cur.temperature()),
-                        (int) Math.round(cur.windSpeed())));
+                if (cur != null) {
+                    todayRows.add(new ConditionRow(
+                            s.getId(), s.getName(), cur.score(), cur.dryRock(),
+                            (int) Math.round(cur.temperature()),
+                            (int) Math.round(cur.windSpeed())));
+                }
+                if (fc.days() != null) {
+                    for (var day : fc.days()) {
+                        java.time.LocalDate dd;
+                        try { dd = java.time.LocalDate.parse(day.date()); }
+                        catch (Exception e) { continue; }
+                        List<ConditionRow> bucket = byDay.get(dd);
+                        if (bucket == null) continue;       // no es un día del finde
+                        boolean dry = day.precipitationTotal() < 0.2;
+                        bucket.add(new ConditionRow(
+                                s.getId(), s.getName(), day.avgScore(), dry,
+                                (int) Math.round(day.tempMax()), -1));
+                    }
+                }
             } catch (Exception ignored) {
                 // Una escuela sin forecast no tumba la historia.
             }
         }
-        rows.sort(Comparator.comparingInt(ConditionRow::score).reversed());
-        return new ConditionsStory(region, rows.stream().limit(limit).toList());
+
+        todayRows.sort(Comparator.comparingInt(ConditionRow::score).reversed());
+
+        String[] dayNames = {"LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"};
+        List<WeekendDay> weekend = new ArrayList<>();
+        for (java.time.LocalDate wd : weekendDates) {
+            List<ConditionRow> best = byDay.get(wd);
+            best.sort(Comparator.comparingInt(ConditionRow::score).reversed());
+            String label = dayNames[wd.getDayOfWeek().getValue() - 1] + " " + wd.getDayOfMonth();
+            weekend.add(new WeekendDay(wd.toString(), label,
+                    best.stream().limit(2).toList()));    // top 2 por día
+        }
+
+        return new ConditionsStory(region, todayRows.stream().limit(3).toList(), weekend);
+    }
+
+    /**
+     * Piedras nuevas (posts NEW_BLOCK) de los últimos {@code days} días, recientes
+     * primero. Lo usa el workflow del MIÉRCOLES: si hay alguna (empty=false),
+     * destaca una en una historia; si no, no publica.
+     */
+    public RecentBlocks recentBlocks(int days) {
+        LocalDateTime since = LocalDateTime.now().minusDays(Math.max(1, days));
+        List<FeedPostJpaEntity> posts = feedPosts
+                .findByKindInAndCreatedAtAfterOrderByCreatedAtDesc(
+                        List.of(KIND_NEW_BLOCK), since);
+
+        List<String> blockIds = posts.stream()
+                .map(FeedPostJpaEntity::getBlockId).filter(java.util.Objects::nonNull).distinct().toList();
+        Map<String, SchoolBlockJpaEntity> blocks = new java.util.HashMap<>();
+        if (!blockIds.isEmpty()) {
+            schoolBlocks.findAllById(blockIds).forEach(b -> blocks.put(b.getId(), b));
+        }
+
+        List<RecentBlock> out = new ArrayList<>();
+        for (FeedPostJpaEntity p : posts) {
+            SchoolBlockJpaEntity b = blocks.get(p.getBlockId());
+            boolean route = b != null && b.getDiscipline() != null
+                    && b.getDiscipline() == com.meteomontana.api.domain.model.SchoolBlock.Discipline.ROUTE;
+            int lines = b != null && b.getLines() != null ? b.getLines().size() : 0;
+            String kindLabel = route ? (lines == 1 ? "VÍA NUEVA" : "VÍAS NUEVAS")
+                                     : (lines == 1 ? "BLOQUE NUEVO" : "BLOQUES NUEVOS");
+            out.add(new RecentBlock(p.getId(), p.getBlockName(), p.getSchoolName(),
+                    route ? "ROUTE" : "BOULDER", kindLabel, lines));
+        }
+        return new RecentBlocks(days, out.isEmpty(), out);
     }
 
     /** Nombre canónico de la región tal cual está en el catálogo (para títulos). */
