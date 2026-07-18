@@ -255,9 +255,11 @@ public final class SocialStoryHtml {
         String block = story.blockName();
         boolean realName = block != null && !block.isBlank() && !block.matches("\\d+");
         int n = story.vias().size();
+        boolean route = "ROUTE".equalsIgnoreCase(story.discipline());
         String title = realName
                 ? esc(block)
-                : n + (n == 1 ? " vía nueva" : " vías nuevas");
+                : n + (route ? (n == 1 ? " vía nueva" : " vías nuevas")
+                             : (n == 1 ? " bloque nuevo" : " bloques nuevos"));
 
         // Líneas (SVG viewBox 0..1000, preserveAspectRatio none = alinea con la
         // foto estirada) + badges HTML posicionados por %. ESTILO de la app
