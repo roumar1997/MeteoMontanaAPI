@@ -60,10 +60,11 @@ public class SocialStoryService {
     /** Una vía de la piedra nueva (con sus puntos normalizados 0..1 para dibujar). */
     public record NewBlockVia(String name, String grade, String startType, List<double[]> points) {}
 
-    /** Historia "piedra nueva" (post automático al aprobar). */
+    /** Historia "piedra nueva" (post automático al aprobar).
+     *  discipline: BOULDER → "bloques"; ROUTE → "vías" (SIEMPRE se distinguen). */
     public record NewBlockStory(
             long postId, String blockName, String schoolName, String author,
-            List<NewBlockVia> vias) {}
+            String discipline, List<NewBlockVia> vias) {}
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -117,7 +118,9 @@ public class SocialStoryService {
         String author = users.findByUid(p.getUserUid())
                 .map(u -> u.getUsername() != null ? u.getUsername() : u.getDisplayName())
                 .orElse(null);
-        return new NewBlockStory(postId, p.getBlockName(), p.getSchoolName(), author, vias);
+        String discipline = block != null && block.getDiscipline() != null
+                ? block.getDiscipline().name() : "BOULDER";
+        return new NewBlockStory(postId, p.getBlockName(), p.getSchoolName(), author, discipline, vias);
     }
 
     /** Parsea linePath (JSON [{x,y},...]) a puntos normalizados 0..1. */
