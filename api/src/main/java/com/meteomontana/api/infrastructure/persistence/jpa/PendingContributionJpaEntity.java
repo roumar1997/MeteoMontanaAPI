@@ -64,6 +64,10 @@ public class PendingContributionJpaEntity {
     @Column(name = "bloques_json", columnDefinition = "TEXT")
     private String bloquesJson;
 
+    /** "EDITAR Y APROBAR": el admin puede sustituir el payload por su versión
+     *  retocada justo antes de materializar (queda persistido = auditoría). */
+    public void setBloquesJson(String bloquesJson) { this.bloquesJson = bloquesJson; }
+
     @Column(name = "topo_lines_json", columnDefinition = "TEXT")
     private String topoLinesJson;
 

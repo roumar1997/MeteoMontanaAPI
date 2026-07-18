@@ -69,13 +69,17 @@ public class ContributionController {
                 .toList();
     }
 
-    /** Admin aprueba. */
+    /** Admin aprueba. Body opcional {"bloquesJson": "..."} = "EDITAR Y
+     *  APROBAR": el admin retoca la propuesta (líneas, nombres, grados...) y
+     *  se aprueba CON sus cambios; el autor sigue siendo el proponente. */
     @PostMapping("/api/admin/contributions/{id}/approve")
     public ContributionResponse approve(
             @PathVariable String id,
+            @RequestBody(required = false) Map<String, String> body,
             @AuthenticationPrincipal FirebaseUser user) {
         adminGuard.ensureAdmin(user.uid());
-        return reviewUseCase.approve(id, user);
+        String edited = body != null ? body.get("bloquesJson") : null;
+        return reviewUseCase.approve(id, user, true, edited);
     }
 
     /** Admin rechaza (con motivo opcional en el body). */
