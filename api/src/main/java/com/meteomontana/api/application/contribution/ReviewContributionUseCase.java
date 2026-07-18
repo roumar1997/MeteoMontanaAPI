@@ -517,7 +517,6 @@ public class ReviewContributionUseCase {
                                 if (facePhoto != null && !facePhoto.isBlank()) line.setPhotoPath(facePhoto);
                                 if (descOf(node) != null) line.setDescription(descOf(node));
                                 if (variantOf(node) != null) line.setVariant(variantOf(node));
-                line.setVariant(variantOf(node));
                             });
                 } else {
                     String key = facePhoto == null ? "" : facePhoto;
@@ -621,7 +620,6 @@ public class ReviewContributionUseCase {
                     line.setFaceOrder(faceOrder);
                     if (descOf(node) != null) line.setDescription(descOf(node));
                                 if (variantOf(node) != null) line.setVariant(variantOf(node));
-                line.setVariant(variantOf(node));
                 } else {
                     BlockLineJpaEntity created = new BlockLineJpaEntity(
                             UUID.randomUUID().toString(),
