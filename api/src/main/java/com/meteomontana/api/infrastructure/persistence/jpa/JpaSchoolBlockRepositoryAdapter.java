@@ -36,6 +36,7 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
                     line.getPhotoPath(), line.getFaceOrder()
             );
             le.setDescription(line.getDescription());
+            le.setVariant(line.getVariant());
             e.addLine(le);
         });
         return toDomain(jpaRepo.save(e));
@@ -62,6 +63,7 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
                     l.getStartType(), l.getLinePath(), l.getSortOrder(),
                     l.getPhotoPath(), l.getFaceOrder());
             bl.setDescription(l.getDescription());
+            bl.setVariant(l.getVariant());
             return bl;
         }).toList();
         return new SchoolBlock(

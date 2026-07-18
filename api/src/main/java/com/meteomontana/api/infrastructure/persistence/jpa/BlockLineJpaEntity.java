@@ -45,6 +45,9 @@ public class BlockLineJpaEntity {
     @Column(length = 500)
     private String description;
 
+    @Column(length = 60)
+    private String variant;
+
     protected BlockLineJpaEntity() {}
 
     public BlockLineJpaEntity(String id, String name, String grade,
@@ -79,4 +82,6 @@ public class BlockLineJpaEntity {
     public void setFaceOrder(int f)   { this.faceOrder = f; }
     public String getDescription()    { return description; }
     public void setDescription(String d) { this.description = d; }
+    public String getVariant()        { return variant; }
+    public void setVariant(String v)  { this.variant = v; }
 }

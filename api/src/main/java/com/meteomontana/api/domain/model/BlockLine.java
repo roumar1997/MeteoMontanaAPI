@@ -18,6 +18,9 @@ public class BlockLine {
     // Beta/detalle opcional. Mutable (setter) para no tocar los 8 constructores
     // repartidos por el código; se rellena solo donde aplica.
     private String description;
+    // Variante opcional ("directa", "extensión"...) — distingue vías homónimas.
+    // Mismo patrón mutable que description.
+    private String variant;
 
     public BlockLine(String id, String blockId, String name, String grade,
                      StartType startType, String linePath, int sortOrder) {
@@ -44,4 +47,6 @@ public class BlockLine {
     public int getFaceOrder()       { return faceOrder; }
     public String getDescription()  { return description; }
     public void setDescription(String d) { this.description = d; }
+    public String getVariant()      { return variant; }
+    public void setVariant(String v) { this.variant = v; }
 }

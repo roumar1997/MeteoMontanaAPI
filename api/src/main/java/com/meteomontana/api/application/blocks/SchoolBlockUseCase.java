@@ -21,7 +21,8 @@ public class SchoolBlockUseCase {
             String name, String grade, String startType, String linePath,
             String photoPath,   // cara (foto) sobre la que está dibujada esta vía (opcional)
             Integer faceOrder,  // orden de la cara (opcional, default 0)
-            String description  // descripción/beta opcional de la vía
+            String description, // descripción/beta opcional de la vía
+            String variant      // variante opcional ("directa", "extensión"...)
     ) {}
 
     public record CreateBlockRequest(
@@ -58,12 +59,13 @@ public class SchoolBlockUseCase {
             String linePath, int sortOrder, String photoPath, int faceOrder,
             Float avgStars,     // media de valoraciones (null si nadie ha valorado)
             Integer myStars,    // valoración del usuario actual (null si no ha valorado)
-            String description  // beta/detalle opcional de la vía
+            String description, // beta/detalle opcional de la vía
+            String variant      // variante opcional ("directa", "extensión"...)
     ) {
         // Constructor de compatibilidad para código existente sin ratings
         public BlockLineDto(String id, String name, String grade, String startType,
                             String linePath, int sortOrder, String photoPath, int faceOrder) {
-            this(id, name, grade, startType, linePath, sortOrder, photoPath, faceOrder, null, null, null);
+            this(id, name, grade, startType, linePath, sortOrder, photoPath, faceOrder, null, null, null, null);
         }
     }
 
@@ -133,6 +135,7 @@ public class SchoolBlockUseCase {
                             l.photoPath() != null ? l.photoPath() : req.photoPath(),
                             l.faceOrder() != null ? l.faceOrder() : 0);
                     bl.setDescription(trimDesc(l.description()));
+                    bl.setVariant(trimVariant(l.variant()));
                     return bl;
                 }).toList();
 
@@ -153,6 +156,14 @@ public class SchoolBlockUseCase {
                 parseDirection(req.direction())
         );
         return toDto(blockRepository.save(block));
+    }
+
+    /** Normaliza la variante: null si vacía, recortada a 60. */
+    private static String trimVariant(String raw) {
+        if (raw == null) return null;
+        String t = raw.trim();
+        if (t.isEmpty()) return null;
+        return t.length() > 60 ? t.substring(0, 60) : t;
     }
 
     /** Normaliza la descripción de vía: null si vacía, recortada a 500. */
@@ -220,6 +231,7 @@ public class SchoolBlockUseCase {
                             l.photoPath() != null ? l.photoPath() : req.photoPath(),
                             l.faceOrder() != null ? l.faceOrder() : 0);
                     bl.setDescription(trimDesc(l.description()));
+                    bl.setVariant(trimVariant(l.variant()));
                     return bl;
                 }).toList();
 
@@ -282,7 +294,8 @@ public class SchoolBlockUseCase {
                     l.getFaceOrder(),
                     avg == null ? null : avg.floatValue(),
                     my,
-                    l.getDescription()
+                    l.getDescription(),
+                    l.getVariant()
             );
         }).toList();
         return new BlockDto(
