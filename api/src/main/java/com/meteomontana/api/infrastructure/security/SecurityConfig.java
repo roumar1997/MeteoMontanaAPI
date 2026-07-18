@@ -54,6 +54,7 @@ public class SecurityConfig {
                 // en vez del error real (p.ej. 503 si Open-Meteo falla).
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                 // Endpoints públicos de lectura — cualquiera puede llamarlos
+                .requestMatchers(HttpMethod.GET, "/api/app-version").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/schools").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/schools/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/search").permitAll()
