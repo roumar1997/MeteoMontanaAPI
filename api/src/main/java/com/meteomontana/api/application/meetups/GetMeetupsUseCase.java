@@ -49,14 +49,24 @@ public class GetMeetupsUseCase {
     }
 
     private boolean isVisible(Meetup m, String requesterUid, String requesterGender) {
+        // Un MIEMBRO (o el creador) SIEMPRE ve su quedada mientras siga activa,
+        // aunque no siga al organizador — p.ej. alguien invitado por enlace a una
+        // quedada FOLLOWERS/WOMEN. Sin esto, al refrescar la lista la quedada le
+        // desaparecía tras salir del chat, aunque ya se hubiera unido.
+        if (isMember(m, requesterUid)) return true;
         return switch (m.getPrivacy()) {
             case "OPEN" -> true;
-            case "FOLLOWERS" -> m.getCreatorUid().equals(requesterUid) ||
-                    followRepository.isFollowing(requesterUid, m.getCreatorUid()) ||
+            case "FOLLOWERS" -> followRepository.isFollowing(requesterUid, m.getCreatorUid()) ||
                     followRepository.isFollowing(m.getCreatorUid(), requesterUid);
             case "WOMEN" -> "WOMAN".equals(requesterGender);
             default -> false;
         };
+    }
+
+    private boolean isMember(Meetup m, String requesterUid) {
+        if (m.getCreatorUid().equals(requesterUid)) return true;
+        return m.getMembers() != null && m.getMembers().stream()
+                .anyMatch(mem -> mem.uid().equals(requesterUid));
     }
 
     private boolean matchesRelation(Meetup m, String requesterUid, String relation) {

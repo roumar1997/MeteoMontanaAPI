@@ -66,6 +66,21 @@ class GetMeetupsUseCaseTest {
         assertThat(result).hasSize(1);
     }
 
+    @Test void followers_meetup_visible_to_member_even_if_not_following() {
+        LocalDate day = LocalDate.now().plusDays(1);
+        Meetup m = new Meetup("id-1", "school-1", "Test", null, null, "FOLLOWERS", null, null,
+                CREATOR, "conv-1", List.of(day), day,
+                day.plusDays(1).atStartOfDay(), LocalDateTime.now(),
+                List.of(new Meetup.MeetupMember(REQUESTER, null, null, null, LocalDateTime.now(), null)));
+        when(meetupRepository.findActive()).thenReturn(List.of(m));
+        when(followRepository.isFollowing(REQUESTER, CREATOR)).thenReturn(false);
+        when(followRepository.isFollowing(CREATOR, REQUESTER)).thenReturn(false);
+        var result = useCase.execute(REQUESTER, null, null, null);
+        // Invitado por enlace: se unió (es miembro) pero no sigue al creador →
+        // debe seguir viendo la quedada en la lista hasta que caduque.
+        assertThat(result).hasSize(1);
+    }
+
     @Test void women_meetup_hidden_if_not_woman() {
         when(meetupRepository.findActive()).thenReturn(List.of(meetup("WOMEN")));
         when(userRepository.findByUid(REQUESTER)).thenReturn(Optional.of(
