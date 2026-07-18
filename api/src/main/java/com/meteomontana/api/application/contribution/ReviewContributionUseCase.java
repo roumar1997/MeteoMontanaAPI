@@ -386,6 +386,7 @@ public class ReviewContributionUseCase {
                         faceOrder
                 );
                 line.setDescription(descOf(node));
+                line.setVariant(variantOf(node));
                 block.addLine(line);
             }
         } catch (Exception e) {
@@ -515,6 +516,8 @@ public class ReviewContributionUseCase {
                                 if (linePath != null && !linePath.isBlank()) line.setLinePath(linePath);
                                 if (facePhoto != null && !facePhoto.isBlank()) line.setPhotoPath(facePhoto);
                                 if (descOf(node) != null) line.setDescription(descOf(node));
+                                if (variantOf(node) != null) line.setVariant(variantOf(node));
+                line.setVariant(variantOf(node));
                             });
                 } else {
                     String key = facePhoto == null ? "" : facePhoto;
@@ -526,6 +529,7 @@ public class ReviewContributionUseCase {
                             grade, startType, linePath, sortOrder++,
                             facePhoto, fo);
                     created.setDescription(descOf(node));
+                    created.setVariant(variantOf(node));
                     block.addLine(created);
                     if (firstCreated == null) firstCreated = created;
                 }
@@ -616,12 +620,15 @@ public class ReviewContributionUseCase {
                     line.setSortOrder(sortOrder++);
                     line.setFaceOrder(faceOrder);
                     if (descOf(node) != null) line.setDescription(descOf(node));
+                                if (variantOf(node) != null) line.setVariant(variantOf(node));
+                line.setVariant(variantOf(node));
                 } else {
                     BlockLineJpaEntity created = new BlockLineJpaEntity(
                             UUID.randomUUID().toString(),
                             name.isEmpty() ? String.valueOf(sortOrder + 1) : name,
                             grade, startType, linePath, sortOrder++, facePhoto, faceOrder);
                     created.setDescription(descOf(node));
+                    created.setVariant(variantOf(node));
                     toAdd.add(created);
                 }
             }
@@ -666,9 +673,19 @@ public class ReviewContributionUseCase {
                         grade, startType, linePath, sortOrder++
                 );
                 line.setDescription(descOf(node));
+                line.setVariant(variantOf(node));
                 block.addLine(line);
             }
         } catch (Exception ignored) {}
+    }
+
+    /** Variante opcional de la vía en el payload (null si vacía). */
+    private static String variantOf(JsonNode node) {
+        JsonNode v = node.path("variant");
+        if (v.isMissingNode() || v.isNull()) return null;
+        String t = v.asText("").trim();
+        if (t.isEmpty()) return null;
+        return t.length() > 60 ? t.substring(0, 60) : t;
     }
 
     /** Descripción opcional de la vía en el payload (null si vacía). */
