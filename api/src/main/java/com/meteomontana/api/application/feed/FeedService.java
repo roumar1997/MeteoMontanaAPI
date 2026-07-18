@@ -266,9 +266,17 @@ public class FeedService {
             String linePath = null;
             String startType = null;
             List<FeedLineView> blockLines = null;
+            // Nombre/grado EN VIVO (como la foto y el trazo): si la vía o la
+            // piedra se renombran después de publicar, el feed lo refleja y el
+            // salto a la vía (que casa por nombre) sigue funcionando. El
+            // snapshot del post queda como respaldo si se borran.
+            String liveBlockName = null;
+            String liveLineName = null;
+            String liveGrade = null;
             SchoolBlockJpaEntity block = blocksById.get(p.getBlockId());
             if (block != null) {
                 photoPath = block.getPhotoPath();
+                liveBlockName = block.getName();
                 if (p.getLineId() != null) {
                     BlockLineJpaEntity line = block.getLines().stream()
                             .filter(l -> p.getLineId().equals(l.getId()))
@@ -277,6 +285,8 @@ public class FeedService {
                         linePath = line.getLinePath();
                         if (line.getPhotoPath() != null) photoPath = line.getPhotoPath();
                         if (line.getStartType() != null) startType = line.getStartType().name();
+                        liveLineName = line.getName();
+                        liveGrade = line.getGrade();
                     }
                 } else if (KIND_NEW_BLOCK.equals(p.getKind())) {
                     // Piedra nueva: el post no tiene lineId → mandamos las vías de
@@ -297,8 +307,9 @@ public class FeedService {
             }
             return new FeedPostView(p.getId(), p.getKind(), p.getCreatedAt(), author,
                     p.getSchoolId(), p.getSchoolName(),
-                    p.getBlockId(), p.getBlockName(),
-                    p.getLineId(), p.getLineName(), p.getGrade(),
+                    p.getBlockId(), liveBlockName != null ? liveBlockName : p.getBlockName(),
+                    p.getLineId(), liveLineName != null ? liveLineName : p.getLineName(),
+                    liveGrade != null ? liveGrade : p.getGrade(),
                     p.getDiscipline(), p.getRockType(),
                     photoPath, linePath,
                     likeCounts.getOrDefault(p.getId(), 0L),
