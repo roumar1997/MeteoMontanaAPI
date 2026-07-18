@@ -78,23 +78,45 @@ public final class SocialStoryHtml {
     // ─────────────────────────────────────────────── condiciones diarias
 
     public static String conditions(ConditionsStory story) {
-        StringBuilder rows = new StringBuilder();
-        int i = 1;
-        for (ConditionRow s : story.schools()) {
+        // Tarjetas del finde (vie/sáb/dom), cada una con sus 2 mejores escuelas.
+        StringBuilder days = new StringBuilder();
+        for (var wd : story.weekend()) {
+            StringBuilder best = new StringBuilder();
+            if (wd.schools().isEmpty()) {
+                best.append("<div style=\"font-family:Inter;font-size:26px;color:#A79F90;margin-top:14px\">—</div>");
+            }
+            for (ConditionRow s : wd.schools()) {
+                String col = s.score() >= 70 ? GREEN : (s.score() >= 45 ? TERRA : "#B23B3B");
+                best.append("""
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px">
+                      <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:30px;color:%s;line-height:1.05;max-width:70%%">%s</div>
+                      <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:44px;color:%s">%d</div>
+                    </div>"""
+                    .formatted(INK, esc(shortRegion(s.name())), col, s.score()));
+            }
+            days.append("""
+                <div style="flex:1;background:#FAF8F3;border:3px solid #E2DCD2;border-radius:26px;padding:26px 28px">
+                  <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:22px;letter-spacing:3px;color:%s">%s</div>
+                  %s
+                </div>"""
+                .formatted(TERRA, wd.label(), best));
+        }
+
+        // Franja "hoy": top 3 de ahora mismo, compacto.
+        StringBuilder todayRows = new StringBuilder();
+        for (ConditionRow s : story.today()) {
             String col = s.score() >= 70 ? GREEN : (s.score() >= 45 ? TERRA : "#B23B3B");
             String dot = s.dryRock() ? GREEN : "#B23B3B";
-            rows.append("""
-                <div style="display:flex;align-items:center;background:#FAF8F3;border:3px solid #E2DCD2;border-radius:26px;padding:26px 34px">
-                  <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:52px;color:%s;width:74px">%02d</div>
+            todayRows.append("""
+                <div style="display:flex;align-items:center;padding:18px 0;border-bottom:2px solid #ECE6DA">
                   <div style="flex:1">
-                    <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:44px;color:%s;line-height:1.05">%s</div>
-                    <div style="font-family:Inter;font-size:25px;color:#6B6B6B;margin-top:5px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%%;background:%s;margin-right:9px"></span>Roca %s · %d° · viento %d km/h</div>
+                    <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:38px;color:%s;line-height:1.05">%s</div>
+                    <div style="font-family:Inter;font-size:23px;color:#6B6B6B;margin-top:4px"><span style="display:inline-block;width:13px;height:13px;border-radius:50%%;background:%s;margin-right:8px"></span>Roca %s · %d° · viento %d km/h</div>
                   </div>
-                  <div style="text-align:right"><span style="font-family:'Source Serif 4',serif;font-weight:700;font-size:70px;color:%s">%d</span><span style="font-family:'JetBrains Mono',monospace;font-size:26px;color:#8A857B">/100</span></div>
+                  <div style="text-align:right"><span style="font-family:'Source Serif 4',serif;font-weight:700;font-size:56px;color:%s">%d</span><span style="font-family:'JetBrains Mono',monospace;font-size:22px;color:#8A857B">/100</span></div>
                 </div>"""
-                .formatted(TERRA, i, INK, esc(s.name()), dot,
+                .formatted(INK, esc(shortRegion(s.name())), dot,
                         s.dryRock() ? "seca" : "húmeda", s.temp(), s.wind(), col, s.score()));
-            i++;
         }
 
         String body = """
@@ -103,16 +125,21 @@ public final class SocialStoryHtml {
                 <div><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:40px;color:%s;line-height:1">Cumbre</div>
                 <div style="font-family:'JetBrains Mono',monospace;font-weight:500;font-size:19px;letter-spacing:5px;color:#8A857B">METEO PARA ESCALAR</div></div>
               </div>
-              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:26px;letter-spacing:7px;color:%s;margin-top:110px">CONDICIONES DE HOY · %s</div>
-              <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:100px;line-height:1;color:%s;margin-top:22px;letter-spacing:-2px">¿Dónde escalar hoy?</div>
-              <div style="font-family:Inter;font-size:30px;color:#6B6B6B;margin-top:22px">%s</div>
-              <div style="margin-top:56px;display:flex;flex-direction:column;gap:22px">%s</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:26px;letter-spacing:7px;color:%s;margin-top:90px">EL FINDE EN %s</div>
+              <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:94px;line-height:1;color:%s;margin-top:20px;letter-spacing:-2px">¿Dónde escalar<br>este finde?</div>
+              <div style="font-family:Inter;font-size:29px;color:#6B6B6B;margin-top:20px">Las mejores escuelas para cada día, según el índice de Cumbre.</div>
+              <div style="display:flex;gap:22px;margin-top:44px">%s</div>
+              <div style="margin-top:44px">
+                <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:23px;letter-spacing:5px;color:%s;margin-bottom:6px">HOY, AHORA MISMO</div>
+                %s
+              </div>
             </div>
-            <div style="position:absolute;bottom:96px;left:90px;right:90px">
+            <div style="position:absolute;bottom:80px;left:90px;right:90px">
               <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:22px;letter-spacing:5px;color:#8A857B;text-align:center;margin-bottom:26px">DESCÁRGALA GRATIS</div>
               %s
             </div>"""
-            .formatted(LOGO, INK, TERRA, up(shortRegion(story.region())), INK, today(), rows, BADGES);
+            .formatted(LOGO, INK, TERRA, up(shortRegion(story.region())), INK,
+                    days, TERRA, todayRows, BADGES);
 
         return page(PAPER, RADAR + body);
     }

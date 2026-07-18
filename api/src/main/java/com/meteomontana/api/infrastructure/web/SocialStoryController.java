@@ -6,6 +6,7 @@ import com.meteomontana.api.application.social.SocialStoryHtml;
 import com.meteomontana.api.application.social.SocialStoryService;
 import com.meteomontana.api.application.social.SocialStoryService.ConditionsStory;
 import com.meteomontana.api.application.social.SocialStoryService.NoveltyStory;
+import com.meteomontana.api.application.social.SocialStoryService.RecentBlocks;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -86,6 +87,14 @@ public class SocialStoryController {
     @GetMapping(value = "/api/social/newblock/html", produces = MediaType.TEXT_HTML_VALUE)
     public String newBlockHtml(@RequestParam long postId) {
         return SocialStoryHtml.newBlock(service.newBlock(postId));
+    }
+
+    /** Piedras nuevas de los últimos {@code days} días (recientes primero).
+     *  Lo usa el workflow del MIÉRCOLES: si empty=false, coge blocks[0].postId
+     *  y renderiza /newblock/html; si empty=true, no publica. */
+    @GetMapping("/api/social/newblocks")
+    public RecentBlocks newBlocks(@RequestParam(defaultValue = "7") int days) {
+        return service.recentBlocks(days);
     }
 
     /** Regiones publicables (comunidades con >= minSchools escuelas, sin
