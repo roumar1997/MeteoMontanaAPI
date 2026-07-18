@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.social;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meteomontana.api.application.forecast.GetForecastUseCase;
@@ -53,6 +54,7 @@ public class SocialStoryService {
             List<NoveltyRow> bySchool) {
         public int totalLines() { return totalBoulders + totalRoutes; }
         /** true si no hay NADA nuevo → n8n NO publica la historia (no mentir con un "0"). */
+        @JsonProperty("empty")
         public boolean empty() { return totalBlocks == 0 && totalBoulders == 0 && totalRoutes == 0; }
     }
 
