@@ -1,7 +1,10 @@
 package com.meteomontana.api.domain.model;
 
 public class BlockLine {
-    public enum StartType { SIT, STAND, JUMP, TRAV }
+    // SEMI = semi-sentado/incorporado (añadido 2026-07-18; la columna es
+    // VARCHAR vía @Enumerated(STRING) → sin migración; apps viejas tratan
+    // startType como String y muestran el valor sin etiqueta, no rompen).
+    public enum StartType { SIT, SEMI, STAND, JUMP, TRAV }
 
     private final String id;
     private final String blockId;

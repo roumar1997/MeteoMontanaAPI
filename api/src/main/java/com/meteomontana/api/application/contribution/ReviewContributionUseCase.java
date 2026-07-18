@@ -685,6 +685,7 @@ public class ReviewContributionUseCase {
         return switch (raw.toUpperCase()) {
             case "PIE", "STAND" -> BlockLine.StartType.STAND;
             case "SIT"          -> BlockLine.StartType.SIT;
+            case "SEMI"         -> BlockLine.StartType.SEMI;
             case "LANCE", "JUMP" -> BlockLine.StartType.JUMP;
             case "TRAV"         -> BlockLine.StartType.TRAV;
             default             -> null;
