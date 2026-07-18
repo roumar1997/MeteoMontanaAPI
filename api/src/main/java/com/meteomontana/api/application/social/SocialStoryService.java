@@ -40,13 +40,19 @@ public class SocialStoryService {
     public record ConditionsStory(
             String region, List<ConditionRow> schools) {}
 
-    /** Una escuela en la historia de novedades de la semana. */
-    public record NoveltyRow(String school, int blocks, int lines) {}
+    /** Una escuela en la historia de novedades de la semana.
+     *  boulders = líneas de piedras de BLOQUE; routes = líneas de muros de VÍA
+     *  (en Cumbre se distinguen SIEMPRE: bloque != vía). lines = suma. */
+    public record NoveltyRow(String school, int blocks, int boulders, int routes) {
+        public int lines() { return boulders + routes; }
+    }
 
     /** Historia "novedades de la semana": totales + desglose por escuela. */
     public record NoveltyStory(
-            int days, int totalBlocks, int totalLines, int totalSchools,
-            List<NoveltyRow> bySchool) {}
+            int days, int totalBlocks, int totalBoulders, int totalRoutes, int totalSchools,
+            List<NoveltyRow> bySchool) {
+        public int totalLines() { return totalBoulders + totalRoutes; }
+    }
 
     private static final String KIND_NEW_BLOCK = "NEW_BLOCK";
     private static final String KIND_NEW_LINE = "NEW_LINE";
@@ -189,28 +195,33 @@ public class SocialStoryService {
             schoolBlocks.findAllById(blockIds).forEach(b -> blocks.put(b.getId(), b));
         }
 
-        // Agrega por escuela (orden estable por primera aparición → luego reordena).
-        Map<String, int[]> agg = new LinkedHashMap<>();   // school -> [blocks, lines]
+        // Agrega por escuela distinguiendo BLOQUES de VÍAS (disciplina de la
+        // piedra/post). Orden estable por primera aparición → luego reordena.
+        Map<String, int[]> agg = new LinkedHashMap<>();   // school -> [piedras, bloques, vias]
         for (FeedPostJpaEntity p : posts) {
             String school = p.getSchoolName() != null ? p.getSchoolName() : "—";
-            int[] a = agg.computeIfAbsent(school, k -> new int[2]);
+            int[] a = agg.computeIfAbsent(school, k -> new int[3]);
             if (KIND_NEW_BLOCK.equals(p.getKind())) {
                 a[0]++;   // +1 piedra
                 SchoolBlockJpaEntity b = blocks.get(p.getBlockId());
-                a[1] += (b != null && b.getLines() != null) ? b.getLines().size() : 0;
-            } else { // NEW_LINE
-                a[1]++;
+                if (b != null && b.getLines() != null) {
+                    boolean route = b.getDiscipline() == com.meteomontana.api.domain.model.SchoolBlock.Discipline.ROUTE;
+                    if (route) a[2] += b.getLines().size(); else a[1] += b.getLines().size();
+                }
+            } else { // NEW_LINE: la disciplina viaja en el post
+                if ("ROUTE".equalsIgnoreCase(p.getDiscipline())) a[2]++; else a[1]++;
             }
         }
 
         List<NoveltyRow> rows = agg.entrySet().stream()
-                .map(e -> new NoveltyRow(e.getKey(), e.getValue()[0], e.getValue()[1]))
+                .map(e -> new NoveltyRow(e.getKey(), e.getValue()[0], e.getValue()[1], e.getValue()[2]))
                 .sorted(Comparator.comparingInt(NoveltyRow::lines).reversed())
                 .toList();
 
         int totBlocks = rows.stream().mapToInt(NoveltyRow::blocks).sum();
-        int totLines = rows.stream().mapToInt(NoveltyRow::lines).sum();
-        return new NoveltyStory(days, totBlocks, totLines, rows.size(),
+        int totBoulders = rows.stream().mapToInt(NoveltyRow::boulders).sum();
+        int totRoutes = rows.stream().mapToInt(NoveltyRow::routes).sum();
+        return new NoveltyStory(days, totBlocks, totBoulders, totRoutes, rows.size(),
                 rows.stream().limit(limit).toList());
     }
 
