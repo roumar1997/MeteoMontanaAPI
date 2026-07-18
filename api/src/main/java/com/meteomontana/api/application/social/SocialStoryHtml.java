@@ -128,13 +128,12 @@ public final class SocialStoryHtml {
                 <div style="margin-bottom:22px">
                   <div style="display:flex;justify-content:space-between;align-items:baseline">
                     <span style="font-family:'Source Serif 4',serif;font-weight:600;font-size:40px;color:%s">%s</span>
-                    <span style="font-family:Inter;font-size:27px;color:#6B6B6B"><b style="color:%s;font-family:'Source Serif 4',serif;font-size:34px">%d</b> %s · %d %s</span>
+                    <span style="font-family:Inter;font-size:27px;color:#6B6B6B"><b style="color:%s;font-family:'Source Serif 4',serif;font-size:34px">%d</b> %s</span>
                   </div>
                   <div style="height:14px;background:#E7E1D6;border-radius:8px;margin-top:12px;overflow:hidden"><div style="height:100%%;width:%d%%;background:%s;border-radius:8px"></div></div>
                 </div>"""
                 .formatted(INK, esc(r.school()), TERRA, r.lines(),
-                        r.lines() == 1 ? "vía" : "vías", r.blocks(),
-                        r.blocks() == 1 ? "piedra" : "piedras", pct, TERRA));
+                        noveltyBreakdown(r), pct, TERRA));
         }
 
         String body = """
@@ -146,8 +145,8 @@ public final class SocialStoryHtml {
               <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:26px;letter-spacing:7px;color:%s;margin-top:80px">NOVEDADES DE LA SEMANA</div>
               <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:92px;line-height:0.98;color:%s;margin-top:20px;letter-spacing:-2px">La guía no para<br>de crecer<span style="color:%s">.</span></div>
               <div style="display:flex;gap:26px;margin-top:52px">
+                <div style="flex:1;background:#FAF8F3;border:3px solid #E2DCD2;border-radius:26px;padding:30px 34px"><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:96px;color:%s;line-height:1">%d</div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:2px;color:#8A857B;margin-top:6px">BLOQUES NUEVOS</div></div>
                 <div style="flex:1;background:#FAF8F3;border:3px solid #E2DCD2;border-radius:26px;padding:30px 34px"><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:96px;color:%s;line-height:1">%d</div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:2px;color:#8A857B;margin-top:6px">VÍAS NUEVAS</div></div>
-                <div style="flex:1;background:#FAF8F3;border:3px solid #E2DCD2;border-radius:26px;padding:30px 34px"><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:96px;color:%s;line-height:1">%d</div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:2px;color:#8A857B;margin-top:6px">PIEDRAS NUEVAS</div></div>
                 <div style="flex:1;background:#FAF8F3;border:3px solid #E2DCD2;border-radius:26px;padding:30px 34px"><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:96px;color:%s;line-height:1">%d</div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:2px;color:#8A857B;margin-top:6px">ESCUELAS</div></div>
               </div>
               <div style="font-family:Inter;font-size:27px;color:#6B6B6B;margin-top:44px;margin-bottom:24px">Dónde se ha crecido:</div>
@@ -158,7 +157,7 @@ public final class SocialStoryHtml {
               %s
             </div>"""
             .formatted(LOGO, INK, TERRA, INK, TERRA,
-                    TERRA, story.totalLines(), INK, story.totalBlocks(), GREEN, story.totalSchools(),
+                    TERRA, story.totalBoulders(), INK, story.totalRoutes(), GREEN, story.totalSchools(),
                     rows, BADGES);
 
         return page(PAPER, RADAR + body);
@@ -364,6 +363,18 @@ public final class SocialStoryHtml {
     /** Badge circular posicionado por % (alinea con la foto y no se deforma).
      *  Relleno con el color de la vía; borde y texto se adaptan (líneas claras
      *  → borde oscuro y texto oscuro; de color → borde blanco y texto blanco). */
+    /** Texto tras el número gordo (= total de líneas): "bloques · 5 piedras",
+     *  "vías", o "bloques y vías · 5 piedras" si mezcla (bloque != vía). */
+    private static String noveltyBreakdown(NoveltyRow r) {
+        String kind = r.boulders() > 0 && r.routes() > 0 ? "bloques y vías"
+                : r.routes() > 0 ? (r.routes() == 1 ? "vía" : "vías")
+                : (r.boulders() == 1 ? "bloque" : "bloques");
+        if (r.blocks() > 0) {
+            kind += " · " + r.blocks() + (r.blocks() == 1 ? " piedra" : " piedras");
+        }
+        return kind;
+    }
+
     /** Clave canónica de un segmento (redondeo 4 decimales) = renderTopo app. */
     private static String segKey(double[] a, double[] b) {
         String ka = Math.round(a[0] * 10000) + "," + Math.round(a[1] * 10000);
