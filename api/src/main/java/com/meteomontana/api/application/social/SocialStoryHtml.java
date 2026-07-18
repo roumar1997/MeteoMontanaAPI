@@ -170,36 +170,19 @@ public final class SocialStoryHtml {
     public static String contributors(
             List<com.meteomontana.api.application.community.GetTopContributorsUseCase.TopContributorDto> people,
             boolean weekly) {
-        String[] medal = {"#E8B84B", "#CFCFCF", "#C88A4A"};
-        StringBuilder rows = new StringBuilder();
-        int i = 0;
+        // Sin podio, sin números, sin ranking: TODOS los que aportan salen como
+        // iguales, en chips del mismo tamaño. La guía la hacemos entre todos.
+        StringBuilder chips = new StringBuilder();
         for (var p : people) {
-            boolean first = i == 0;
             String name = p.displayName() != null && !p.displayName().isBlank()
                     ? p.displayName() : (p.username() != null ? "@" + p.username() : "Escalador");
-            String rankColor = i < 3 ? medal[i] : "rgba(255,255,255,0.7)";
-            rows.append("""
-                <div style="display:flex;align-items:center;background:%s;border-radius:26px;padding:%s">
-                  <div style="width:64px;font-family:'Source Serif 4',serif;font-weight:700;font-size:%dpx;color:%s;text-align:center">%d</div>
-                  <div style="flex:1;margin-left:18px">
-                    <div style="font-family:'Source Serif 4',serif;font-weight:600;font-size:%dpx;color:%s;line-height:1.05">%s</div>
-                    <div style="font-family:Inter;font-size:22px;color:%s">@%s</div>
-                  </div>
-                  <div style="text-align:right"><span style="font-family:'Source Serif 4',serif;font-weight:700;font-size:%dpx;color:%s">%d</span><div style="font-family:'JetBrains Mono',monospace;font-size:17px;color:%s;letter-spacing:1px">APORTES</div></div>
-                </div>"""
-                .formatted(
-                    first ? PAPER : "rgba(255,255,255,0.12)",
-                    first ? "30px 36px" : "24px 36px",
-                    first ? 52 : 42, rankColor, i + 1,
-                    first ? 42 : 34, first ? INK : "#fff", esc(name),
-                    first ? "#8A857B" : "rgba(255,255,255,0.65)", esc(p.username() != null ? p.username() : ""),
-                    first ? 60 : 46, first ? TERRA : "#fff", p.approvedCount(),
-                    first ? "#8A857B" : "rgba(255,255,255,0.6)"));
-            i++;
+            chips.append("""
+                <div style="background:rgba(255,255,255,0.14);border:2px solid rgba(255,255,255,0.28);border-radius:999px;padding:18px 30px;font-family:'Source Serif 4',serif;font-weight:600;font-size:38px;color:#fff">%s</div>"""
+                .formatted(esc(name)));
         }
 
-        String eyebrow = weekly ? "APORTADORES DE LA SEMANA" : "LA GUÍA LA HACEMOS ENTRE TODOS";
-        String title = weekly ? "Esta semana" : "Quién más<br>aporta";
+        String eyebrow = weekly ? "ESTA SEMANA HAN APORTADO" : "GRACIAS POR APORTAR";
+        String title = "La guía la<br>hacemos<br>entre todos";
 
         String body = """
             <div style="padding:96px 90px 0;position:relative">
@@ -207,16 +190,16 @@ public final class SocialStoryHtml {
                 <div><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:40px;color:#fff;line-height:1">Cumbre</div>
                 <div style="font-family:'JetBrains Mono',monospace;font-weight:500;font-size:19px;letter-spacing:5px;color:rgba(255,255,255,0.6)">METEO PARA ESCALAR</div></div>
               </div>
-              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:26px;letter-spacing:6px;color:#F2E4D0;margin-top:90px">%s</div>
-              <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:96px;line-height:0.98;color:#fff;margin-top:20px;letter-spacing:-2px">%s<span style="color:%s">.</span></div>
-              <div style="font-family:Inter;font-size:28px;color:#F2E4D0;margin-top:18px">Piedras, vías y sectores aprobados</div>
-              <div style="margin-top:52px;display:flex;flex-direction:column;gap:20px">%s</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:26px;letter-spacing:6px;color:#F2E4D0;margin-top:80px">%s</div>
+              <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:88px;line-height:0.98;color:#fff;margin-top:20px;letter-spacing:-2px">%s<span style="color:%s">.</span></div>
+              <div style="font-family:Inter;font-size:28px;color:#F2E4D0;margin-top:22px">Cada piedra, vía y sector que suben estos escaladores es de toda la comunidad. Todos sumamos igual.</div>
+              <div style="margin-top:48px;display:flex;flex-wrap:wrap;gap:20px">%s</div>
             </div>
             <div style="position:absolute;bottom:96px;left:90px;right:90px">
               <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:22px;letter-spacing:5px;color:rgba(255,255,255,0.65);text-align:center;margin-bottom:26px">SUMA TÚ TAMBIÉN · DESCARGA CUMBRE</div>
               %s
             </div>"""
-            .formatted(LOGO, eyebrow, title, INK, rows, BADGES_DARK);
+            .formatted(LOGO, eyebrow, title, INK, chips, BADGES_DARK);
 
         return page(TERRA, RADAR_DARK + body);
     }
@@ -260,6 +243,8 @@ public final class SocialStoryHtml {
                 ? esc(block)
                 : n + (route ? (n == 1 ? " vía nueva" : " vías nuevas")
                              : (n == 1 ? " bloque nuevo" : " bloques nuevos"));
+        String eyebrow = route ? (n == 1 ? "VÍA NUEVA" : "VÍAS NUEVAS")
+                               : (n == 1 ? "BLOQUE NUEVO" : "BLOQUES NUEVOS");
 
         // Líneas (SVG viewBox 0..1000, preserveAspectRatio none = alinea con la
         // foto estirada) + badges HTML posicionados por %. ESTILO de la app
@@ -342,7 +327,7 @@ public final class SocialStoryHtml {
                 <div><div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:38px;color:%s;line-height:1">Cumbre</div>
                 <div style="font-family:'JetBrains Mono',monospace;font-weight:500;font-size:18px;letter-spacing:5px;color:#8A857B">METEO PARA ESCALAR</div></div>
               </div>
-              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:24px;letter-spacing:6px;color:%s;margin-top:44px">PIEDRA NUEVA · %s</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:24px;letter-spacing:6px;color:%s;margin-top:44px">%s · %s</div>
               <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:78px;line-height:1;color:%s;margin-top:14px;letter-spacing:-1px">%s<span style="color:%s">.</span></div>
               <div style="font-family:Inter;font-size:27px;color:#6B6B6B;margin-top:12px">%s</div>
               <div style="margin-top:30px;position:relative;width:740px;height:940px;border-radius:24px;overflow:hidden;border:3px solid #E2DCD2">
@@ -356,7 +341,7 @@ public final class SocialStoryHtml {
               <div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:20px;letter-spacing:4px;color:#8A857B;text-align:center;margin-bottom:22px">VE LA GUÍA Y APÓRTALA TÚ · DESCARGA CUMBRE</div>
               %s
             </div>"""
-            .formatted(LOGO, INK, TERRA, up(shortRegion(story.schoolName())), INK, title, TERRA,
+            .formatted(LOGO, INK, TERRA, eyebrow, up(shortRegion(story.schoolName())), INK, title, TERRA,
                     author, story.postId(), paths, badges, list, BADGES);
 
         return page(PAPER, body);

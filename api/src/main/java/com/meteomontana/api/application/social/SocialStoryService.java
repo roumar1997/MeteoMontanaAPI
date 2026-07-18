@@ -52,6 +52,8 @@ public class SocialStoryService {
             int days, int totalBlocks, int totalBoulders, int totalRoutes, int totalSchools,
             List<NoveltyRow> bySchool) {
         public int totalLines() { return totalBoulders + totalRoutes; }
+        /** true si no hay NADA nuevo → n8n NO publica la historia (no mentir con un "0"). */
+        public boolean empty() { return totalBlocks == 0 && totalBoulders == 0 && totalRoutes == 0; }
     }
 
     private static final String KIND_NEW_BLOCK = "NEW_BLOCK";
