@@ -1,12 +1,12 @@
 {
-  "name": "Cumbre — Condiciones del finde (diario, 3 comunidades)",
+  "name": "Cumbre — Comunidad (viernes)",
   "nodes": [
     {
       "parameters": {
-        "rule": { "interval": [ { "field": "cronExpression", "expression": "0 0 8 * * *" } ] }
+        "rule": { "interval": [ { "field": "cronExpression", "expression": "0 0 18 * * 5" } ] }
       },
       "id": "trigger",
-      "name": "Cada mañana 8:00",
+      "name": "Viernes 18:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [220, 300]
@@ -17,7 +17,8 @@
           "assignments": [
             { "id": "a1", "name": "IG_USER_ID", "value": "PON_AQUI_EL_IG_USER_ID", "type": "string" },
             { "id": "a2", "name": "IG_TOKEN", "value": "PON_AQUI_EL_TOKEN_DE_PAGINA", "type": "string" },
-            { "id": "a3", "name": "RENDERER", "value": "https://overflowing-magic-production-e39c.up.railway.app", "type": "string" }
+            { "id": "a3", "name": "RENDERER", "value": "https://overflowing-magic-production-e39c.up.railway.app", "type": "string" },
+            { "id": "a4", "name": "HISTORIA_URL", "value": "https://api.climbingteams.com/api/social/contributors/html?days=7", "type": "string" }
           ]
         },
         "options": {}
@@ -27,16 +28,6 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [440, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Una historia por comunidad. Edita la lista si quieres más/menos.\nconst c = $input.first().json;\nconst regiones = [\"Comunidad de Madrid\", \"Cataluña\", \"Andalucía\"];\nreturn regiones.map(r => ({ json: {\n  IG_USER_ID: c.IG_USER_ID,\n  IG_TOKEN: c.IG_TOKEN,\n  RENDERER: c.RENDERER,\n  HISTORIA_URL: \"https://api.climbingteams.com/api/social/conditions/html?region=\" + r\n}}));"
-      },
-      "id": "regiones",
-      "name": "Regiones (edítame)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [660, 300]
     },
     {
       "parameters": {
@@ -52,7 +43,7 @@
       "name": "Construir image_url",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [880, 300]
+      "position": [660, 300]
     },
     {
       "parameters": {
@@ -72,7 +63,7 @@
       "name": "IG: crear contenedor",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1100, 300]
+      "position": [880, 300]
     },
     {
       "parameters": {
@@ -91,19 +82,18 @@
       "name": "IG: publicar story",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1320, 300]
+      "position": [1100, 300]
     }
   ],
   "connections": {
-    "Cada mañana 8:00": { "main": [[{ "node": "Config (edítame)", "type": "main", "index": 0 }]] },
-    "Config (edítame)": { "main": [[{ "node": "Regiones (edítame)", "type": "main", "index": 0 }]] },
-    "Regiones (edítame)": { "main": [[{ "node": "Construir image_url", "type": "main", "index": 0 }]] },
+    "Viernes 18:00": { "main": [[{ "node": "Config (edítame)", "type": "main", "index": 0 }]] },
+    "Config (edítame)": { "main": [[{ "node": "Construir image_url", "type": "main", "index": 0 }]] },
     "Construir image_url": { "main": [[{ "node": "IG: crear contenedor", "type": "main", "index": 0 }]] },
     "IG: crear contenedor": { "main": [[{ "node": "IG: publicar story", "type": "main", "index": 0 }]] }
   },
   "active": false,
   "settings": { "executionOrder": "v1" },
   "meta": {
-    "_comment": "Cumbre — condiciones del finde, DIARIO 8:00, una story por comunidad (Madrid/Cataluña/Andalucía). Edita 'Config' (IG_USER_ID, IG_TOKEN, RENDERER) y 'Regiones' si quieres otras comunidades. Ver INSTAGRAM_AUTOMATION.md."
+    "_comment": "Cumbre — historia de comunidad (los que aportan, sin ranking), VIERNES 18:00. Edita 'Config'. days=7 → semanal; pon days=0 para versión global."
   }
 }
