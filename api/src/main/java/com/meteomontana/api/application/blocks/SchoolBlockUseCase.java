@@ -94,8 +94,26 @@ public class SchoolBlockUseCase {
     }
 
     public List<BlockDto> listBySchool(String schoolId, String callerUid) {
-        return blockRepository.findBySchoolId(schoolId).stream()
-                .map(b -> toDto(b, callerUid)).toList();
+        var blocks = blockRepository.findBySchoolId(schoolId);
+        // Ratings EN LOTE: antes eran 2 queries POR VÍA (media + mi voto) →
+        // ~400 queries al abrir una escuela grande. Ahora 2 por escuela.
+        var lineIds = blocks.stream()
+                .flatMap(b -> b.getLines().stream())
+                .map(com.meteomontana.api.domain.model.BlockLine::getId)
+                .toList();
+        var avgByLine = new java.util.HashMap<String, Double>();
+        var myByLine = new java.util.HashMap<String, Integer>();
+        if (!lineIds.isEmpty()) {
+            for (Object[] row : ratingRepo.avgStarsByLineIds(lineIds)) {
+                avgByLine.put((String) row[0], (Double) row[1]);
+            }
+            if (callerUid != null) {
+                for (var r : ratingRepo.findByUidAndLineIdIn(callerUid, lineIds)) {
+                    myByLine.put(r.getLineId(), r.getStars());
+                }
+            }
+        }
+        return blocks.stream().map(b -> toDto(b, avgByLine, myByLine)).toList();
     }
 
     public BlockDto findById(String id) {
@@ -263,15 +281,24 @@ public class SchoolBlockUseCase {
     }
 
     private BlockDto toDto(SchoolBlock b) {
-        return toDto(b, null);
+        // Un solo bloque: el lote sigue mereciendo la pena (2 queries fijas).
+        var lineIds = b.getLines().stream()
+                .map(com.meteomontana.api.domain.model.BlockLine::getId).toList();
+        var avgByLine = new java.util.HashMap<String, Double>();
+        if (!lineIds.isEmpty()) {
+            for (Object[] row : ratingRepo.avgStarsByLineIds(lineIds)) {
+                avgByLine.put((String) row[0], (Double) row[1]);
+            }
+        }
+        return toDto(b, avgByLine, java.util.Map.of());
     }
 
-    private BlockDto toDto(SchoolBlock b, String callerUid) {
+    private BlockDto toDto(SchoolBlock b,
+                           java.util.Map<String, Double> avgByLine,
+                           java.util.Map<String, Integer> myByLine) {
         List<BlockLineDto> lines = b.getLines().stream().map(l -> {
-            Double avg = ratingRepo.avgStarsByLineId(l.getId());
-            Integer my = callerUid == null ? null :
-                    ratingRepo.findByUidAndLineId(callerUid, l.getId())
-                              .map(r -> r.getStars()).orElse(null);
+            Double avg = avgByLine.get(l.getId());
+            Integer my = myByLine.get(l.getId());
             return new BlockLineDto(
                     l.getId(), l.getName(), l.getGrade(),
                     l.getStartType() != null ? l.getStartType().name() : null,
