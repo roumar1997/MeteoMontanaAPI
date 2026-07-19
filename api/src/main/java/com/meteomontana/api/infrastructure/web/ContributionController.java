@@ -5,6 +5,7 @@ import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.infrastructure.persistence.SpringDataContributionRepository;
 import com.meteomontana.api.application.admin.AdminGuard;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -43,7 +44,7 @@ public class ContributionController {
     @ResponseStatus(HttpStatus.CREATED)
     public ContributionResponse submit(
             @PathVariable String schoolId,
-            @RequestBody ContributionRequest req,
+            @Valid @RequestBody ContributionRequest req,
             @AuthenticationPrincipal FirebaseUser user) {
         return submitUseCase.execute(schoolId, req, user);
     }

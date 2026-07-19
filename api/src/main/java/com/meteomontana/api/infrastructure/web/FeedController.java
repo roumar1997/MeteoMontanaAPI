@@ -3,6 +3,9 @@ package com.meteomontana.api.infrastructure.web;
 import com.meteomontana.api.application.feed.FeedService;
 import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,10 +36,16 @@ public class FeedController {
      * discipline es opcional (BOULDER | ROUTE); si falta, se deriva de la piedra.
      * caption es opcional: descripción del autor (trim, vacía → null, máx 500).
      */
-    public record PublishRequest(String blockId, String lineId, String kind,
-                                 String discipline, String caption) {}
+    public record PublishRequest(
+            @NotBlank @Size(max = 64) String blockId,
+            @Size(max = 64) String lineId,
+            @NotBlank @Size(max = 20) String kind,
+            @Size(max = 20) String discipline,
+            @Size(max = 500) String caption) {}
     /** parentId opcional (V57): comentario al que se responde (puede ser una respuesta). */
-    public record CommentRequest(String text, String parentId) {}
+    public record CommentRequest(
+            @NotBlank @Size(max = 1000) String text,
+            @Size(max = 64) String parentId) {}
 
     private final FeedService service;
     private final UserRepository users;
@@ -75,7 +84,7 @@ public class FeedController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Long> publish(
-            @RequestBody PublishRequest req,
+            @Valid @RequestBody PublishRequest req,
             @AuthenticationPrincipal FirebaseUser user) {
         return Map.of("id", service.publish(user.uid(), req.blockId(), req.lineId(),
                 req.kind(), req.discipline(), req.caption()));
@@ -125,7 +134,7 @@ public class FeedController {
     @ResponseStatus(HttpStatus.CREATED)
     public FeedService.FeedCommentView addComment(
             @PathVariable long postId,
-            @RequestBody CommentRequest req,
+            @Valid @RequestBody CommentRequest req,
             @AuthenticationPrincipal FirebaseUser user) {
         return service.addComment(user.uid(), postId, req.text(), req.parentId());
     }
