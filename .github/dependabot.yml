@@ -1,0 +1,12 @@
+# Escaneo de dependencias (riesgo señalado en la auditoría 2026-07-19).
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /api
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
