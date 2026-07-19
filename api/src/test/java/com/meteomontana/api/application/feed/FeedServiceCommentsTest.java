@@ -62,12 +62,25 @@ class FeedServiceCommentsTest {
     com.meteomontana.api.infrastructure.storage.StorageService storage =
             mock(com.meteomontana.api.infrastructure.storage.StorageService.class);
 
-    FeedService service;
+    FeedAccessGuard guard;
+    FeedNotifier notifier;
+    FeedViewMapper viewMapper;
+    FeedPhotoService photoService;
+    FeedPublishService publisher;
+    FeedLikeService likeService;
+    FeedCommentService commentService;
+    FeedQueryService queryService;
 
     @BeforeEach
     void setUp() {
-        service = new FeedService(posts, likes, comments, commentLikes, follows, blocks,
-                schoolBlocks, schools, users, mapper, moderation, notifications, push, storage);
+        guard = new FeedAccessGuard(blocks, follows, users);
+        notifier = new FeedNotifier(users, mapper, notifications, push);
+        viewMapper = new FeedViewMapper(likes, comments, schoolBlocks, users, mapper, storage);
+        photoService = new FeedPhotoService(posts, storage);
+        publisher = new FeedPublishService(posts, schoolBlocks, schools, moderation, notifier, photoService);
+        likeService = new FeedLikeService(posts, likes, notifier);
+        commentService = new FeedCommentService(posts, comments, commentLikes, moderation, guard, viewMapper, notifier);
+        queryService = new FeedQueryService(posts, follows, guard, viewMapper);
     }
 
     private User user(String uid, String username) {
@@ -92,7 +105,7 @@ class FeedServiceCommentsTest {
         when(likes.existsById(key)).thenReturn(true);
         when(likes.countByPostIds(List.of(5L))).thenReturn(java.util.Collections.singletonList(new Object[]{5L, 3L}));
 
-        long count = service.unlike("me", 5L);
+        long count = likeService.unlike("me", 5L);
 
         verify(likes).deleteById(key);
         assertThat(count).isEqualTo(3L);
@@ -103,7 +116,7 @@ class FeedServiceCommentsTest {
         when(likes.existsById(any(FeedLikeJpaEntity.Key.class))).thenReturn(false);
         when(likes.countByPostIds(List.of(5L))).thenReturn(List.of());
 
-        long count = service.unlike("me", 5L);
+        long count = likeService.unlike("me", 5L);
 
         verify(likes, never()).deleteById(any(FeedLikeJpaEntity.Key.class));
         assertThat(count).isZero();
@@ -123,7 +136,7 @@ class FeedServiceCommentsTest {
                 .thenReturn(java.util.Collections.singletonList(new Object[]{"c1", 4L}));
         when(commentLikes.likedCommentIds("me", List.of("c1", "c2"))).thenReturn(List.of("c1"));
 
-        var out = service.listComments("me", 7L);
+        var out = commentService.listComments("me", 7L);
 
         assertThat(out).hasSize(1);                       // el del troll fuera
         assertThat(out.get(0).id()).isEqualTo("c1");
@@ -142,7 +155,7 @@ class FeedServiceCommentsTest {
         User liker = user("liker", "liker");
         when(users.findByUid("liker")).thenReturn(Optional.of(liker));
 
-        long count = service.likeComment("liker", "c1");
+        long count = commentService.likeComment("liker", "c1");
 
         assertThat(count).isEqualTo(1L);
         verify(commentLikes).save(any(FeedCommentLikeJpaEntity.class));
@@ -156,7 +169,7 @@ class FeedServiceCommentsTest {
         when(commentLikes.existsById(any(FeedCommentLikeJpaEntity.Key.class))).thenReturn(false);
         when(commentLikes.countByCommentId("c1")).thenReturn(1L);
 
-        service.likeComment("yo", "c1");
+        commentService.likeComment("yo", "c1");
 
         verify(notifications, never()).create(any(), any(), any(), any(), any(), any());
     }
@@ -168,7 +181,7 @@ class FeedServiceCommentsTest {
         when(commentLikes.existsById(any(FeedCommentLikeJpaEntity.Key.class))).thenReturn(true);
         when(commentLikes.countByCommentId("c1")).thenReturn(2L);
 
-        long count = service.likeComment("liker", "c1");
+        long count = commentService.likeComment("liker", "c1");
 
         assertThat(count).isEqualTo(2L);
         verify(commentLikes, never()).save(any(FeedCommentLikeJpaEntity.class));
@@ -180,7 +193,7 @@ class FeedServiceCommentsTest {
         when(commentLikes.existsById(any(FeedCommentLikeJpaEntity.Key.class))).thenReturn(false);
         when(commentLikes.countByCommentId("c1")).thenReturn(0L);
 
-        assertThat(service.unlikeComment("me", "c1")).isZero();
+        assertThat(commentService.unlikeComment("me", "c1")).isZero();
         verify(commentLikes, never()).deleteById(any(FeedCommentLikeJpaEntity.Key.class));
     }
 
@@ -189,7 +202,7 @@ class FeedServiceCommentsTest {
     @Test
     void deleteCommentAjenoSinAdminDa403() {
         when(comments.findById("c1")).thenReturn(Optional.of(comment("c1", 7L, "otro")));
-        assertThatThrownBy(() -> service.deleteComment("yo", "c1", false))
+        assertThatThrownBy(() -> commentService.deleteComment("yo", "c1", false))
                 .isInstanceOf(ResponseStatusException.class);
         verify(comments, never()).delete(any());
     }
@@ -198,12 +211,12 @@ class FeedServiceCommentsTest {
     void deleteCommentPropioOAdminBorra() {
         var propio = comment("c1", 7L, "yo");
         when(comments.findById("c1")).thenReturn(Optional.of(propio));
-        service.deleteComment("yo", "c1", false);
+        commentService.deleteComment("yo", "c1", false);
         verify(comments).delete(propio);
 
         var ajeno = comment("c2", 7L, "otro");
         when(comments.findById("c2")).thenReturn(Optional.of(ajeno));
-        service.deleteComment("admin", "c2", true);
+        commentService.deleteComment("admin", "c2", true);
         verify(comments).delete(ajeno);
     }
 
@@ -229,7 +242,7 @@ class FeedServiceCommentsTest {
         User ana = user("uid-ana", "ana_escaladora");
         when(users.findByUsername("ana_escaladora")).thenReturn(Optional.of(ana));
 
-        service.addComment("yo", 7L, "brutal @ana_escaladora, repetimos", null);
+        commentService.addComment("yo", 7L, "brutal @ana_escaladora, repetimos", null);
 
         verify(notifications).create(eq("uid-ana"), eq("FEED_MENTION"),
                 eq("Te han mencionado"), contains("mencionado"), eq("feed_post"), eq("7"));
@@ -250,7 +263,7 @@ class FeedServiceCommentsTest {
         // "yo" se menciona a sí mismo → jamás notificado.
         when(users.findByUsername("yo")).thenReturn(Optional.of(yo));
 
-        service.addComment("yo", 7L, "@ana_escaladora y otra vez @ana_escaladora y @yo", null);
+        commentService.addComment("yo", 7L, "@ana_escaladora y otra vez @ana_escaladora y @yo", null);
 
         verify(notifications).create(eq("uid-ana"), eq("FEED_MENTION"), any(), any(), any(), any());
         verify(notifications, never()).create(eq("yo"), eq("FEED_MENTION"), any(), any(), any(), any());
@@ -268,7 +281,7 @@ class FeedServiceCommentsTest {
         when(comments.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(users.findByUsername(anyString())).thenReturn(Optional.empty());
 
-        var out = service.addComment("yo", 7L, "hola @nadie_conocido", null);
+        var out = commentService.addComment("yo", 7L, "hola @nadie_conocido", null);
 
         assertThat(out.text()).contains("@nadie_conocido");  // el comentario se guarda igual
         verify(notifications, never()).create(any(), eq("FEED_MENTION"), any(), any(), any(), any());

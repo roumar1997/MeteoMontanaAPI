@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.meteomontana.api.application.feed.FeedService.FeedAuthor;
-import com.meteomontana.api.application.feed.FeedService.FeedCommentView;
-import com.meteomontana.api.application.feed.FeedService.FeedLineView;
-import com.meteomontana.api.application.feed.FeedService.FeedPostView;
+import com.meteomontana.api.application.feed.FeedViews.FeedAuthor;
+import com.meteomontana.api.application.feed.FeedViews.FeedCommentView;
+import com.meteomontana.api.application.feed.FeedViews.FeedLineView;
+import com.meteomontana.api.application.feed.FeedViews.FeedPostView;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

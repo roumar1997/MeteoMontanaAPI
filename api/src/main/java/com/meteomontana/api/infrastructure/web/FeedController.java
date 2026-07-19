@@ -1,6 +1,11 @@
 package com.meteomontana.api.infrastructure.web;
 
-import com.meteomontana.api.application.feed.FeedService;
+import com.meteomontana.api.application.feed.FeedCommentService;
+import com.meteomontana.api.application.feed.FeedLikeService;
+import com.meteomontana.api.application.feed.FeedPhotoService;
+import com.meteomontana.api.application.feed.FeedPublishService;
+import com.meteomontana.api.application.feed.FeedQueryService;
+import com.meteomontana.api.application.feed.FeedViews;
 import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import jakarta.validation.Valid;
@@ -47,11 +52,21 @@ public class FeedController {
             @NotBlank @Size(max = 1000) String text,
             @Size(max = 64) String parentId) {}
 
-    private final FeedService service;
+    private final FeedQueryService query;
+    private final FeedPublishService publisher;
+    private final FeedLikeService likes;
+    private final FeedCommentService commentsService;
+    private final FeedPhotoService photos;
     private final UserRepository users;
 
-    public FeedController(FeedService service, UserRepository users) {
-        this.service = service;
+    public FeedController(FeedQueryService query, FeedPublishService publisher,
+                          FeedLikeService likes, FeedCommentService commentsService,
+                          FeedPhotoService photos, UserRepository users) {
+        this.query = query;
+        this.publisher = publisher;
+        this.likes = likes;
+        this.commentsService = commentsService;
+        this.photos = photos;
         this.users = users;
     }
 
@@ -61,24 +76,24 @@ public class FeedController {
      * "actividad" del perfil público; privado sin follow aceptado → lista vacía).
      */
     @GetMapping
-    public List<FeedService.FeedPostView> page(
+    public List<FeedViews.FeedPostView> page(
             @RequestParam(defaultValue = "all") String scope,
             @RequestParam(required = false) String uid,
             @RequestParam(required = false) Long before,
             @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal FirebaseUser user) {
         if ("user".equalsIgnoreCase(scope)) {
-            return service.pageOfUser(user.uid(), uid, before, limit);
+            return query.pageOfUser(user.uid(), uid, before, limit);
         }
-        return service.page(user.uid(), scope, before, limit);
+        return query.page(user.uid(), scope, before, limit);
     }
 
     /** UN post por id (destino de las notificaciones de like/comentario). */
     @GetMapping("/{postId}")
-    public FeedService.FeedPostView single(
+    public FeedViews.FeedPostView single(
             @PathVariable long postId,
             @AuthenticationPrincipal FirebaseUser user) {
-        return service.single(user.uid(), postId);
+        return query.single(user.uid(), postId);
     }
 
     @PostMapping
@@ -86,7 +101,7 @@ public class FeedController {
     public Map<String, Long> publish(
             @Valid @RequestBody PublishRequest req,
             @AuthenticationPrincipal FirebaseUser user) {
-        return Map.of("id", service.publish(user.uid(), req.blockId(), req.lineId(),
+        return Map.of("id", publisher.publish(user.uid(), req.blockId(), req.lineId(),
                 req.kind(), req.discipline(), req.caption()));
     }
 
@@ -99,65 +114,65 @@ public class FeedController {
             @PathVariable long postId,
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal FirebaseUser user) throws IOException {
-        return Map.of("photoUrl", service.uploadPhoto(user.uid(), postId, file));
+        return Map.of("photoUrl", photos.uploadPhoto(user.uid(), postId, file));
     }
 
     @DeleteMapping("/{postId}")
     public void delete(
             @PathVariable long postId,
             @AuthenticationPrincipal FirebaseUser user) {
-        service.delete(user.uid(), postId, isAdmin(user));
+        publisher.delete(user.uid(), postId, isAdmin(user));
     }
 
     @PostMapping("/{postId}/like")
     public Map<String, Long> like(
             @PathVariable long postId,
             @AuthenticationPrincipal FirebaseUser user) {
-        return Map.of("likeCount", service.like(user.uid(), postId));
+        return Map.of("likeCount", likes.like(user.uid(), postId));
     }
 
     @DeleteMapping("/{postId}/like")
     public Map<String, Long> unlike(
             @PathVariable long postId,
             @AuthenticationPrincipal FirebaseUser user) {
-        return Map.of("likeCount", service.unlike(user.uid(), postId));
+        return Map.of("likeCount", likes.unlike(user.uid(), postId));
     }
 
     @GetMapping("/{postId}/comments")
-    public List<FeedService.FeedCommentView> comments(
+    public List<FeedViews.FeedCommentView> comments(
             @PathVariable long postId,
             @AuthenticationPrincipal FirebaseUser user) {
-        return service.listComments(user.uid(), postId);
+        return commentsService.listComments(user.uid(), postId);
     }
 
     @PostMapping("/{postId}/comments")
     @ResponseStatus(HttpStatus.CREATED)
-    public FeedService.FeedCommentView addComment(
+    public FeedViews.FeedCommentView addComment(
             @PathVariable long postId,
             @Valid @RequestBody CommentRequest req,
             @AuthenticationPrincipal FirebaseUser user) {
-        return service.addComment(user.uid(), postId, req.text(), req.parentId());
+        return commentsService.addComment(user.uid(), postId, req.text(), req.parentId());
     }
 
     @PostMapping("/comments/{commentId}/like")
     public Map<String, Long> likeComment(
             @PathVariable String commentId,
             @AuthenticationPrincipal FirebaseUser user) {
-        return Map.of("likeCount", service.likeComment(user.uid(), commentId));
+        return Map.of("likeCount", commentsService.likeComment(user.uid(), commentId));
     }
 
     @DeleteMapping("/comments/{commentId}/like")
     public Map<String, Long> unlikeComment(
             @PathVariable String commentId,
             @AuthenticationPrincipal FirebaseUser user) {
-        return Map.of("likeCount", service.unlikeComment(user.uid(), commentId));
+        return Map.of("likeCount", commentsService.unlikeComment(user.uid(), commentId));
     }
 
     @DeleteMapping("/comments/{commentId}")
     public void deleteComment(
             @PathVariable String commentId,
             @AuthenticationPrincipal FirebaseUser user) {
-        service.deleteComment(user.uid(), commentId, isAdmin(user));
+        commentsService.deleteComment(user.uid(), commentId, isAdmin(user));
     }
 
     private boolean isAdmin(FirebaseUser user) {

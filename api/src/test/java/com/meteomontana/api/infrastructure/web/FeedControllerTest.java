@@ -1,6 +1,10 @@
 package com.meteomontana.api.infrastructure.web;
 
-import com.meteomontana.api.application.feed.FeedService;
+import com.meteomontana.api.application.feed.FeedCommentService;
+import com.meteomontana.api.application.feed.FeedLikeService;
+import com.meteomontana.api.application.feed.FeedPhotoService;
+import com.meteomontana.api.application.feed.FeedPublishService;
+import com.meteomontana.api.application.feed.FeedQueryService;
 import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +31,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class FeedControllerTest {
 
-    private FeedService service;
+    private FeedQueryService query;
+    private FeedPublishService publisher;
+    private FeedLikeService likes;
+    private FeedCommentService commentsService;
+    private FeedPhotoService photos;
     private MockMvc mvc;
 
     /** Simula @AuthenticationPrincipal FirebaseUser sin cargar Spring Security. */
@@ -42,11 +50,15 @@ class FeedControllerTest {
     }
 
     @BeforeEach void setUp() {
-        service = mock(FeedService.class);
+        query = mock(FeedQueryService.class);
+        publisher = mock(FeedPublishService.class);
+        likes = mock(FeedLikeService.class);
+        commentsService = mock(FeedCommentService.class);
+        photos = mock(FeedPhotoService.class);
         UserRepository users = mock(UserRepository.class);
         var validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
-        mvc = MockMvcBuilders.standaloneSetup(new FeedController(service, users))
+        mvc = MockMvcBuilders.standaloneSetup(new FeedController(query, publisher, likes, commentsService, photos, users))
                 .setCustomArgumentResolvers(new FakePrincipal())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
@@ -54,13 +66,13 @@ class FeedControllerTest {
     }
 
     @Test void publish_valido_delegaEnElServicioYDevuelveId() throws Exception {
-        when(service.publish(eq("uid-test"), eq("block-1"), isNull(), eq("TICK"), any(), any()))
+        when(publisher.publish(eq("uid-test"), eq("block-1"), isNull(), eq("TICK"), any(), any()))
                 .thenReturn(99L);
         mvc.perform(post("/api/feed").contentType("application/json")
                         .content("{\"blockId\":\"block-1\",\"kind\":\"TICK\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(99));
-        verify(service).publish("uid-test", "block-1", null, "TICK", null, null);
+        verify(publisher).publish("uid-test", "block-1", null, "TICK", null, null);
     }
 
     @Test void publish_sinBlockId_da400YNoTocaElServicio() throws Exception {
@@ -68,7 +80,7 @@ class FeedControllerTest {
                         .content("{\"kind\":\"TICK\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION"));
-        verifyNoInteractions(service);
+        verifyNoInteractions(publisher);
     }
 
     @Test void publish_conCaptionGigante_da400() throws Exception {
@@ -76,7 +88,7 @@ class FeedControllerTest {
         mvc.perform(post("/api/feed").contentType("application/json")
                         .content("{\"blockId\":\"b1\",\"kind\":\"TICK\",\"caption\":\"" + caption + "\"}"))
                 .andExpect(status().isBadRequest());
-        verifyNoInteractions(service);
+        verifyNoInteractions(publisher);
     }
 
     @Test void comentario_vacio_da400() throws Exception {
@@ -87,17 +99,17 @@ class FeedControllerTest {
     }
 
     @Test void like_delegaYDevuelveContador() throws Exception {
-        when(service.like("uid-test", 7L)).thenReturn(3L);
+        when(likes.like("uid-test", 7L)).thenReturn(3L);
         mvc.perform(post("/api/feed/7/like"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.likeCount").value(3));
     }
 
     @Test void page_usaElUidAutenticadoYElScope() throws Exception {
-        when(service.page(eq("uid-test"), eq("all"), isNull(), eq(20)))
+        when(query.page(eq("uid-test"), eq("all"), isNull(), eq(20)))
                 .thenReturn(java.util.List.of());
         mvc.perform(get("/api/feed"))
                 .andExpect(status().isOk());
-        verify(service).page("uid-test", "all", null, 20);
+        verify(query).page("uid-test", "all", null, 20);
     }
 }

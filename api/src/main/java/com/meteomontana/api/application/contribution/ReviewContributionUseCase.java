@@ -42,7 +42,7 @@ public class ReviewContributionUseCase {
     private final com.meteomontana.api.infrastructure.email.ResendEmailService emailService;
     private final com.meteomontana.api.domain.port.UserRepository userRepository;
     private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository journalRepo;
-    private final com.meteomontana.api.application.feed.FeedService feedService;
+    private final com.meteomontana.api.application.feed.FeedPublishService feedService;
 
     public ReviewContributionUseCase(SpringDataContributionRepository repo,
                                      SpringDataSchoolBlockRepository blockRepo,
@@ -50,7 +50,7 @@ public class ReviewContributionUseCase {
                                      com.meteomontana.api.infrastructure.email.ResendEmailService emailService,
                                      com.meteomontana.api.domain.port.UserRepository userRepository,
                                      com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository journalRepo,
-                                     com.meteomontana.api.application.feed.FeedService feedService) {
+                                     com.meteomontana.api.application.feed.FeedPublishService feedService) {
         this.repo       = repo;
         this.blockRepo  = blockRepo;
         this.schoolRepo = schoolRepo;
@@ -195,7 +195,7 @@ public class ReviewContributionUseCase {
                     BlockLineJpaEntity firstNew = reconcileWall(c);
                     if (firstNew != null) {
                         publishFeedPost(c, blockRepo.findById(c.getTargetBlockId()).orElse(null),
-                                firstNew, com.meteomontana.api.application.feed.FeedService.KIND_NEW_LINE);
+                                firstNew, com.meteomontana.api.application.feed.FeedViews.KIND_NEW_LINE);
                     }
                 } else if (c.getTargetBlockId() != null && c.getTargetLineId() != null) {
                     // Corrección de una vía concreta: actualiza la línea existente
@@ -206,13 +206,13 @@ public class ReviewContributionUseCase {
                     BlockLineJpaEntity firstNew = addLinesToExistingBlock(c);
                     if (firstNew != null) {
                         publishFeedPost(c, blockRepo.findById(c.getTargetBlockId()).orElse(null),
-                                firstNew, com.meteomontana.api.application.feed.FeedService.KIND_NEW_LINE);
+                                firstNew, com.meteomontana.api.application.feed.FeedViews.KIND_NEW_LINE);
                     }
                 } else {
                     // Piedra NUEVA → un post NEW_BLOCK (por piedra, no por vía).
                     SchoolBlockJpaEntity created = createBlock(c, SchoolBlock.Type.BLOCK, admin.uid());
                     publishFeedPost(c, created, null,
-                            com.meteomontana.api.application.feed.FeedService.KIND_NEW_BLOCK);
+                            com.meteomontana.api.application.feed.FeedViews.KIND_NEW_BLOCK);
                 }
             }
             case SECTOR  -> createBlock(c, SchoolBlock.Type.ZONE,    admin.uid());
