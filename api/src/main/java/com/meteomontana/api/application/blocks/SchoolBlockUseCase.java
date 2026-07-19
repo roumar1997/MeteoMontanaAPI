@@ -140,9 +140,9 @@ public class SchoolBlockUseCase {
                 }).toList();
 
         SchoolBlock.Discipline discipline = type == SchoolBlock.Type.BLOCK
-                ? parseDiscipline(req.discipline()) : SchoolBlock.Discipline.BOULDER;
+                ? com.meteomontana.api.application.contribution.ContributionLineParser.parseDiscipline(req.discipline()) : SchoolBlock.Discipline.BOULDER;
         SchoolBlock.Geometry geometry = type == SchoolBlock.Type.BLOCK
-                ? parseGeometry(req.geometry()) : SchoolBlock.Geometry.POINT;
+                ? com.meteomontana.api.application.contribution.ContributionLineParser.parseGeometry(req.geometry()) : SchoolBlock.Geometry.POINT;
         SchoolBlock block = new SchoolBlock(
                 UUID.randomUUID().toString(),
                 schoolId, type, discipline, name,
@@ -171,20 +171,6 @@ public class SchoolBlockUseCase {
         if (raw == null || raw.isBlank()) return null;
         String t = raw.trim();
         return t.length() > 500 ? t.substring(0, 500) : t;
-    }
-
-    /** Parsea la modalidad recibida del cliente; default BOULDER si null/desconocida. */
-    private SchoolBlock.Discipline parseDiscipline(String raw) {
-        if (raw == null) return SchoolBlock.Discipline.BOULDER;
-        try { return SchoolBlock.Discipline.valueOf(raw.trim().toUpperCase()); }
-        catch (IllegalArgumentException e) { return SchoolBlock.Discipline.BOULDER; }
-    }
-
-    /** Parsea la geometría; default POINT si null/desconocida. */
-    private SchoolBlock.Geometry parseGeometry(String raw) {
-        if (raw == null) return SchoolBlock.Geometry.POINT;
-        try { return SchoolBlock.Geometry.valueOf(raw.trim().toUpperCase()); }
-        catch (IllegalArgumentException e) { return SchoolBlock.Geometry.POINT; }
     }
 
     /** Normaliza la dirección del muro a LTR/RTL; default LTR. */
@@ -236,9 +222,9 @@ public class SchoolBlockUseCase {
                 }).toList();
 
         SchoolBlock.Discipline discipline = req.discipline() != null
-                ? parseDiscipline(req.discipline()) : current.getDiscipline();
+                ? com.meteomontana.api.application.contribution.ContributionLineParser.parseDiscipline(req.discipline()) : current.getDiscipline();
         SchoolBlock.Geometry geometry = req.geometry() != null
-                ? parseGeometry(req.geometry()) : current.getGeometry();
+                ? com.meteomontana.api.application.contribution.ContributionLineParser.parseGeometry(req.geometry()) : current.getGeometry();
         String path = req.geometry() != null
                 ? (geometry == SchoolBlock.Geometry.LINE ? req.path() : null)
                 : current.getPath();
