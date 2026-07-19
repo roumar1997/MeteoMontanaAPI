@@ -47,8 +47,13 @@ class ReviewContributionUseCaseTest {
 
     @BeforeEach
     void setUp() {
+        // Colaboradores REALES cableados con los mocks de siempre (mismo patron
+        // que los tests del FeedService troceado).
         useCase = new ReviewContributionUseCase(repo, blockRepo, schoolRepo,
-                emailService, userRepository, journalRepo, feedService);
+                new BlockMaterializer(blockRepo),
+                new LineReconciler(blockRepo, journalRepo),
+                new ReviewNotifier(emailService, userRepository),
+                feedService);
     }
 
     /** Contribución BOULDER pendiente de piedra NUEVA (sin targetBlockId). */
