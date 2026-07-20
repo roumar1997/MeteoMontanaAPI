@@ -85,7 +85,6 @@ public class ReviewContributionUseCase {
         return approve(id, admin, true);
     }
 
-    @Transactional
     public ContributionResponse approve(String id, FirebaseUser admin, boolean notify) {
         return approve(id, admin, notify, null);
     }
@@ -95,10 +94,14 @@ public class ReviewContributionUseCase {
      *  @param editedBloquesJson si != null, "EDITAR Y APROBAR": el admin retocó
      *  la propuesta y se materializa CON sus cambios (se persiste en la
      *  contribución para que la auditoría refleje lo realmente aplicado). */
-    // OJO: @Transactional también aquí — el controller llama DIRECTAMENTE a esta
-    // sobrecarga (las de arriba solo delegan), y sin la anotación este camino
-    // corría SIN transacción (cazado en el refactor SOLID del 2026-07-19).
-    @Transactional
+    // OJO: SIN @Transactional a propósito (comportamiento probado en prod). El
+    // materializar hace varios repo.save() y cada uno se auto-confirma por su
+    // cuenta. Envolverlo en UNA transacción (intentado el 2026-07-19) rompía la
+    // creación de PIEDRAS NUEVAS con vías: bajo la transacción envolvente, el
+    // save() de una piedra con hijos (cascade) omitía el INSERT del padre en
+    // silencio → la propuesta quedaba APPROVED pero la piedra no se creaba
+    // (cazado por Rodrigo en staging, 2026-07-20). No re-envolver sin un test de
+    // integración con Postgres que lo cubra.
     public ContributionResponse approve(String id, FirebaseUser admin, boolean notify,
                                         String editedBloquesJson) {
         var entity = findPending(id);
