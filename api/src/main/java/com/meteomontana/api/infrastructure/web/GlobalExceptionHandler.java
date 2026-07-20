@@ -89,16 +89,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> unexpected(Exception e) {
         log.error("Error interno no controlado", e);
-        // DIAGNOSTICO TEMPORAL (staging aislado, 2026-07-20) — REVERTIR:
-        // expone la causa raiz del 500 al aprobar piedras nuevas. Vuelve a
-        // "Error interno" en cuanto se capture el error real.
-        Throwable root = e; while (root.getCause() != null) root = root.getCause();
-        String frame = java.util.Arrays.stream(e.getStackTrace())
-                .filter(s -> s.getClassName().startsWith("com.meteomontana"))
-                .findFirst().map(StackTraceElement::toString).orElse("?");
-        String detail = e.getClass().getSimpleName() + " / " + root.getClass().getSimpleName()
-                + ": " + root.getMessage() + " @ " + frame;
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiError.of("INTERNAL", detail));
+                .body(ApiError.of("INTERNAL", "Error interno"));
     }
 }
