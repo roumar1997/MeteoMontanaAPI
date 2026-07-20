@@ -11,7 +11,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,10 +23,26 @@ import java.util.List;
 
 @Entity
 @Table(name = "school_blocks")
-public class SchoolBlockJpaEntity {
+public class SchoolBlockJpaEntity implements Persistable<String> {
 
     @Id
     private String id;
+
+    // El id se asigna a mano (UUID) → sin esto Spring Data cree que la entidad
+    // "ya existe" (id != null) y usa merge() en vez de persist(). merge() de una
+    // piedra NUEVA CON vías hijas (cascade ALL) omite silenciosamente el INSERT
+    // del padre bajo una transacción envolvente → la piedra se "aprobaba" pero no
+    // se creaba (bug 2026-07-20). Declarando la novedad explícitamente, save()
+    // usa persist() para las nuevas y merge() solo para las ya cargadas.
+    @Transient
+    private boolean isNew = true;
+
+    @Override
+    public boolean isNew() { return isNew; }
+
+    @PostLoad
+    @PostPersist
+    void markNotNew() { this.isNew = false; }
 
     @Column(name = "school_id", nullable = false)
     private String schoolId;
