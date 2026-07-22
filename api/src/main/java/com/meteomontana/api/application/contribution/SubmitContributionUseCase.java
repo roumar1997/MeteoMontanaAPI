@@ -3,15 +3,18 @@ package com.meteomontana.api.application.contribution;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.model.PendingContribution;
 import com.meteomontana.api.domain.model.SubmissionStatus;
+import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.SchoolRepository;
 import com.meteomontana.api.infrastructure.persistence.SpringDataContributionRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.PendingContributionJpaEntity;
+import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -21,15 +24,21 @@ public class SubmitContributionUseCase {
     private final SchoolRepository schoolRepository;
     private final com.meteomontana.api.application.admin.AdminGuard adminGuard;
     private final ReviewContributionUseCase reviewUseCase;
+    private final SpringDataUserRepository userRepository;
+    private final PushSender push;
 
     public SubmitContributionUseCase(SpringDataContributionRepository repo,
                                      SchoolRepository schoolRepository,
                                      com.meteomontana.api.application.admin.AdminGuard adminGuard,
-                                     ReviewContributionUseCase reviewUseCase) {
+                                     ReviewContributionUseCase reviewUseCase,
+                                     SpringDataUserRepository userRepository,
+                                     PushSender push) {
         this.repo = repo;
         this.schoolRepository = schoolRepository;
         this.adminGuard = adminGuard;
         this.reviewUseCase = reviewUseCase;
+        this.userRepository = userRepository;
+        this.push = push;
     }
 
     public ContributionResponse execute(String schoolId, ContributionRequest req,
@@ -69,6 +78,26 @@ public class SubmitContributionUseCase {
             // notify=false: no avisar por email al propio admin de su creación.
             return reviewUseCase.approve(contribution.getId(), user, false);
         }
+        // Va a la cola de revisión: avisa a los admins por push (para saber que
+        // tienen algo que revisar). Mismo patrón que las denuncias.
+        notifyAdmins(school.getName(), type);
         return ContributionResponse.from(contribution);
+    }
+
+    /** Push a todos los admins: propuesta nueva pendiente de revisar. El target
+     *  `admin_contributions` abre la pestaña de PROPUESTAS del panel de admin. */
+    private void notifyAdmins(String schoolName, PendingContribution.Type type) {
+        String what = switch (type) {
+            case PARKING -> "parking";
+            case SECTOR -> "sector";
+            case ASSIGN_SECTOR -> "cambio de sector";
+            case POSITION_CORRECTION -> "corrección de posición";
+            default -> "piedra/vía";
+        };
+        String title = "Propuesta nueva: " + what;
+        String body = "En «" + schoolName + "» · toca para revisarla en el panel";
+        userRepository.findByIsAdminTrue().forEach(admin ->
+                push.sendToUser(admin.getUid(), title, body,
+                        Map.of("targetType", "admin_contributions", "targetId", "")));
     }
 }
