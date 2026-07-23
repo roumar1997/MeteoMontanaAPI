@@ -3,22 +3,52 @@
   "nodes": [
     {
       "parameters": {
-        "rule": { "interval": [ { "field": "cronExpression", "expression": "0 0 10 * * 1" } ] }
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 10 * * 1"
+            }
+          ]
+        }
       },
       "id": "trigger",
       "name": "Lunes 10:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [200, 300]
+      "position": [
+        200,
+        300
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "a1", "name": "IG_USER_ID", "value": "PON_AQUI_EL_IG_USER_ID", "type": "string" },
-            { "id": "a2", "name": "IG_TOKEN", "value": "PON_AQUI_EL_TOKEN_DE_PAGINA", "type": "string" },
-            { "id": "a3", "name": "RENDERER", "value": "https://overflowing-magic-production-e39c.up.railway.app", "type": "string" },
-            { "id": "a4", "name": "API", "value": "https://api.climbingteams.com", "type": "string" }
+            {
+              "id": "a1",
+              "name": "IG_USER_ID",
+              "value": "17841427677381913",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "IG_TOKEN",
+              "value": "PON_AQUI_EL_TOKEN_DE_PAGINA",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "RENDERER",
+              "value": "https://overflowing-magic-production-e39c.up.railway.app",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "API",
+              "value": "https://api.climbingteams.com",
+              "type": "string"
+            }
           ]
         },
         "options": {}
@@ -27,7 +57,10 @@
       "name": "Config (edítame)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [420, 300]
+      "position": [
+        420,
+        300
+      ]
     },
     {
       "parameters": {
@@ -38,14 +71,30 @@
       "name": "¿Hay novedades?",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [640, 300]
+      "position": [
+        640,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "typeValidation": "loose", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
           "conditions": [
-            { "id": "c1", "leftValue": "={{ $json.empty }}", "rightValue": "", "operator": { "type": "boolean", "operation": "false", "singleValue": true } }
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.empty }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
           ],
           "combinator": "and"
         },
@@ -55,13 +104,21 @@
       "name": "Solo si NO está vacío",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [860, 300]
+      "position": [
+        860,
+        300
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "b1", "name": "image_url", "value": "={{ $('Config (edítame)').item.json.RENDERER }}/render?url={{ encodeURIComponent($('Config (edítame)').item.json.API + '/api/social/novelties/html?days=7') }}", "type": "string" }
+            {
+              "id": "b1",
+              "name": "image_url",
+              "value": "={{ $('Config (edítame)').item.json.RENDERER }}/render?url={{ encodeURIComponent($('Config (edítame)').item.json.API + '/api/social/novelties/html?days=7') }}",
+              "type": "string"
+            }
           ]
         },
         "include": "all",
@@ -71,7 +128,31 @@
       "name": "Construir image_url",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1080, 220]
+      "position": [
+        1080,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.image_url }}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "prewarm",
+      "name": "Calentar renderer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        220
+      ]
     },
     {
       "parameters": {
@@ -80,9 +161,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "image_url", "value": "={{ $json.image_url }}" },
-            { "name": "media_type", "value": "STORIES" },
-            { "name": "access_token", "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}" }
+            {
+              "name": "image_url",
+              "value": "={{ $('Construir image_url').item.json.image_url }}"
+            },
+            {
+              "name": "media_type",
+              "value": "STORIES"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}"
+            }
           ]
         },
         "options": {}
@@ -91,7 +181,13 @@
       "name": "IG: crear contenedor",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1300, 220]
+      "position": [
+        1520,
+        220
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -100,8 +196,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "creation_id", "value": "={{ $json.id }}" },
-            { "name": "access_token", "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}" }
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}"
+            }
           ]
         },
         "options": {}
@@ -110,20 +212,100 @@
       "name": "IG: publicar story",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 220]
+      "position": [
+        1740,
+        220
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {
-    "Lunes 10:00": { "main": [[{ "node": "Config (edítame)", "type": "main", "index": 0 }]] },
-    "Config (edítame)": { "main": [[{ "node": "¿Hay novedades?", "type": "main", "index": 0 }]] },
-    "¿Hay novedades?": { "main": [[{ "node": "Solo si NO está vacío", "type": "main", "index": 0 }]] },
-    "Solo si NO está vacío": { "main": [[{ "node": "Construir image_url", "type": "main", "index": 0 }], []] },
-    "Construir image_url": { "main": [[{ "node": "IG: crear contenedor", "type": "main", "index": 0 }]] },
-    "IG: crear contenedor": { "main": [[{ "node": "IG: publicar story", "type": "main", "index": 0 }]] }
+    "Lunes 10:00": {
+      "main": [
+        [
+          {
+            "node": "Config (edítame)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config (edítame)": {
+      "main": [
+        [
+          {
+            "node": "¿Hay novedades?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay novedades?": {
+      "main": [
+        [
+          {
+            "node": "Solo si NO está vacío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo si NO está vacío": {
+      "main": [
+        [
+          {
+            "node": "Construir image_url",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Construir image_url": {
+      "main": [
+        [
+          {
+            "node": "Calentar renderer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calentar renderer": {
+      "main": [
+        [
+          {
+            "node": "IG: crear contenedor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG: crear contenedor": {
+      "main": [
+        [
+          {
+            "node": "IG: publicar story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "meta": {
-    "_comment": "Cumbre — novedades de la semana, LUNES 10:00. Consulta /api/social/novelties?days=7; si empty=true NO publica (no miente con un 0). Rama TRUE del IF = publica. Edita 'Config'."
+    "_comment": "Cumbre — novedades de la semana, LUNES 10:00. Consulta /api/social/novelties?days=7; si empty=true NO publica. 'Calentar renderer' despierta+cachea el PNG antes de que Instagram lo descargue. Edita 'Config'."
   }
 }

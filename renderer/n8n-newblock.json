@@ -3,22 +3,52 @@
   "nodes": [
     {
       "parameters": {
-        "rule": { "interval": [ { "field": "cronExpression", "expression": "0 0 12 * * 3" } ] }
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 12 * * 3"
+            }
+          ]
+        }
       },
       "id": "trigger",
       "name": "Miércoles 12:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [200, 300]
+      "position": [
+        200,
+        300
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "a1", "name": "IG_USER_ID", "value": "PON_AQUI_EL_IG_USER_ID", "type": "string" },
-            { "id": "a2", "name": "IG_TOKEN", "value": "PON_AQUI_EL_TOKEN_DE_PAGINA", "type": "string" },
-            { "id": "a3", "name": "RENDERER", "value": "https://overflowing-magic-production-e39c.up.railway.app", "type": "string" },
-            { "id": "a4", "name": "API", "value": "https://api.climbingteams.com", "type": "string" }
+            {
+              "id": "a1",
+              "name": "IG_USER_ID",
+              "value": "17841427677381913",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "IG_TOKEN",
+              "value": "PON_AQUI_EL_TOKEN_DE_PAGINA",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "RENDERER",
+              "value": "https://overflowing-magic-production-e39c.up.railway.app",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "API",
+              "value": "https://api.climbingteams.com",
+              "type": "string"
+            }
           ]
         },
         "options": {}
@@ -27,7 +57,10 @@
       "name": "Config (edítame)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [420, 300]
+      "position": [
+        420,
+        300
+      ]
     },
     {
       "parameters": {
@@ -38,14 +71,30 @@
       "name": "¿Piedras nuevas esta semana?",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [640, 300]
+      "position": [
+        640,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "typeValidation": "loose", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
           "conditions": [
-            { "id": "c1", "leftValue": "={{ $json.empty }}", "rightValue": "", "operator": { "type": "boolean", "operation": "false", "singleValue": true } }
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.empty }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
           ],
           "combinator": "and"
         },
@@ -55,14 +104,27 @@
       "name": "Solo si hay alguna",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [860, 300]
+      "position": [
+        860,
+        300
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "b1", "name": "postId", "value": "={{ $json.blocks[0].postId }}", "type": "number" },
-            { "id": "b2", "name": "image_url", "value": "={{ $('Config (edítame)').item.json.RENDERER }}/render?url={{ encodeURIComponent($('Config (edítame)').item.json.API + '/api/social/newblock/html?postId=' + $json.blocks[0].postId) }}", "type": "string" }
+            {
+              "id": "b1",
+              "name": "postId",
+              "value": "={{ $json.blocks[0].postId }}",
+              "type": "number"
+            },
+            {
+              "id": "b2",
+              "name": "image_url",
+              "value": "={{ $('Config (edítame)').item.json.RENDERER }}/render?url={{ encodeURIComponent($('Config (edítame)').item.json.API + '/api/social/newblock/html?postId=' + $json.blocks[0].postId) }}",
+              "type": "string"
+            }
           ]
         },
         "include": "all",
@@ -72,7 +134,31 @@
       "name": "Elegir piedra + image_url",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1080, 220]
+      "position": [
+        1080,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.image_url }}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "prewarm",
+      "name": "Calentar renderer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        220
+      ]
     },
     {
       "parameters": {
@@ -81,9 +167,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "image_url", "value": "={{ $json.image_url }}" },
-            { "name": "media_type", "value": "STORIES" },
-            { "name": "access_token", "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}" }
+            {
+              "name": "image_url",
+              "value": "={{ $('Elegir piedra + image_url').item.json.image_url }}"
+            },
+            {
+              "name": "media_type",
+              "value": "STORIES"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}"
+            }
           ]
         },
         "options": {}
@@ -92,7 +187,13 @@
       "name": "IG: crear contenedor",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1300, 220]
+      "position": [
+        1520,
+        220
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -101,8 +202,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "creation_id", "value": "={{ $json.id }}" },
-            { "name": "access_token", "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}" }
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}"
+            }
           ]
         },
         "options": {}
@@ -111,20 +218,100 @@
       "name": "IG: publicar story",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 220]
+      "position": [
+        1740,
+        220
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {
-    "Miércoles 12:00": { "main": [[{ "node": "Config (edítame)", "type": "main", "index": 0 }]] },
-    "Config (edítame)": { "main": [[{ "node": "¿Piedras nuevas esta semana?", "type": "main", "index": 0 }]] },
-    "¿Piedras nuevas esta semana?": { "main": [[{ "node": "Solo si hay alguna", "type": "main", "index": 0 }]] },
-    "Solo si hay alguna": { "main": [[{ "node": "Elegir piedra + image_url", "type": "main", "index": 0 }], []] },
-    "Elegir piedra + image_url": { "main": [[{ "node": "IG: crear contenedor", "type": "main", "index": 0 }]] },
-    "IG: crear contenedor": { "main": [[{ "node": "IG: publicar story", "type": "main", "index": 0 }]] }
+    "Miércoles 12:00": {
+      "main": [
+        [
+          {
+            "node": "Config (edítame)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config (edítame)": {
+      "main": [
+        [
+          {
+            "node": "¿Piedras nuevas esta semana?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Piedras nuevas esta semana?": {
+      "main": [
+        [
+          {
+            "node": "Solo si hay alguna",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo si hay alguna": {
+      "main": [
+        [
+          {
+            "node": "Elegir piedra + image_url",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Elegir piedra + image_url": {
+      "main": [
+        [
+          {
+            "node": "Calentar renderer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calentar renderer": {
+      "main": [
+        [
+          {
+            "node": "IG: crear contenedor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG: crear contenedor": {
+      "main": [
+        [
+          {
+            "node": "IG: publicar story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "meta": {
-    "_comment": "Cumbre — bloque/vía nuevo, MIÉRCOLES 12:00. Consulta /api/social/newblocks?days=7; si empty=true NO publica; si hay, coge blocks[0] (la más reciente) y publica su historia. Cintillo BLOQUE/VÍA NUEVO según disciplina. Edita 'Config'."
+    "_comment": "Cumbre — bloque/vía nuevo, MIÉRCOLES 12:00. Consulta /api/social/newblocks?days=7; si empty=true NO publica; si hay, coge blocks[0] (la más reciente). 'Calentar renderer' despierta+cachea el PNG antes de que Instagram lo descargue. Edita 'Config'."
   }
 }

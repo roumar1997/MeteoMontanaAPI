@@ -3,21 +3,46 @@
   "nodes": [
     {
       "parameters": {
-        "rule": { "interval": [ { "field": "cronExpression", "expression": "0 0 8 * * *" } ] }
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 8 * * *"
+            }
+          ]
+        }
       },
       "id": "trigger",
       "name": "Cada mañana 8:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [220, 300]
+      "position": [
+        200,
+        300
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "a1", "name": "IG_USER_ID", "value": "PON_AQUI_EL_IG_USER_ID", "type": "string" },
-            { "id": "a2", "name": "IG_TOKEN", "value": "PON_AQUI_EL_TOKEN_DE_PAGINA", "type": "string" },
-            { "id": "a3", "name": "RENDERER", "value": "https://overflowing-magic-production-e39c.up.railway.app", "type": "string" }
+            {
+              "id": "a1",
+              "name": "IG_USER_ID",
+              "value": "17841427677381913",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "IG_TOKEN",
+              "value": "PON_AQUI_EL_TOKEN_DE_PAGINA",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "RENDERER",
+              "value": "https://overflowing-magic-production-e39c.up.railway.app",
+              "type": "string"
+            }
           ]
         },
         "options": {}
@@ -26,7 +51,10 @@
       "name": "Config (edítame)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [440, 300]
+      "position": [
+        420,
+        300
+      ]
     },
     {
       "parameters": {
@@ -36,13 +64,21 @@
       "name": "Regiones (edítame)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 300]
+      "position": [
+        640,
+        300
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "b1", "name": "image_url", "value": "={{ $json.RENDERER }}/render?url={{ encodeURIComponent($json.HISTORIA_URL) }}", "type": "string" }
+            {
+              "id": "b1",
+              "name": "image_url",
+              "value": "={{ $json.RENDERER }}/render?url={{ encodeURIComponent($json.HISTORIA_URL) }}",
+              "type": "string"
+            }
           ]
         },
         "include": "all",
@@ -52,18 +88,51 @@
       "name": "Construir image_url",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [880, 300]
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.image_url }}",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "prewarm",
+      "name": "Calentar renderer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        300
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.facebook.com/v21.0/{{ $json.IG_USER_ID }}/media",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Config (edítame)').item.json.IG_USER_ID }}/media",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "image_url", "value": "={{ $json.image_url }}" },
-            { "name": "media_type", "value": "STORIES" },
-            { "name": "access_token", "value": "={{ $json.IG_TOKEN }}" }
+            {
+              "name": "image_url",
+              "value": "={{ $('Construir image_url').item.json.image_url }}"
+            },
+            {
+              "name": "media_type",
+              "value": "STORIES"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}"
+            }
           ]
         },
         "options": {}
@@ -72,7 +141,13 @@
       "name": "IG: crear contenedor",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1100, 300]
+      "position": [
+        1300,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -81,8 +156,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "creation_id", "value": "={{ $json.id }}" },
-            { "name": "access_token", "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}" }
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('Config (edítame)').item.json.IG_TOKEN }}"
+            }
           ]
         },
         "options": {}
@@ -91,19 +172,88 @@
       "name": "IG: publicar story",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1320, 300]
+      "position": [
+        1520,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {
-    "Cada mañana 8:00": { "main": [[{ "node": "Config (edítame)", "type": "main", "index": 0 }]] },
-    "Config (edítame)": { "main": [[{ "node": "Regiones (edítame)", "type": "main", "index": 0 }]] },
-    "Regiones (edítame)": { "main": [[{ "node": "Construir image_url", "type": "main", "index": 0 }]] },
-    "Construir image_url": { "main": [[{ "node": "IG: crear contenedor", "type": "main", "index": 0 }]] },
-    "IG: crear contenedor": { "main": [[{ "node": "IG: publicar story", "type": "main", "index": 0 }]] }
+    "Cada mañana 8:00": {
+      "main": [
+        [
+          {
+            "node": "Config (edítame)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config (edítame)": {
+      "main": [
+        [
+          {
+            "node": "Regiones (edítame)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Regiones (edítame)": {
+      "main": [
+        [
+          {
+            "node": "Construir image_url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construir image_url": {
+      "main": [
+        [
+          {
+            "node": "Calentar renderer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calentar renderer": {
+      "main": [
+        [
+          {
+            "node": "IG: crear contenedor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG: crear contenedor": {
+      "main": [
+        [
+          {
+            "node": "IG: publicar story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "meta": {
-    "_comment": "Cumbre — condiciones del finde, DIARIO 8:00, una story por comunidad (Madrid/Cataluña/Andalucía). Edita 'Config' (IG_USER_ID, IG_TOKEN, RENDERER) y 'Regiones' si quieres otras comunidades. Ver INSTAGRAM_AUTOMATION.md."
+    "_comment": "Cumbre — condiciones del finde, DIARIO 8:00, una story por comunidad (Madrid/Cataluña/Andalucía). 'Calentar renderer' despierta el renderer (Railway lo duerme; ~100s en frío) y cachea el PNG ANTES de que Instagram lo descargue. Edita 'Config' (IG_USER_ID, IG_TOKEN) y 'Regiones'. Ver INSTAGRAM_AUTOMATION.md."
   }
 }
