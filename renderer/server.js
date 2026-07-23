@@ -61,6 +61,17 @@ async function getBrowser() {
   return browserPromise;
 }
 
+// Serializa los renders: solo UNO a la vez. Chromium es pesado y 3 páginas
+// simultáneas ahogaban el contenedor (>120s → timeout de n8n). Con esta cola,
+// aunque n8n mande 3 peticiones a la vez, se procesan en fila (~12s cada una)
+// sin OOM. Los ACIERTOS de caché NO pasan por la cola (responden al instante).
+let renderChain = Promise.resolve();
+function runSerial(task) {
+  const result = renderChain.then(task, task);
+  renderChain = result.then(() => {}, () => {});
+  return result;
+}
+
 app.get('/health', (_req, res) => res.type('text').send('ok'));
 
 app.get('/render', async (req, res) => {
@@ -85,30 +96,35 @@ app.get('/render', async (req, res) => {
     }
   }
 
-  let page;
   try {
-    const browser = await getBrowser();
-    page = await browser.newPage();
-    await page.setViewport({ width, height, deviceScaleFactor: 1 });
-    await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
-    // Espera a que las fuentes (Google Fonts) estén cargadas antes de capturar.
-    await page.evaluate(() => document.fonts && document.fonts.ready);
-    const png = Buffer.from(await page.screenshot({
-      type: 'png',
-      clip: { x: 0, y: 0, width, height },
-    }));
+    // El render pesado va por la cola serial (1 a la vez).
+    const png = await runSerial(async () => {
+      let page;
+      try {
+        const browser = await getBrowser();
+        page = await browser.newPage();
+        await page.setViewport({ width, height, deviceScaleFactor: 1 });
+        await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
+        // Espera a que las fuentes (Google Fonts) estén cargadas antes de capturar.
+        await page.evaluate(() => document.fonts && document.fonts.ready);
+        // Puppeteer moderno devuelve Uint8Array; lo pasamos a Buffer para que
+        // Express lo mande como binario PNG de verdad y no como JSON.
+        return Buffer.from(await page.screenshot({
+          type: 'png',
+          clip: { x: 0, y: 0, width, height },
+        }));
+      } finally {
+        if (page) { try { await page.close(); } catch (_) {} }
+      }
+    });
     cacheSet(cacheKey, png);
     res.set('Content-Type', 'image/png');
     res.set('Cache-Control', 'public, max-age=300');
     res.set('X-Cache', 'MISS');
-    // Puppeteer moderno devuelve Uint8Array; lo pasamos a Buffer (arriba) para
-    // que Express lo mande como binario PNG de verdad y no como JSON.
     res.send(png);
   } catch (err) {
     console.error('render error:', err.message);
     res.status(500).type('text').send('render error: ' + err.message);
-  } finally {
-    if (page) { try { await page.close(); } catch (_) {} }
   }
 });
 
