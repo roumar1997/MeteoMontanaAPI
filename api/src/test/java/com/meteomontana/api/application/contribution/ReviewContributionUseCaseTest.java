@@ -1,6 +1,6 @@
 package com.meteomontana.api.application.contribution;
 
-import com.meteomontana.api.application.feed.FeedService;
+import com.meteomontana.api.application.feed.FeedPublishService;
 import com.meteomontana.api.domain.model.PendingContribution;
 import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.infrastructure.persistence.SpringDataContributionRepository;
@@ -39,7 +39,7 @@ class ReviewContributionUseCaseTest {
             mock(com.meteomontana.api.domain.port.UserRepository.class);
     com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository journalRepo =
             mock(com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository.class);
-    FeedService feedService = mock(FeedService.class);
+    FeedPublishService feedService = mock(FeedPublishService.class);
 
     ReviewContributionUseCase useCase;
 
@@ -47,8 +47,13 @@ class ReviewContributionUseCaseTest {
 
     @BeforeEach
     void setUp() {
+        // Colaboradores REALES cableados con los mocks de siempre (mismo patron
+        // que los tests del FeedService troceado).
         useCase = new ReviewContributionUseCase(repo, blockRepo, schoolRepo,
-                emailService, userRepository, journalRepo, feedService);
+                new BlockMaterializer(blockRepo),
+                new LineReconciler(blockRepo, journalRepo),
+                new ReviewNotifier(emailService, userRepository),
+                feedService);
     }
 
     /** Contribución BOULDER pendiente de piedra NUEVA (sin targetBlockId). */
@@ -77,7 +82,7 @@ class ReviewContributionUseCaseTest {
         useCase.approve("c1", admin, false);
 
         verify(feedService).publishSystem(eq("author-uid"), any(SchoolBlockJpaEntity.class),
-                isNull(), eq(FeedService.KIND_NEW_BLOCK));
+                isNull(), eq(com.meteomontana.api.application.feed.FeedViews.KIND_NEW_BLOCK));
     }
 
     @Test

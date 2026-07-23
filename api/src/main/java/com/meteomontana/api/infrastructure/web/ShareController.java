@@ -42,19 +42,24 @@ public class ShareController {
     private final com.meteomontana.api.domain.port.MeetupRepository meetups;
     private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository users;
     private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository feedPosts;
+    // LA regla de visibilidad del feed (autor público) vive en el guard —
+    // antes estaba duplicada a mano aquí y podia divergir de la del feed.
+    private final com.meteomontana.api.application.feed.FeedAccessGuard feedGuard;
 
     public ShareController(SpringDataSchoolBlockRepository blocks,
                            SchoolRepository schools,
                            StorageService storage,
                            com.meteomontana.api.domain.port.MeetupRepository meetups,
                            com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository users,
-                           com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository feedPosts) {
+                           com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository feedPosts,
+                           com.meteomontana.api.application.feed.FeedAccessGuard feedGuard) {
         this.blocks = blocks;
         this.schools = schools;
         this.storage = storage;
         this.meetups = meetups;
         this.users = users;
         this.feedPosts = feedPosts;
+        this.feedGuard = feedGuard;
     }
 
     /**
@@ -66,9 +71,11 @@ public class ShareController {
     @GetMapping(value = "/s/p/{postId}", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> shareFeedPost(@PathVariable long postId) {
         var post = feedPosts.findById(postId).orElse(null);
-        if (post == null) return ResponseEntity.notFound().build();
+        if (post == null || !feedGuard.isAuthorPublic(post.getUserUid())) {
+            return ResponseEntity.notFound().build();
+        }
         var author = users.findById(post.getUserUid()).orElse(null);
-        if (author == null || !author.isPublic()) return ResponseEntity.notFound().build();
+        if (author == null) return ResponseEntity.notFound().build();
 
         String who = author.getUsername() != null ? "@" + author.getUsername()
                 : (author.getDisplayName() != null ? author.getDisplayName() : "Un escalador");
@@ -94,12 +101,9 @@ public class ShareController {
     public RedirectView shareFeedPostPhoto(@PathVariable long postId) {
         var post = feedPosts.findById(postId).orElse(null);
         String photo = null;
-        if (post != null) {
-            var author = users.findById(post.getUserUid()).orElse(null);
-            if (author != null && author.isPublic()) {
-                photo = post.getPhotoPath() != null ? post.getPhotoPath()
-                        : blockCoverPhoto(post.getBlockId());
-            }
+        if (post != null && feedGuard.isAuthorPublic(post.getUserUid())) {
+            photo = post.getPhotoPath() != null ? post.getPhotoPath()
+                    : blockCoverPhoto(post.getBlockId());
         }
         if (photo == null) {
             RedirectView rv = new RedirectView("/");

@@ -3,6 +3,8 @@ package com.meteomontana.api.infrastructure.web;
 import com.meteomontana.api.application.meetups.*;
 import com.meteomontana.api.domain.port.MeetupRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -87,6 +89,10 @@ public class MeetupController {
                                    @PathVariable String id,
                                    @RequestBody java.util.Map<String, Object> body) {
         String gearJson = body.get("gearJson") instanceof String s ? s : null;
+        // Cap de seguridad (M1): sin límite, un usuario podía escribir megabytes
+        // en la columna TEXT. 4 KB sobra para la lista de material.
+        if (gearJson != null && gearJson.length() > 4096)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "gearJson demasiado grande (máx 4096)");
         if (!meetupRepository.isMember(id, user.uid()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No eres miembro de esta quedada");
         meetupRepository.updateMemberGear(id, user.uid(), gearJson);
@@ -108,7 +114,7 @@ public class MeetupController {
     @PatchMapping("/{id}")
     public MeetupDto update(@AuthenticationPrincipal FirebaseUser user,
                             @PathVariable String id,
-                            @RequestBody UpdateMeetupRequest req) {
+                            @Valid @RequestBody UpdateMeetupRequest req) {
         try {
             return updateMeetup.updateDescription(user.uid(), id, req.description());
         } catch (IllegalStateException e) {
@@ -121,12 +127,12 @@ public class MeetupController {
         }
     }
 
-    public record UpdateMeetupRequest(String description) {}
+    public record UpdateMeetupRequest(@Size(max = 2000) String description) {}
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public MeetupDto create(@AuthenticationPrincipal FirebaseUser user,
-                            @RequestBody CreateMeetupRequest req) {
+                            @Valid @RequestBody CreateMeetupRequest req) {
         try {
             return createMeetup.execute(user.uid(), req);
         } catch (IllegalStateException e) {

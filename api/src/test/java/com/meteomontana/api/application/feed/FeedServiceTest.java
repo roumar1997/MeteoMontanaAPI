@@ -57,12 +57,25 @@ class FeedServiceTest {
     com.meteomontana.api.infrastructure.storage.StorageService storage =
             mock(com.meteomontana.api.infrastructure.storage.StorageService.class);
 
-    FeedService service;
+    FeedAccessGuard guard;
+    FeedNotifier notifier;
+    FeedViewMapper viewMapper;
+    FeedPhotoService photoService;
+    FeedPublishService publisher;
+    FeedLikeService likeService;
+    FeedCommentService commentService;
+    FeedQueryService queryService;
 
     @BeforeEach
     void setUp() {
-        service = new FeedService(posts, likes, comments, commentLikes, follows, blocks,
-                schoolBlocks, schools, users, mapper, moderation, notifications, push, storage);
+        guard = new FeedAccessGuard(blocks, follows, users);
+        notifier = new FeedNotifier(users, mapper, notifications, push);
+        viewMapper = new FeedViewMapper(likes, comments, schoolBlocks, users, mapper, storage);
+        photoService = new FeedPhotoService(posts, storage);
+        publisher = new FeedPublishService(posts, schoolBlocks, schools, moderation, notifier, photoService);
+        likeService = new FeedLikeService(posts, likes, notifier);
+        commentService = new FeedCommentService(posts, comments, commentLikes, moderation, guard, viewMapper, notifier);
+        queryService = new FeedQueryService(posts, follows, guard, viewMapper);
     }
 
     // ------------------------------------------------------------ helpers
@@ -83,7 +96,7 @@ class FeedServiceTest {
         when(p.getId()).thenReturn(1L);
         when(p.getUserUid()).thenReturn(authorUid);
         when(p.getBlockId()).thenReturn("b1");
-        when(p.getKind()).thenReturn(FeedService.KIND_TICK);
+        when(p.getKind()).thenReturn(FeedViews.KIND_TICK);
         return p;
     }
 
@@ -95,7 +108,7 @@ class FeedServiceTest {
         when(posts.pageByAuthors(anyList(), anyLong(), anyInt())).thenReturn(List.of());
         when(blocks.findByBlockerUid("me")).thenReturn(List.of());
 
-        service.page("me", "following", null, 20);
+        queryService.page("me", "following", null, 20);
 
         verify(posts).pageByAuthors(eq(List.of("friend", "me")), eq(Long.MAX_VALUE), eq(20));
         verify(posts, never()).pageAllPublic(anyLong(), anyInt());
@@ -106,7 +119,7 @@ class FeedServiceTest {
         when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of());
         when(blocks.findByBlockerUid("me")).thenReturn(List.of());
 
-        service.page("me", "all", 99L, 10);
+        queryService.page("me", "all", 99L, 10);
 
         verify(posts).pageAllPublic(99L, 10);
         verify(posts, never()).pageByAuthors(anyList(), anyLong(), anyInt());
@@ -118,7 +131,7 @@ class FeedServiceTest {
         when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(trollPost));
         when(blocks.findByBlockerUid("me")).thenReturn(List.of(new UserBlockJpaEntity("me", "troll")));
 
-        var result = service.page("me", "all", null, 20);
+        var result = queryService.page("me", "all", null, 20);
 
         assertThat(result).isEmpty();
     }
@@ -134,7 +147,7 @@ class FeedServiceTest {
         when(users.findByUids(anyList())).thenReturn(List.of()); // cuenta borrada
         when(schoolBlocks.findAllById(any())).thenReturn(List.of());
 
-        var result = service.page("me", "all", null, 20);
+        var result = queryService.page("me", "all", null, 20);
 
         assertThat(result).isEmpty();
     }
@@ -152,7 +165,7 @@ class FeedServiceTest {
         when(mapper.toPublic(ana)).thenReturn(profile("ana", "ana"));
         when(schoolBlocks.findAllById(any())).thenReturn(List.of());
 
-        var result = service.page("me", "all", null, 20);
+        var result = queryService.page("me", "all", null, 20);
 
         assertThat(result).hasSize(1);
         var v = result.get(0);
@@ -168,7 +181,7 @@ class FeedServiceTest {
         when(posts.pageByAuthors(anyList(), anyLong(), anyInt())).thenReturn(List.of());
         when(blocks.findByBlockerUid("me")).thenReturn(List.of());
 
-        service.page("me", "mine", null, 20);
+        queryService.page("me", "mine", null, 20);
 
         verify(posts).pageByAuthors(eq(List.of("me")), eq(Long.MAX_VALUE), eq(20));
         verify(posts, never()).pageAllPublic(anyLong(), anyInt());
@@ -183,7 +196,7 @@ class FeedServiceTest {
         when(blocks.findByBlockerUid("me")).thenReturn(List.of());
         // follows → Optional.empty() por defecto (no la sigue)
 
-        var result = service.pageOfUser("me", "ana", null, 20);
+        var result = queryService.pageOfUser("me", "ana", null, 20);
 
         assertThat(result).isEmpty();
         verify(posts, never()).pageByAuthors(anyList(), anyLong(), anyInt());
@@ -193,7 +206,7 @@ class FeedServiceTest {
     void userScopeReturnsEmptyIfCallerBlockedTarget() {
         when(blocks.findByBlockerUid("me")).thenReturn(List.of(new UserBlockJpaEntity("me", "troll")));
 
-        var result = service.pageOfUser("me", "troll", null, 20);
+        var result = queryService.pageOfUser("me", "troll", null, 20);
 
         assertThat(result).isEmpty();
         verify(posts, never()).pageByAuthors(anyList(), anyLong(), anyInt());
@@ -210,7 +223,7 @@ class FeedServiceTest {
                 .thenReturn(Optional.of(accepted));
         when(posts.pageByAuthors(anyList(), anyLong(), anyInt())).thenReturn(List.of());
 
-        service.pageOfUser("me", "ana", null, 20);
+        queryService.pageOfUser("me", "ana", null, 20);
 
         verify(posts).pageByAuthors(eq(List.of("ana")), eq(Long.MAX_VALUE), eq(20));
     }
@@ -219,7 +232,7 @@ class FeedServiceTest {
     void userScopeOnSelfSkipsPrivacyChecks() {
         when(posts.pageByAuthors(anyList(), anyLong(), anyInt())).thenReturn(List.of());
 
-        service.pageOfUser("me", "me", null, 20);
+        queryService.pageOfUser("me", "me", null, 20);
 
         verify(posts).pageByAuthors(eq(List.of("me")), eq(Long.MAX_VALUE), eq(20));
         verify(users, never()).findByUid(any());
@@ -238,7 +251,7 @@ class FeedServiceTest {
     @Test
     void singleReturns404IfMissing() {
         when(posts.findById(5L)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.single("me", 5L))
+        assertThatThrownBy(() -> queryService.single("me", 5L))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("404");
     }
@@ -252,7 +265,7 @@ class FeedServiceTest {
         when(users.findByUid("ana")).thenReturn(Optional.of(ana));
         // follows.findById_... → Optional.empty() por defecto (no la sigue)
 
-        assertThatThrownBy(() -> service.single("me", 5L))
+        assertThatThrownBy(() -> queryService.single("me", 5L))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("404");
     }
@@ -263,7 +276,7 @@ class FeedServiceTest {
         when(posts.findById(5L)).thenReturn(Optional.of(p));
         when(blocks.findByBlockerUid("me")).thenReturn(List.of(new UserBlockJpaEntity("me", "troll")));
 
-        assertThatThrownBy(() -> service.single("me", 5L))
+        assertThatThrownBy(() -> queryService.single("me", 5L))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("404");
     }
@@ -283,7 +296,7 @@ class FeedServiceTest {
         when(mapper.toPublicLocked(ana)).thenReturn(profile("ana", "ana"));
         when(schoolBlocks.findAllById(any())).thenReturn(List.of());
 
-        var v = service.single("me", 5L);
+        var v = queryService.single("me", 5L);
 
         assertThat(v.id()).isEqualTo(5L);
         assertThat(v.author().username()).isEqualTo("ana");
@@ -297,7 +310,7 @@ class FeedServiceTest {
         when(posts.findById(1L)).thenReturn(Optional.of(p));
         when(likes.existsById(any(FeedLikeJpaEntity.Key.class))).thenReturn(false);
 
-        service.like("me", 1L);
+        likeService.like("me", 1L);
 
         verify(notifications).create(eq("ana"), eq("FEED_LIKE"), any(), any(),
                 eq("feed_post"), eq("1"));
@@ -309,12 +322,12 @@ class FeedServiceTest {
         FeedPostJpaEntity p = singlePost(1L, "ana");
         when(posts.findById(1L)).thenReturn(Optional.of(p));
         when(likes.existsById(any(FeedLikeJpaEntity.Key.class))).thenReturn(true);
-        service.like("me", 1L); // repetido → nada
+        likeService.like("me", 1L); // repetido → nada
 
         FeedPostJpaEntity own = singlePost(2L, "me");
         when(posts.findById(2L)).thenReturn(Optional.of(own));
         when(likes.existsById(any(FeedLikeJpaEntity.Key.class))).thenReturn(false);
-        service.like("me", 2L); // auto-like → nada
+        likeService.like("me", 2L); // auto-like → nada
 
         verify(notifications, never()).create(any(), any(), any(), any(), any(), any());
     }
@@ -336,7 +349,7 @@ class FeedServiceTest {
         when(comments.findByPostIdOrderByCreatedAtAsc(2L)).thenReturn(previous);
         when(comments.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.addComment("me", 2L, "¡Qué máquina!", null);
+        commentService.addComment("me", 2L, "¡Qué máquina!", null);
 
         // Dueña: una sola vez (aunque también comentó antes).
         verify(notifications).create(eq("ana"), eq("FEED_COMMENT"), any(), any(),
@@ -353,9 +366,9 @@ class FeedServiceTest {
 
     @Test
     void publishRejectsReservedKinds() {
-        assertThatThrownBy(() -> service.publish("me", "b1", null, FeedService.KIND_NEW_BLOCK))
+        assertThatThrownBy(() -> publisher.publish("me", "b1", null, FeedViews.KIND_NEW_BLOCK))
                 .isInstanceOf(ResponseStatusException.class);
-        assertThatThrownBy(() -> service.publish("me", "b1", null, "INVENTED"))
+        assertThatThrownBy(() -> publisher.publish("me", "b1", null, "INVENTED"))
                 .isInstanceOf(ResponseStatusException.class);
     }
 
@@ -370,10 +383,10 @@ class FeedServiceTest {
 
         FeedPostJpaEntity existing = mock(FeedPostJpaEntity.class);
         when(existing.getId()).thenReturn(42L);
-        when(posts.findByUserUidAndLineIdAndKind("me", "l1", FeedService.KIND_TICK))
+        when(posts.findByUserUidAndLineIdAndKind("me", "l1", FeedViews.KIND_TICK))
                 .thenReturn(Optional.of(existing));
 
-        long id = service.publish("me", "b1", "l1", FeedService.KIND_TICK);
+        long id = publisher.publish("me", "b1", "l1", FeedViews.KIND_TICK);
 
         assertThat(id).isEqualTo(42L);
         verify(posts, never()).save(any());
@@ -385,7 +398,7 @@ class FeedServiceTest {
         when(block.getLines()).thenReturn(List.of());
         when(schoolBlocks.findById("b1")).thenReturn(Optional.of(block));
 
-        assertThatThrownBy(() -> service.publish("me", "b1", "other-line", FeedService.KIND_TICK))
+        assertThatThrownBy(() -> publisher.publish("me", "b1", "other-line", FeedViews.KIND_TICK))
                 .isInstanceOf(ResponseStatusException.class);
     }
 
@@ -417,7 +430,7 @@ class FeedServiceTest {
     void publishSnapshotsRockTypeAndDerivesDisciplineFromBlock() {
         blockWithSchool();
 
-        service.publish("me", "b1", null, FeedService.KIND_TICK, null, null);
+        publisher.publish("me", "b1", null, FeedViews.KIND_TICK, null, null);
 
         var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
         verify(posts).save(captor.capture());
@@ -430,13 +443,13 @@ class FeedServiceTest {
     void publishPrefersValidClientDisciplineAndIgnoresGarbage() {
         blockWithSchool();
 
-        service.publish("me", "b1", null, FeedService.KIND_TICK, "boulder", null);
+        publisher.publish("me", "b1", null, FeedViews.KIND_TICK, "boulder", null);
         var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
         verify(posts).save(captor.capture());
         assertThat(captor.getValue().getDiscipline()).isEqualTo("BOULDER"); // normalizada
 
         org.mockito.Mockito.clearInvocations(posts);
-        service.publish("me", "b1", null, FeedService.KIND_TICK, "SPEED", null);
+        publisher.publish("me", "b1", null, FeedViews.KIND_TICK, "SPEED", null);
         verify(posts).save(captor.capture());
         assertThat(captor.getValue().getDiscipline()).isEqualTo("ROUTE"); // desconocida → piedra
     }
@@ -448,14 +461,14 @@ class FeedServiceTest {
         blockWithSchool();
         String longCaption = "  " + "x".repeat(600) + "  ";
 
-        service.publish("me", "b1", null, FeedService.KIND_TICK, null, longCaption);
+        publisher.publish("me", "b1", null, FeedViews.KIND_TICK, null, longCaption);
 
         var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
         verify(posts).save(captor.capture());
         assertThat(captor.getValue().getCaption()).hasSize(500).startsWith("xxx");
 
         org.mockito.Mockito.clearInvocations(posts);
-        service.publish("me", "b1", null, FeedService.KIND_TICK, null, "  ¡Pegue duro!  ");
+        publisher.publish("me", "b1", null, FeedViews.KIND_TICK, null, "  ¡Pegue duro!  ");
         verify(posts).save(captor.capture());
         assertThat(captor.getValue().getCaption()).isEqualTo("¡Pegue duro!"); // trimmed
     }
@@ -464,7 +477,7 @@ class FeedServiceTest {
     void publishBlankCaptionBecomesNull() {
         blockWithSchool();
 
-        service.publish("me", "b1", null, FeedService.KIND_TICK, null, "   ");
+        publisher.publish("me", "b1", null, FeedViews.KIND_TICK, null, "   ");
 
         var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
         verify(posts).save(captor.capture());
@@ -492,7 +505,7 @@ class FeedServiceTest {
         when(block.getLines()).thenReturn(List.of(line));
         when(schoolBlocks.findAllById(any())).thenReturn(List.of(block));
 
-        var result = service.page("me", "all", null, 20);
+        var result = queryService.page("me", "all", null, 20);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).startType()).isEqualTo("SIT");
@@ -505,12 +518,12 @@ class FeedServiceTest {
     void publishSystemCreatesNewBlockPostWithSnapshots() {
         SchoolBlockJpaEntity block = blockWithSchool();
 
-        long id = service.publishSystem("author", block, null, FeedService.KIND_NEW_BLOCK);
+        long id = publisher.publishSystem("author", block, null, FeedViews.KIND_NEW_BLOCK);
 
         assertThat(id).isEqualTo(7L);
         var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
         verify(posts).save(captor.capture());
-        assertThat(captor.getValue().getKind()).isEqualTo(FeedService.KIND_NEW_BLOCK);
+        assertThat(captor.getValue().getKind()).isEqualTo(FeedViews.KIND_NEW_BLOCK);
         assertThat(captor.getValue().getUserUid()).isEqualTo("author");
         assertThat(captor.getValue().getRockType()).isEqualTo("Arenisca");
     }
@@ -518,7 +531,7 @@ class FeedServiceTest {
     @Test
     void publishSystemRejectsClientKinds() {
         SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
-        assertThatThrownBy(() -> service.publishSystem("author", block, null, FeedService.KIND_TICK))
+        assertThatThrownBy(() -> publisher.publishSystem("author", block, null, FeedViews.KIND_TICK))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -527,7 +540,7 @@ class FeedServiceTest {
         // Post NEW_BLOCK (sin lineId) de una piedra con 3 vías: dos de la cara
         // portada (photoPath null o == portada) y una de OTRA cara.
         FeedPostJpaEntity p = post("ana");
-        when(p.getKind()).thenReturn(FeedService.KIND_NEW_BLOCK);
+        when(p.getKind()).thenReturn(FeedViews.KIND_NEW_BLOCK);
         when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(p));
         when(blocks.findByBlockerUid("me")).thenReturn(List.of());
         User ana = user("ana", true);
@@ -552,7 +565,7 @@ class FeedServiceTest {
         when(block.getLines()).thenReturn(List.of(cover, coverExplicit, otherFace));
         when(schoolBlocks.findAllById(any())).thenReturn(List.of(block));
 
-        var result = service.page("me", "all", null, 20);
+        var result = queryService.page("me", "all", null, 20);
 
         assertThat(result).hasSize(1);
         var lines = result.get(0).blockLines();
@@ -576,7 +589,7 @@ class FeedServiceTest {
         when(block.getLines()).thenReturn(List.of(line));
         when(schoolBlocks.findAllById(any())).thenReturn(List.of(block));
 
-        var result = service.page("me", "all", null, 20);
+        var result = queryService.page("me", "all", null, 20);
 
         assertThat(result.get(0).blockLines()).isNull();
     }
@@ -588,10 +601,10 @@ class FeedServiceTest {
         FeedPostJpaEntity p = post("ana");
         when(posts.findById(1L)).thenReturn(Optional.of(p));
 
-        assertThatThrownBy(() -> service.delete("me", 1L, false))
+        assertThatThrownBy(() -> publisher.delete("me", 1L, false))
                 .isInstanceOf(ResponseStatusException.class);
 
-        service.delete("me", 1L, true); // admin sí puede
+        publisher.delete("me", 1L, true); // admin sí puede
         verify(posts).delete(p);
     }
 
@@ -609,7 +622,7 @@ class FeedServiceTest {
         FeedPostJpaEntity p = post("ana");
         when(posts.findById(1L)).thenReturn(Optional.of(p));
 
-        assertThatThrownBy(() -> service.uploadPhoto("me", 1L, jpeg()))
+        assertThatThrownBy(() -> photoService.uploadPhoto("me", 1L, jpeg()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("403");
     }
@@ -623,7 +636,7 @@ class FeedServiceTest {
         when(storage.signedReadUrl(any(), anyInt()))
                 .thenReturn(java.net.URI.create("https://signed.example/foto").toURL());
 
-        String url = service.uploadPhoto("me", 1L, jpeg());
+        String url = photoService.uploadPhoto("me", 1L, jpeg());
 
         assertThat(url).isEqualTo("https://signed.example/foto");
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
@@ -640,7 +653,7 @@ class FeedServiceTest {
         var fake = new org.springframework.mock.web.MockMultipartFile(
                 "file", "evil.jpg", "image/jpeg", "MZ ejecutable".getBytes());
 
-        assertThatThrownBy(() -> service.uploadPhoto("me", 1L, fake))
+        assertThatThrownBy(() -> photoService.uploadPhoto("me", 1L, fake))
                 .isInstanceOf(IllegalArgumentException.class);
         org.mockito.Mockito.verifyNoInteractions(storage);
     }
@@ -660,7 +673,7 @@ class FeedServiceTest {
         when(storage.signedReadUrl(eq("feed-photos/2/x.jpg"), anyInt()))
                 .thenReturn(java.net.URI.create("https://signed.example/x").toURL());
 
-        var result = service.page("me", "all", null, 20);
+        var result = queryService.page("me", "all", null, 20);
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).photoUrl()).isNull();
@@ -675,7 +688,7 @@ class FeedServiceTest {
         org.mockito.Mockito.doThrow(new RuntimeException("storage caído"))
                 .when(storage).delete("feed-photos/1/x.jpg");
 
-        service.delete("me", 1L, false); // no lanza pese al fallo del Storage
+        publisher.delete("me", 1L, false); // no lanza pese al fallo del Storage
 
         verify(posts).delete(p);
         verify(storage).delete("feed-photos/1/x.jpg");
