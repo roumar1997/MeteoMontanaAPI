@@ -1,12 +1,37 @@
 # Escaneo de dependencias (riesgo señalado en la auditoría 2026-07-19).
+# Solo AVISA con PRs — nada se actualiza sin revisión + CI verde + OK.
+#
+# Config endurecida (auditoría 2026-07-24):
+#  - target-branch: develop  → los PRs van a develop, no a main (flujo del proyecto).
+#  - groups                  → un solo PR por ecosistema en vez de N sueltos.
+#  - ignore                  → Spring Boot major (4.x) se migra a mano (breaking).
 version: 2
 updates:
   - package-ecosystem: maven
     directory: /api
+    target-branch: develop
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      maven-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Spring Boot 4.x es un salto major con migración: se hace a mano.
+      - dependency-name: "org.springframework.boot:*"
+        update-types:
+          - version-update:semver-major
+
   - package-ecosystem: github-actions
     directory: /
+    target-branch: develop
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
