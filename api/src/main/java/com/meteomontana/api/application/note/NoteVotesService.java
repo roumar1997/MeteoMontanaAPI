@@ -1,12 +1,12 @@
 package com.meteomontana.api.application.note;
 
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.model.Note;
 import com.meteomontana.api.infrastructure.persistence.jpa.NoteVoteJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataNoteVoteRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Comparator;
 import java.util.List;
@@ -40,7 +40,7 @@ public class NoteVotesService {
     @Transactional
     public int vote(String uid, String noteId, int value) {
         if (value != 1 && value != -1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "value debe ser 1 o -1");
+            throw new BadRequestException("value debe ser 1 o -1");
         }
         NoteVoteJpaEntity existing = votes.findByNoteIdAndUid(noteId, uid).orElse(null);
         int old = existing == null ? 0 : existing.getVoteValue();
@@ -58,7 +58,7 @@ public class NoteVotesService {
         int dDown = (neu == -1 ? 1 : 0) - (old == -1 ? 1 : 0);
         if (dUp != 0 || dDown != 0) {
             if (votes.adjustCounts(noteId, dUp, dDown) == 0) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "nota no encontrada");
+                throw new NotFoundException("nota no encontrada");
             }
         }
         return neu;

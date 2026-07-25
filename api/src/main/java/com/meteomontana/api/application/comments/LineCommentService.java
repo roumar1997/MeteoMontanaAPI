@@ -1,14 +1,15 @@
 package com.meteomontana.api.application.comments;
 
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.LineCommentJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.LineCommentVoteJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataLineCommentRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataLineCommentVoteRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -81,7 +82,7 @@ public class LineCommentService {
     public CommentView add(String uid, String blockId, String lineId, String text) {
         moderation.ensureCanPost(uid);   // baneado/suspendido → 403
         if (text == null || text.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "text is required");
+            throw new BadRequestException("text is required");
         }
         String trimmed = text.trim();
         if (trimmed.length() > 1000) trimmed = trimmed.substring(0, 1000);
@@ -104,9 +105,9 @@ public class LineCommentService {
     @Transactional
     public void delete(String uid, String commentId, boolean isAdmin) {
         LineCommentJpaEntity c = comments.findById(commentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "comentario no encontrado"));
+                .orElseThrow(() -> new NotFoundException("comentario no encontrado"));
         if (!isAdmin && !c.getUid().equals(uid)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "solo puedes borrar tus comentarios");
+            throw new ForbiddenException("solo puedes borrar tus comentarios");
         }
         comments.delete(c);
     }
@@ -115,7 +116,7 @@ public class LineCommentService {
     @Transactional
     public int vote(String uid, String commentId, int value) {
         if (value != 1 && value != -1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "value debe ser 1 o -1");
+            throw new BadRequestException("value debe ser 1 o -1");
         }
         LineCommentVoteJpaEntity existing = votes.findByCommentIdAndUid(commentId, uid).orElse(null);
         int old = existing == null ? 0 : existing.getVoteValue();
@@ -133,7 +134,7 @@ public class LineCommentService {
         int dDown = (neu == -1 ? 1 : 0) - (old == -1 ? 1 : 0);
         if (dUp != 0 || dDown != 0) {
             if (votes.adjustCounts(commentId, dUp, dDown) == 0) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "comentario no encontrado");
+                throw new NotFoundException("comentario no encontrado");
             }
         }
         return neu;

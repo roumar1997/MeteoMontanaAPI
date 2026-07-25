@@ -4,6 +4,7 @@ import com.meteomontana.api.application.moderation.UserModerationService;
 import com.meteomontana.api.application.social.NotificationService;
 import com.meteomontana.api.application.users.PublicProfileDto;
 import com.meteomontana.api.application.users.UserDtoMapper;
+import com.meteomontana.api.domain.exception.ForbiddenException;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.UserRepository;
@@ -22,7 +23,6 @@ import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRe
 import com.meteomontana.api.infrastructure.persistence.jpa.UserBlockJpaEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -203,7 +203,7 @@ class FeedServiceCommentsTest {
     void deleteCommentAjenoSinAdminDa403() {
         when(comments.findById("c1")).thenReturn(Optional.of(comment("c1", 7L, "otro")));
         assertThatThrownBy(() -> commentService.deleteComment("yo", "c1", false))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(ForbiddenException.class);
         verify(comments, never()).delete(any());
     }
 

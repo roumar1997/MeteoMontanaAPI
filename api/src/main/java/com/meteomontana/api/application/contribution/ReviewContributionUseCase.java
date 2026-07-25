@@ -2,6 +2,8 @@ package com.meteomontana.api.application.contribution;
 
 import com.meteomontana.api.application.feed.FeedPublishService;
 import com.meteomontana.api.application.feed.FeedViews;
+import com.meteomontana.api.domain.exception.ConflictException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.model.PendingContribution;
 import com.meteomontana.api.domain.model.SchoolBlock;
 import com.meteomontana.api.domain.model.SubmissionStatus;
@@ -12,10 +14,8 @@ import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
@@ -203,10 +203,10 @@ public class ReviewContributionUseCase {
 
     private PendingContributionJpaEntity findPending(String id) {
         var entity = repo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new NotFoundException(
                         "Contribución no encontrada: " + id));
         if (entity.getStatus() != SubmissionStatus.PENDING) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new ConflictException(
                     "Esta contribución ya fue revisada.");
         }
         return entity;

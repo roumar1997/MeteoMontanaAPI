@@ -5,10 +5,11 @@ import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserReposit
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataContentReportRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.MeetupReportJpaRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataModerationActionRepository;
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ForbiddenException;
 import com.meteomontana.api.domain.port.PushSender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -49,13 +50,13 @@ class UserModerationServiceTest {
     @Test void baneado_noPuedePublicar() {
         when(users.findById("u")).thenReturn(Optional.of(user(true, null)));
         assertThatThrownBy(() -> svc.ensureCanPost("u"))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(ForbiddenException.class);
     }
 
     @Test void suspendidoConFechaFutura_noPuedePublicar() {
         when(users.findById("u")).thenReturn(Optional.of(user(false, LocalDateTime.now().plusDays(3))));
         assertThatThrownBy(() -> svc.ensureCanPost("u"))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(ForbiddenException.class);
     }
 
     @Test void suspensionYaVencida_puedePublicar() {
@@ -76,13 +77,13 @@ class UserModerationServiceTest {
 
     @Test void noPuedesSuspenderteATiMismo() {
         assertThatThrownBy(() -> svc.suspend("admin", "admin", 7, "x"))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(BadRequestException.class);
         verifyNoInteractions(users);   // ni siquiera busca al usuario
     }
 
     @Test void noPuedesBanearteATiMismo() {
         assertThatThrownBy(() -> svc.ban("admin", "admin", "x"))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(BadRequestException.class);
         verifyNoInteractions(users);
     }
 }

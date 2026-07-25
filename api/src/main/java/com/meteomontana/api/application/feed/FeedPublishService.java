@@ -1,16 +1,17 @@
 package com.meteomontana.api.application.feed;
 
 import com.meteomontana.api.application.moderation.UserModerationService;
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * ESCRITURA de posts del feed: publicar un ascenso propio (TICK/PROJECT_DONE),
@@ -63,18 +64,18 @@ public class FeedPublishService {
                         String discipline, String caption) {
         moderation.ensureCanPost(uid);
         if (!FeedViews.KIND_TICK.equals(kind) && !FeedViews.KIND_PROJECT_DONE.equals(kind)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            throw new BadRequestException(
                     "kind debe ser TICK o PROJECT_DONE");
         }
         SchoolBlockJpaEntity block = schoolBlocks.findById(blockId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "piedra no encontrada"));
+                .orElseThrow(() -> new NotFoundException("piedra no encontrada"));
 
         BlockLineJpaEntity line = null;
         if (lineId != null && !lineId.isBlank()) {
             line = block.getLines().stream()
                     .filter(l -> lineId.equals(l.getId()))
                     .findFirst()
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    .orElseThrow(() -> new NotFoundException(
                             "la vía no pertenece a esa piedra"));
             var existing = posts.findByUserUidAndLineIdAndKind(uid, lineId, kind);
             if (existing.isPresent()) return existing.get().getId();
@@ -108,9 +109,9 @@ public class FeedPublishService {
     @Transactional
     public void delete(String uid, long postId, boolean isAdmin) {
         FeedPostJpaEntity p = posts.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado"));
+                .orElseThrow(() -> new NotFoundException("post no encontrado"));
         if (!isAdmin && !p.getUserUid().equals(uid)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "solo puedes borrar tus posts");
+            throw new ForbiddenException("solo puedes borrar tus posts");
         }
         posts.delete(p); // likes y comentarios caen por ON DELETE CASCADE
         photos.deletePhotoQuietly(p.getPhotoPath());

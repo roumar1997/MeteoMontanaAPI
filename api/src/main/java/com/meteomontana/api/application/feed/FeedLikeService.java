@@ -1,13 +1,12 @@
 package com.meteomontana.api.application.feed;
 
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedLikeJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedLikeRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +34,7 @@ public class FeedLikeService {
     @Transactional
     public long like(String uid, long postId) {
         FeedPostJpaEntity post = posts.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado"));
+                .orElseThrow(() -> new NotFoundException("post no encontrado"));
         if (!likes.existsById(new FeedLikeJpaEntity.Key(postId, uid))) {
             likes.save(new FeedLikeJpaEntity(postId, uid));
             // Solo al CREAR el like (no en repeticiones ni unlike) y nunca a uno mismo.

@@ -1,13 +1,12 @@
 package com.meteomontana.api.application.feed;
 
 import com.meteomontana.api.application.feed.FeedViews.FeedPostView;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFollowRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,21 +97,21 @@ public class FeedQueryService {
     @Transactional(readOnly = true)
     public FeedPostView single(String uid, long postId) {
         FeedPostJpaEntity p = posts.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado"));
+                .orElseThrow(() -> new NotFoundException("post no encontrado"));
 
         String authorUid = p.getUserUid();
         if (!authorUid.equals(uid)) {
             if (guard.hasBlocked(uid, authorUid)) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+                throw new NotFoundException("post no encontrado");
             }
             if (!guard.canSeeUserContent(uid, authorUid)) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+                throw new NotFoundException("post no encontrado");
             }
         }
 
         List<FeedPostView> views = viewMapper.mapViews(uid, List.of(p));
         if (views.isEmpty()) { // cuenta del autor borrada
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+            throw new NotFoundException("post no encontrado");
         }
         return views.get(0);
     }

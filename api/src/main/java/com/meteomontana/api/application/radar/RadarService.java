@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.radar;
 
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.infrastructure.radar.RadarFrameEntity;
 import com.meteomontana.api.infrastructure.radar.RadarSites;
 import com.meteomontana.api.infrastructure.radar.SpringDataRadarFrameRepository;
@@ -42,7 +43,7 @@ public class RadarService {
     @Transactional(readOnly = true)
     public byte[] renderedFrame(String radar, LocalDateTime capturedAt) {
         RadarFrameEntity frame = repo.findByRadarCodeAndCapturedAt(radar, capturedAt)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "frame no archivado"));
+                .orElseThrow(() -> new NotFoundException("frame no archivado"));
         // Últimas ~2h del mismo radar como referencia de "qué no se mueve".
         List<byte[]> recent = repo
                 .findByRadarCodeAndCapturedAtAfterOrderByCapturedAtAsc(
@@ -68,7 +69,7 @@ public class RadarService {
     public double[] bounds(String radar) {
         if (RadarComposite.CODE.equals(radar)) return RadarComposite.bounds();
         double[] b = RadarSites.bounds(radar);
-        if (b == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "radar desconocido");
+        if (b == null) throw new NotFoundException("radar desconocido");
         return b;
     }
 
@@ -119,7 +120,7 @@ public class RadarService {
                 any = true;
             } catch (IOException e) { /* frame ilegible: ese radar no pinta */ }
         }
-        if (!any) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "sin datos en ese ciclo");
+        if (!any) throw new NotFoundException("sin datos en ese ciclo");
         RadarCumbreRenderer.dilate(canvas);
         try {
             java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream(64 * 1024);

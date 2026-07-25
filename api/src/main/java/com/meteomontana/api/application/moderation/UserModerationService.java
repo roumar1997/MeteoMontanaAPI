@@ -2,6 +2,9 @@ package com.meteomontana.api.application.moderation;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.infrastructure.persistence.jpa.ContentReportJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.MeetupReportJpaRepository;
@@ -10,10 +13,8 @@ import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataContentRepo
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataModerationActionRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.UserJpaEntity;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -57,7 +58,7 @@ public class UserModerationService {
     @Transactional(readOnly = true)
     public ModerationView summary(String uid) {
         UserJpaEntity u = users.findById(uid)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "usuario no encontrado"));
+                .orElseThrow(() -> new NotFoundException("usuario no encontrado"));
         long count = contentReports.countByAuthorUid(uid) + meetupReports.countByReportedUid(uid);
         List<ReportRow> rows = contentReports.findByAuthorUidOrderByCreatedAtDesc(uid).stream()
                 .map(this::toRow).toList();
@@ -94,7 +95,7 @@ public class UserModerationService {
     @Transactional
     public void suspend(String adminUid, String uid, int days, String reason) {
         if (uid.equals(adminUid)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes suspenderte a ti mismo.");
+            throw new BadRequestException("No puedes suspenderte a ti mismo.");
         }
         UserJpaEntity u = require(uid);
         int d = Math.max(1, days);
@@ -110,7 +111,7 @@ public class UserModerationService {
     @Transactional
     public void ban(String adminUid, String uid, String reason) {
         if (uid.equals(adminUid)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes banearte a ti mismo.");
+            throw new BadRequestException("No puedes banearte a ti mismo.");
         }
         UserJpaEntity u = require(uid);
         u.setBanned(true);
@@ -139,17 +140,17 @@ public class UserModerationService {
         UserJpaEntity u = users.findById(uid).orElse(null);
         if (u == null) return;
         if (u.isBanned()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tu cuenta está suspendida.");
+            throw new ForbiddenException("Tu cuenta está suspendida.");
         }
         if (u.getSuspendedUntil() != null && u.getSuspendedUntil().isAfter(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+            throw new ForbiddenException(
                     "Estás suspendido hasta " + u.getSuspendedUntil().toLocalDate() + ".");
         }
     }
 
     private UserJpaEntity require(String uid) {
         return users.findById(uid)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "usuario no encontrado"));
+                .orElseThrow(() -> new NotFoundException("usuario no encontrado"));
     }
 
     private ReportRow toRow(ContentReportJpaEntity e) {

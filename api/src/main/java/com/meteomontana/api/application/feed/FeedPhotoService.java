@@ -1,15 +1,15 @@
 package com.meteomontana.api.application.feed;
 
+import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
 import com.meteomontana.api.infrastructure.storage.ImageValidation;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -44,9 +44,9 @@ public class FeedPhotoService {
      */
     public String uploadPhoto(String uid, long postId, MultipartFile file) throws IOException {
         FeedPostJpaEntity post = posts.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado"));
+                .orElseThrow(() -> new NotFoundException("post no encontrado"));
         if (!post.getUserUid().equals(uid)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+            throw new ForbiddenException(
                     "solo puedes añadir foto a tus posts");
         }
         if (file == null || file.isEmpty()) {

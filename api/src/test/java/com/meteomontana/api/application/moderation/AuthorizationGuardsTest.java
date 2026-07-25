@@ -12,13 +12,11 @@ import com.meteomontana.api.infrastructure.persistence.jpa.UserJpaEntity;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -90,16 +88,14 @@ class AuthorizationGuardsTest {
     void bannedUserCannotPost() {
         var u = mockUser(true, null);
         when(users.findById("bad")).thenReturn(Optional.of(u));
-        var ex = assertThrows(ResponseStatusException.class, () -> moderation.ensureCanPost("bad"));
-        assertEquals(403, ex.getStatusCode().value());
+        assertThrows(ForbiddenException.class, () -> moderation.ensureCanPost("bad"));
     }
 
     @Test
     void suspendedUserCannotPostUntilDatePasses() {
         var u = mockUser(false, LocalDateTime.now().plusDays(3));
         when(users.findById("sus")).thenReturn(Optional.of(u));
-        var ex = assertThrows(ResponseStatusException.class, () -> moderation.ensureCanPost("sus"));
-        assertEquals(403, ex.getStatusCode().value());
+        assertThrows(ForbiddenException.class, () -> moderation.ensureCanPost("sus"));
     }
 
     @Test

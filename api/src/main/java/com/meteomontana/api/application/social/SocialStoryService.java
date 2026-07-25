@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meteomontana.api.application.forecast.GetForecastUseCase;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.model.School;
 import com.meteomontana.api.domain.port.SchoolRepository;
 import com.meteomontana.api.domain.port.UserRepository;
@@ -13,8 +14,6 @@ import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 import java.text.Normalizer;
 import java.time.LocalDateTime;
@@ -112,7 +111,7 @@ public class SocialStoryService {
     public NewBlockStory newBlock(long postId) {
         FeedPostJpaEntity p = feedPosts.findById(postId).orElse(null);
         if (p == null || !KIND_NEW_BLOCK.equals(p.getKind())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "no es una piedra nueva");
+            throw new NotFoundException("no es una piedra nueva");
         }
         SchoolBlockJpaEntity block = p.getBlockId() == null ? null
                 : schoolBlocks.findById(p.getBlockId()).orElse(null);

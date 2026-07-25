@@ -4,6 +4,9 @@ import com.meteomontana.api.application.moderation.UserModerationService;
 import com.meteomontana.api.application.social.NotificationService;
 import com.meteomontana.api.application.users.PublicProfileDto;
 import com.meteomontana.api.application.users.UserDtoMapper;
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
@@ -22,7 +25,6 @@ import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -252,8 +254,8 @@ class FeedServiceTest {
     void singleReturns404IfMissing() {
         when(posts.findById(5L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> queryService.single("me", 5L))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("404");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("post no encontrado");
     }
 
     @Test
@@ -266,8 +268,8 @@ class FeedServiceTest {
         // follows.findById_... → Optional.empty() por defecto (no la sigue)
 
         assertThatThrownBy(() -> queryService.single("me", 5L))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("404");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("post no encontrado");
     }
 
     @Test
@@ -277,8 +279,8 @@ class FeedServiceTest {
         when(blocks.findByBlockerUid("me")).thenReturn(List.of(new UserBlockJpaEntity("me", "troll")));
 
         assertThatThrownBy(() -> queryService.single("me", 5L))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("404");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("post no encontrado");
     }
 
     @Test
@@ -367,9 +369,9 @@ class FeedServiceTest {
     @Test
     void publishRejectsReservedKinds() {
         assertThatThrownBy(() -> publisher.publish("me", "b1", null, FeedViews.KIND_NEW_BLOCK))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(BadRequestException.class);
         assertThatThrownBy(() -> publisher.publish("me", "b1", null, "INVENTED"))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(BadRequestException.class);
     }
 
     @Test
@@ -399,7 +401,7 @@ class FeedServiceTest {
         when(schoolBlocks.findById("b1")).thenReturn(Optional.of(block));
 
         assertThatThrownBy(() -> publisher.publish("me", "b1", "other-line", FeedViews.KIND_TICK))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(NotFoundException.class);
     }
 
     // ------------------------------------------------------------ snapshot discipline/rock
@@ -602,7 +604,7 @@ class FeedServiceTest {
         when(posts.findById(1L)).thenReturn(Optional.of(p));
 
         assertThatThrownBy(() -> publisher.delete("me", 1L, false))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(ForbiddenException.class);
 
         publisher.delete("me", 1L, true); // admin sí puede
         verify(posts).delete(p);
@@ -623,8 +625,8 @@ class FeedServiceTest {
         when(posts.findById(1L)).thenReturn(Optional.of(p));
 
         assertThatThrownBy(() -> photoService.uploadPhoto("me", 1L, jpeg()))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("403");
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("solo puedes añadir foto");
     }
 
     @Test

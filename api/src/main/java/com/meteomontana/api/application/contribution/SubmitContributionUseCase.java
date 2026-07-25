@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.contribution;
 
+import com.meteomontana.api.domain.exception.BadRequestException;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.model.PendingContribution;
 import com.meteomontana.api.domain.model.SubmissionStatus;
@@ -9,9 +10,7 @@ import com.meteomontana.api.infrastructure.persistence.SpringDataContributionRep
 import com.meteomontana.api.infrastructure.persistence.jpa.PendingContributionJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -50,7 +49,7 @@ public class SubmitContributionUseCase {
         try {
             type = PendingContribution.Type.valueOf(req.type().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            throw new BadRequestException(
                     "Tipo de contribución inválido: " + req.type());
         }
 

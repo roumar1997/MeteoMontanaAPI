@@ -1,5 +1,8 @@
 package com.meteomontana.api.application.moderation;
 
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ConflictException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.port.NoteRepository;
 import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.UserRepository;
@@ -17,11 +20,9 @@ import com.meteomontana.api.infrastructure.persistence.jpa.UserBlockJpaEntity;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -90,12 +91,12 @@ public class ContentModerationService {
     public ReportView report(String reporterUid, String targetType, String targetId, String reason) {
         String type = targetType == null ? "" : targetType.trim().toUpperCase();
         if (!TARGET_TYPES.contains(type)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "targetType inválido");
+            throw new BadRequestException("targetType inválido");
         }
         String r = reason == null ? "OTHER" : reason.trim().toUpperCase();
         if (!REASONS.contains(r)) r = "OTHER";
         if (reports.existsByReporterUidAndTargetTypeAndTargetId(reporterUid, type, targetId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya lo has denunciado");
+            throw new ConflictException("Ya lo has denunciado");
         }
 
         // Copia del contenido para que el admin lo juzgue aunque se borre.
@@ -197,7 +198,7 @@ public class ContentModerationService {
     @Transactional
     public ReportView resolve(String adminUid, String reportId, String action, String reason) {
         ContentReportJpaEntity rep = reports.findById(reportId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "denuncia no encontrada"));
+                .orElseThrow(() -> new NotFoundException("denuncia no encontrada"));
         String a = action == null ? "IGNORE" : action.trim().toUpperCase();
         if ("REMOVE".equals(a)) {
             // Motivo: el que escriba el admin o, en su defecto, el de la denuncia.
@@ -235,7 +236,7 @@ public class ContentModerationService {
     @Transactional
     public void block(String blockerUid, String blockedUid) {
         if (blockerUid.equals(blockedUid)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "no puedes bloquearte a ti");
+            throw new BadRequestException("no puedes bloquearte a ti");
         }
         if (!blocks.existsByBlockerUidAndBlockedUid(blockerUid, blockedUid)) {
             blocks.save(new UserBlockJpaEntity(blockerUid, blockedUid));

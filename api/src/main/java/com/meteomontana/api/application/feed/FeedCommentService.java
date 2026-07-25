@@ -3,15 +3,16 @@ package com.meteomontana.api.application.feed;
 import com.meteomontana.api.application.feed.FeedViews.FeedAuthor;
 import com.meteomontana.api.application.feed.FeedViews.FeedCommentView;
 import com.meteomontana.api.application.moderation.UserModerationService;
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentLikeJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentLikeRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -83,16 +84,16 @@ public class FeedCommentService {
     public FeedCommentView addComment(String uid, long postId, String text, String parentId) {
         moderation.ensureCanPost(uid);
         if (text == null || text.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "text is required");
+            throw new BadRequestException("text is required");
         }
         if (!posts.existsById(postId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+            throw new NotFoundException("post no encontrado");
         }
         if (parentId != null) {
             FeedCommentJpaEntity parent = comments.findById(parentId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "comentario no encontrado"));
+                    .orElseThrow(() -> new NotFoundException("comentario no encontrado"));
             if (parent.getPostId() != postId) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "el comentario no es de este post");
+                throw new BadRequestException("el comentario no es de este post");
             }
         }
         String trimmed = text.trim();
@@ -119,7 +120,7 @@ public class FeedCommentService {
     @Transactional
     public long likeComment(String uid, String commentId) {
         FeedCommentJpaEntity c = comments.findById(commentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "comentario no encontrado"));
+                .orElseThrow(() -> new NotFoundException("comentario no encontrado"));
         if (!commentLikes.existsById(new FeedCommentLikeJpaEntity.Key(commentId, uid))) {
             commentLikes.save(new FeedCommentLikeJpaEntity(commentId, uid));
             // Solo al CREAR el like y nunca a uno mismo (mismo criterio que el post).
@@ -140,9 +141,9 @@ public class FeedCommentService {
     @Transactional
     public void deleteComment(String uid, String commentId, boolean isAdmin) {
         FeedCommentJpaEntity c = comments.findById(commentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "comentario no encontrado"));
+                .orElseThrow(() -> new NotFoundException("comentario no encontrado"));
         if (!isAdmin && !c.getUid().equals(uid)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "solo puedes borrar tus comentarios");
+            throw new ForbiddenException("solo puedes borrar tus comentarios");
         }
         comments.delete(c);
     }
