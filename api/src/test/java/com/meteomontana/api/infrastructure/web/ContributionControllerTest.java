@@ -55,6 +55,9 @@ class ContributionControllerTest {
                 .setCustomArgumentResolvers(new FakePrincipal())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
+                // Jackson explícito (Spring Boot 3.5.16 dejó de registrarlo por
+                // defecto en standaloneSetup → el body salía como String).
+                .setMessageConverters(new org.springframework.http.converter.json.MappingJackson2HttpMessageConverter())
                 .build();
     }
 
