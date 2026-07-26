@@ -1,5 +1,8 @@
 package com.meteomontana.api.application.meetups;
 
+import com.meteomontana.api.domain.exception.ConflictException;
+import com.meteomontana.api.domain.exception.ForbiddenException;
+
 import com.meteomontana.api.domain.model.Meetup;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.ChatRepository;
@@ -56,21 +59,21 @@ public class JoinMeetupUseCase {
                 if (!invited && !meetup.getCreatorUid().equals(uid) &&
                         !followRepository.isFollowing(uid, meetup.getCreatorUid()) &&
                         !followRepository.isFollowing(meetup.getCreatorUid(), uid)) {
-                    throw new IllegalStateException("FOLLOW_REQUIRED");
+                    throw new ForbiddenException("FOLLOW_REQUIRED");
                 }
             }
             case "WOMEN" -> {
                 User user = userRepository.findByUid(uid)
                         .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
                 if (!"WOMAN".equals(user.getGender())) {
-                    throw new IllegalStateException("GENDER_REQUIRED");
+                    throw new ForbiddenException("GENDER_REQUIRED");
                 }
             }
         }
 
         // Comprobar límite
         if (meetup.isFull()) {
-            throw new IllegalStateException("MEETUP_FULL");
+            throw new ConflictException("MEETUP_FULL");
         }
 
         // Añadir a Postgres

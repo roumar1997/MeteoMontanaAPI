@@ -67,7 +67,7 @@ class CreateMeetupUseCaseTest {
         var req = new CreateMeetupRequest("school-1", "Solo chicas", null, null,
                 "WOMEN", null, null, List.of(LocalDate.now().plusDays(1)));
         assertThatThrownBy(() -> useCase.execute(CREATOR, req))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(com.meteomontana.api.domain.exception.ForbiddenException.class)
                 .hasMessage("GENDER_REQUIRED");
     }
 

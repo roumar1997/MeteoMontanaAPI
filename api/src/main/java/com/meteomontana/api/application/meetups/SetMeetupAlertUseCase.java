@@ -1,5 +1,7 @@
 package com.meteomontana.api.application.meetups;
 
+import com.meteomontana.api.domain.exception.ForbiddenException;
+
 import com.meteomontana.api.domain.model.MeetupAlert;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.MeetupAlertRepository;
@@ -52,7 +54,7 @@ public class SetMeetupAlertUseCase {
             User user = userRepository.findByUid(uid)
                     .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
             if (!"WOMAN".equals(user.getGender())) {
-                throw new IllegalStateException("GENDER_REQUIRED");
+                throw new ForbiddenException("GENDER_REQUIRED");
             }
         }
 

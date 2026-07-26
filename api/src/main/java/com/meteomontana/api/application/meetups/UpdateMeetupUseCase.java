@@ -1,5 +1,7 @@
 package com.meteomontana.api.application.meetups;
 
+import com.meteomontana.api.domain.exception.ForbiddenException;
+
 import com.meteomontana.api.domain.port.MeetupRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +24,7 @@ public class UpdateMeetupUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Quedada no encontrada: " + meetupId));
 
         if (!meetup.getCreatorUid().equals(uid)) {
-            throw new IllegalStateException("NOT_CREATOR");
+            throw new ForbiddenException("NOT_CREATOR");
         }
 
         String trimmed = description == null ? null : description.trim();
