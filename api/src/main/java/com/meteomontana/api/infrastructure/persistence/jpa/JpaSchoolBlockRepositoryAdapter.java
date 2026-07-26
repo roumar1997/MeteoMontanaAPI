@@ -54,6 +54,12 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
     }
 
     @Override
+    public List<SchoolBlock> findByIds(java.util.Collection<String> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return jpaRepo.findAllById(ids).stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public void deleteById(String id) { jpaRepo.deleteById(id); }
 
     private SchoolBlock toDomain(SchoolBlockJpaEntity e) {

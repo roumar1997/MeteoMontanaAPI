@@ -2,11 +2,11 @@ package com.meteomontana.api.application.feed;
 
 import com.meteomontana.api.application.social.NotificationService;
 import com.meteomontana.api.application.users.UserDtoMapper;
+import com.meteomontana.api.domain.model.FeedComment;
+import com.meteomontana.api.domain.model.FeedPost;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.UserRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -45,7 +45,7 @@ public class FeedNotifier {
     }
 
     /** Notifica al dueño del post que alguien le ha dado like. Nunca tumba la tx. */
-    public void notifyLike(String likerUid, FeedPostJpaEntity post) {
+    public void notifyLike(String likerUid, FeedPost post) {
         try {
             User liker = users.findByUid(likerUid).orElse(null);
             String name = displayNameOf(liker);
@@ -65,7 +65,7 @@ public class FeedNotifier {
      * duplicar al dueño). Nunca tumba la transacción.
      */
     public void notifyComment(String commenterUid, String commenterName,
-                              FeedPostJpaEntity post, List<FeedCommentJpaEntity> previous) {
+                              FeedPost post, List<FeedComment> previous) {
         try {
             String postIdStr = String.valueOf(post.getId());
             String avatar = avatarUrlOf(users.findByUid(commenterUid).orElse(null));
@@ -79,7 +79,7 @@ public class FeedNotifier {
             }
 
             List<String> others = previous.stream()
-                    .map(FeedCommentJpaEntity::getUid)
+                    .map(FeedComment::uid)
                     .distinct()
                     .filter(u -> !u.equals(commenterUid) && !u.equals(owner))
                     .toList();
@@ -98,18 +98,18 @@ public class FeedNotifier {
     }
 
     /** Notifica al autor del comentario que alguien le ha dado like. Nunca tumba la tx. */
-    public void notifyCommentLike(String likerUid, FeedCommentJpaEntity c) {
+    public void notifyCommentLike(String likerUid, FeedComment c) {
         try {
             User liker = users.findByUid(likerUid).orElse(null);
             String name = displayNameOf(liker);
             String body = "A " + name + " le gusta tu comentario";
-            String postIdStr = String.valueOf(c.getPostId());
-            notifications.create(c.getUid(), "FEED_COMMENT_LIKE",
+            String postIdStr = String.valueOf(c.postId());
+            notifications.create(c.uid(), "FEED_COMMENT_LIKE",
                     "Nuevo me gusta", body, "feed_post", postIdStr);
-            push.sendDataToUserAsync(c.getUid(),
+            push.sendDataToUserAsync(c.uid(),
                     pushData(postIdStr, "Nuevo me gusta", body, avatarUrlOf(liker)));
         } catch (Exception e) {
-            log.warn("No se pudo notificar el like del comentario {}: {}", c.getId(), e.getMessage());
+            log.warn("No se pudo notificar el like del comentario {}: {}", c.id(), e.getMessage());
         }
     }
 
@@ -162,7 +162,7 @@ public class FeedNotifier {
     }
 
     /** «Nombre de la vía» o, si el post no tiene vía, el de la piedra. */
-    private static String postLabel(FeedPostJpaEntity post) {
+    private static String postLabel(FeedPost post) {
         if (post.getLineName() != null && !post.getLineName().isBlank()) return post.getLineName();
         if (post.getBlockName() != null && !post.getBlockName().isBlank()) return post.getBlockName();
         return "tu vía";

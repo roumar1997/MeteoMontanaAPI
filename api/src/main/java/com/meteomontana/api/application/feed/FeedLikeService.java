@@ -1,15 +1,13 @@
 package com.meteomontana.api.application.feed;
 
 import com.meteomontana.api.domain.exception.NotFoundException;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedLikeJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedLikeRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
+import com.meteomontana.api.domain.model.FeedPost;
+import com.meteomontana.api.domain.port.FeedLikeRepository;
+import com.meteomontana.api.domain.port.FeedPostRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * LIKES de posts del feed: dar/quitar (idempotentes) y notificación al dueño
@@ -18,12 +16,12 @@ import java.util.Map;
 @Service
 public class FeedLikeService {
 
-    private final SpringDataFeedPostRepository posts;
-    private final SpringDataFeedLikeRepository likes;
+    private final FeedPostRepository posts;
+    private final FeedLikeRepository likes;
     private final FeedNotifier notifier;
 
-    public FeedLikeService(SpringDataFeedPostRepository posts,
-                           SpringDataFeedLikeRepository likes,
+    public FeedLikeService(FeedPostRepository posts,
+                           FeedLikeRepository likes,
                            FeedNotifier notifier) {
         this.posts = posts;
         this.likes = likes;
@@ -33,10 +31,10 @@ public class FeedLikeService {
     /** Da like (idempotente). Devuelve el contador resultante. */
     @Transactional
     public long like(String uid, long postId) {
-        FeedPostJpaEntity post = posts.findById(postId)
+        FeedPost post = posts.findById(postId)
                 .orElseThrow(() -> new NotFoundException("post no encontrado"));
-        if (!likes.existsById(new FeedLikeJpaEntity.Key(postId, uid))) {
-            likes.save(new FeedLikeJpaEntity(postId, uid));
+        if (!likes.exists(postId, uid)) {
+            likes.add(postId, uid);
             // Solo al CREAR el like (no en repeticiones ni unlike) y nunca a uno mismo.
             if (!post.getUserUid().equals(uid)) {
                 notifier.notifyLike(uid, post);
@@ -48,13 +46,11 @@ public class FeedLikeService {
     /** Quita el like (idempotente). Devuelve el contador resultante. */
     @Transactional
     public long unlike(String uid, long postId) {
-        FeedLikeJpaEntity.Key key = new FeedLikeJpaEntity.Key(postId, uid);
-        if (likes.existsById(key)) likes.deleteById(key);
+        likes.remove(postId, uid);
         return countLikes(postId);
     }
 
     private long countLikes(long postId) {
-        Map<Long, Long> counts = FeedViewMapper.toCountMap(likes.countByPostIds(List.of(postId)));
-        return counts.getOrDefault(postId, 0L);
+        return likes.countByPostIds(List.of(postId)).getOrDefault(postId, 0L);
     }
 }

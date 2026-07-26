@@ -2,8 +2,8 @@ package com.meteomontana.api.application.feed;
 
 import com.meteomontana.api.domain.exception.ForbiddenException;
 import com.meteomontana.api.domain.exception.NotFoundException;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
+import com.meteomontana.api.domain.model.FeedPost;
+import com.meteomontana.api.domain.port.FeedPostRepository;
 import com.meteomontana.api.infrastructure.storage.ImageValidation;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.slf4j.Logger;
@@ -25,10 +25,10 @@ public class FeedPhotoService {
 
     private static final long MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
-    private final SpringDataFeedPostRepository posts;
+    private final FeedPostRepository posts;
     private final StorageService storage;
 
-    public FeedPhotoService(SpringDataFeedPostRepository posts, StorageService storage) {
+    public FeedPhotoService(FeedPostRepository posts, StorageService storage) {
         this.posts = posts;
         this.storage = storage;
     }
@@ -43,7 +43,7 @@ public class FeedPhotoService {
      * @return URL firmada de la foto subida.
      */
     public String uploadPhoto(String uid, long postId, MultipartFile file) throws IOException {
-        FeedPostJpaEntity post = posts.findById(postId)
+        FeedPost post = posts.findById(postId)
                 .orElseThrow(() -> new NotFoundException("post no encontrado"));
         if (!post.getUserUid().equals(uid)) {
             throw new ForbiddenException(
@@ -68,8 +68,7 @@ public class FeedPhotoService {
         storage.upload(storagePath, file);
 
         try {
-            post.setPhotoPath(storagePath);
-            posts.save(post);
+            posts.updatePhotoPath(postId, storagePath);
         } catch (RuntimeException ex) {
             // Si Postgres falla, intentamos limpiar el archivo huérfano.
             deletePhotoQuietly(storagePath);

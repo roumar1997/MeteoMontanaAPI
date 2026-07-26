@@ -13,4 +13,7 @@ public interface UserRepository {
     User save(User user);
     boolean usernameTakenByOtherUser(String username, String currentUid);
     List<User> findAllWithFcmToken();
+    /** Buscador de usuarios: username O displayName contienen la query
+     *  (case-insensitive), acotado en BD para no cargar toda la tabla. */
+    List<User> searchByUsernameOrDisplayName(String query);
 }

@@ -55,6 +55,13 @@ public class JpaUserRepositoryAdapter implements UserRepository {
         return jpaRepo.findAllByFcmTokenIsNotNull().stream().map(this::toDomain).toList();
     }
 
+    @Override
+    public List<User> searchByUsernameOrDisplayName(String query) {
+        // Acotado en BD (LIKE + top 100) — no cargar toda la tabla en memoria.
+        return jpaRepo.findTop100ByUsernameContainingIgnoreCaseOrDisplayNameContainingIgnoreCase(query, query)
+                .stream().map(this::toDomain).toList();
+    }
+
     private User toDomain(UserJpaEntity e) {
         return new User(
                 e.getUid(), e.getEmail(), e.getUsername(), e.getDisplayName(),

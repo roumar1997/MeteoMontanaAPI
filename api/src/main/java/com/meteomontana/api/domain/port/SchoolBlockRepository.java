@@ -9,5 +9,7 @@ public interface SchoolBlockRepository {
     SchoolBlock save(SchoolBlock block);
     Optional<SchoolBlock> findById(String id);
     List<SchoolBlock> findBySchoolId(String schoolId);
+    /** Carga en batch por ids (una query por página del feed, sin N+1). */
+    List<SchoolBlock> findByIds(java.util.Collection<String> ids);
     void deleteById(String id);
 }

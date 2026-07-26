@@ -2,9 +2,9 @@ package com.meteomontana.api.application.feed;
 
 import com.meteomontana.api.application.feed.FeedViews.FeedPostView;
 import com.meteomontana.api.domain.exception.NotFoundException;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFollowRepository;
+import com.meteomontana.api.domain.model.FeedPost;
+import com.meteomontana.api.domain.port.FeedPostRepository;
+import com.meteomontana.api.domain.port.FollowRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +22,13 @@ public class FeedQueryService {
 
     private static final int MAX_PAGE = 50;
 
-    private final SpringDataFeedPostRepository posts;
-    private final SpringDataFollowRepository follows;
+    private final FeedPostRepository posts;
+    private final FollowRepository follows;
     private final FeedAccessGuard guard;
     private final FeedViewMapper viewMapper;
 
-    public FeedQueryService(SpringDataFeedPostRepository posts,
-                            SpringDataFollowRepository follows,
+    public FeedQueryService(FeedPostRepository posts,
+                            FollowRepository follows,
                             FeedAccessGuard guard,
                             FeedViewMapper viewMapper) {
         this.posts = posts;
@@ -46,10 +46,10 @@ public class FeedQueryService {
         int capped = Math.max(1, Math.min(limit, MAX_PAGE));
         long cursor = before == null ? Long.MAX_VALUE : before;
 
-        List<FeedPostJpaEntity> page;
+        List<FeedPost> page;
         if ("following".equalsIgnoreCase(scope)) {
             // Seguidos ACEPTADOS + yo mismo (mis posts también salen en mi feed).
-            List<String> authors = new ArrayList<>(follows.findFollowingOf(uid));
+            List<String> authors = new ArrayList<>(follows.followingOf(uid));
             authors.add(uid);
             page = posts.pageByAuthors(authors, cursor, capped);
         } else if ("mine".equalsIgnoreCase(scope)) {
@@ -83,7 +83,7 @@ public class FeedQueryService {
             if (guard.hasBlocked(uid, targetUid)) return List.of();
             if (!guard.canSeeUserContent(uid, targetUid)) return List.of();
         }
-        List<FeedPostJpaEntity> page = posts.pageByAuthors(List.of(targetUid), cursor, capped);
+        List<FeedPost> page = posts.pageByAuthors(List.of(targetUid), cursor, capped);
         if (page.isEmpty()) return List.of();
         return viewMapper.mapViews(uid, page);
     }
@@ -96,7 +96,7 @@ public class FeedQueryService {
      */
     @Transactional(readOnly = true)
     public FeedPostView single(String uid, long postId) {
-        FeedPostJpaEntity p = posts.findById(postId)
+        FeedPost p = posts.findById(postId)
                 .orElseThrow(() -> new NotFoundException("post no encontrado"));
 
         String authorUid = p.getUserUid();

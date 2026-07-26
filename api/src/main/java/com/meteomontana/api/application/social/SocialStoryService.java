@@ -5,14 +5,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.meteomontana.api.application.forecast.GetForecastUseCase;
 import com.meteomontana.api.domain.exception.NotFoundException;
+import com.meteomontana.api.domain.model.BlockLine;
+import com.meteomontana.api.domain.model.FeedPost;
 import com.meteomontana.api.domain.model.School;
+import com.meteomontana.api.domain.model.SchoolBlock;
+import com.meteomontana.api.domain.port.FeedPostRepository;
+import com.meteomontana.api.domain.port.SchoolBlockRepository;
 import com.meteomontana.api.domain.port.SchoolRepository;
 import com.meteomontana.api.domain.port.UserRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
@@ -88,13 +88,13 @@ public class SocialStoryService {
 
     private final SchoolRepository schools;
     private final GetForecastUseCase forecast;
-    private final SpringDataFeedPostRepository feedPosts;
-    private final SpringDataSchoolBlockRepository schoolBlocks;
+    private final FeedPostRepository feedPosts;
+    private final SchoolBlockRepository schoolBlocks;
     private final UserRepository users;
 
     public SocialStoryService(SchoolRepository schools, GetForecastUseCase forecast,
-                              SpringDataFeedPostRepository feedPosts,
-                              SpringDataSchoolBlockRepository schoolBlocks,
+                              FeedPostRepository feedPosts,
+                              SchoolBlockRepository schoolBlocks,
                               UserRepository users) {
         this.schools = schools;
         this.forecast = forecast;
@@ -109,17 +109,17 @@ public class SocialStoryService {
      * existe o no es una piedra nueva.
      */
     public NewBlockStory newBlock(long postId) {
-        FeedPostJpaEntity p = feedPosts.findById(postId).orElse(null);
+        FeedPost p = feedPosts.findById(postId).orElse(null);
         if (p == null || !KIND_NEW_BLOCK.equals(p.getKind())) {
             throw new NotFoundException("no es una piedra nueva");
         }
-        SchoolBlockJpaEntity block = p.getBlockId() == null ? null
+        SchoolBlock block = p.getBlockId() == null ? null
                 : schoolBlocks.findById(p.getBlockId()).orElse(null);
         String cover = block != null ? block.getPhotoPath() : null;
 
         List<NewBlockVia> vias = new ArrayList<>();
         if (block != null && block.getLines() != null) {
-            for (BlockLineJpaEntity l : block.getLines()) {
+            for (BlockLine l : block.getLines()) {
                 // Solo las vías de la cara PORTADA (misma foto que la portada, o
                 // sin foto propia) — coherente con lo que pinta la app.
                 boolean coverFace = l.getPhotoPath() == null
@@ -237,22 +237,18 @@ public class SocialStoryService {
      */
     public RecentBlocks recentBlocks(int days) {
         LocalDateTime since = LocalDateTime.now().minusDays(Math.max(1, days));
-        List<FeedPostJpaEntity> posts = feedPosts
-                .findByKindInAndCreatedAtAfterOrderByCreatedAtDesc(
-                        List.of(KIND_NEW_BLOCK), since);
+        List<FeedPost> posts = feedPosts.findRecentByKinds(List.of(KIND_NEW_BLOCK), since);
 
         List<String> blockIds = posts.stream()
-                .map(FeedPostJpaEntity::getBlockId).filter(java.util.Objects::nonNull).distinct().toList();
-        Map<String, SchoolBlockJpaEntity> blocks = new java.util.HashMap<>();
-        if (!blockIds.isEmpty()) {
-            schoolBlocks.findAllById(blockIds).forEach(b -> blocks.put(b.getId(), b));
-        }
+                .map(FeedPost::getBlockId).filter(java.util.Objects::nonNull).distinct().toList();
+        Map<String, SchoolBlock> blocks = new java.util.HashMap<>();
+        schoolBlocks.findByIds(blockIds).forEach(b -> blocks.put(b.getId(), b));
 
         List<RecentBlock> out = new ArrayList<>();
-        for (FeedPostJpaEntity p : posts) {
-            SchoolBlockJpaEntity b = blocks.get(p.getBlockId());
+        for (FeedPost p : posts) {
+            SchoolBlock b = blocks.get(p.getBlockId());
             boolean route = b != null && b.getDiscipline() != null
-                    && b.getDiscipline() == com.meteomontana.api.domain.model.SchoolBlock.Discipline.ROUTE;
+                    && b.getDiscipline() == SchoolBlock.Discipline.ROUTE;
             int lines = b != null && b.getLines() != null ? b.getLines().size() : 0;
             String kindLabel = route ? (lines == 1 ? "VÍA NUEVA" : "VÍAS NUEVAS")
                                      : (lines == 1 ? "BLOQUE NUEVO" : "BLOQUES NUEVOS");
@@ -279,29 +275,26 @@ public class SocialStoryService {
      */
     public NoveltyStory novelties(int days, int limit) {
         LocalDateTime since = LocalDateTime.now().minusDays(Math.max(1, days));
-        List<FeedPostJpaEntity> posts = feedPosts
-                .findByKindInAndCreatedAtAfterOrderByCreatedAtDesc(
-                        List.of(KIND_NEW_BLOCK, KIND_NEW_LINE), since);
+        List<FeedPost> posts = feedPosts.findRecentByKinds(
+                List.of(KIND_NEW_BLOCK, KIND_NEW_LINE), since);
 
         // Batch-carga de las piedras referenciadas (para contar sus vías) — sin N+1.
         List<String> blockIds = posts.stream()
-                .map(FeedPostJpaEntity::getBlockId).filter(java.util.Objects::nonNull).distinct().toList();
-        Map<String, SchoolBlockJpaEntity> blocks = new java.util.HashMap<>();
-        if (!blockIds.isEmpty()) {
-            schoolBlocks.findAllById(blockIds).forEach(b -> blocks.put(b.getId(), b));
-        }
+                .map(FeedPost::getBlockId).filter(java.util.Objects::nonNull).distinct().toList();
+        Map<String, SchoolBlock> blocks = new java.util.HashMap<>();
+        schoolBlocks.findByIds(blockIds).forEach(b -> blocks.put(b.getId(), b));
 
         // Agrega por escuela distinguiendo BLOQUES de VÍAS (disciplina de la
         // piedra/post). Orden estable por primera aparición → luego reordena.
         Map<String, int[]> agg = new LinkedHashMap<>();   // school -> [piedras, bloques, vias]
-        for (FeedPostJpaEntity p : posts) {
+        for (FeedPost p : posts) {
             String school = p.getSchoolName() != null ? p.getSchoolName() : "—";
             int[] a = agg.computeIfAbsent(school, k -> new int[3]);
             if (KIND_NEW_BLOCK.equals(p.getKind())) {
                 a[0]++;   // +1 piedra
-                SchoolBlockJpaEntity b = blocks.get(p.getBlockId());
+                SchoolBlock b = blocks.get(p.getBlockId());
                 if (b != null && b.getLines() != null) {
-                    boolean route = b.getDiscipline() == com.meteomontana.api.domain.model.SchoolBlock.Discipline.ROUTE;
+                    boolean route = b.getDiscipline() == SchoolBlock.Discipline.ROUTE;
                     if (route) a[2] += b.getLines().size(); else a[1] += b.getLines().size();
                 }
             } else { // NEW_LINE: la disciplina viaja en el post

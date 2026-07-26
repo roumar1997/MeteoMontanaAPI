@@ -73,7 +73,10 @@ public class ReviewContributionUseCase {
                                  BlockLineJpaEntity firstNewLine, String kind) {
         try {
             if (block == null || c.getSubmittedByUid() == null) return;
-            feedService.publishSystem(c.getSubmittedByUid(), block, firstNewLine, kind);
+            // El feed recibe IDS y relee la piedra por su puerto de dominio —
+            // las entidades JPA de contribuciones no cruzan esa frontera.
+            feedService.publishSystem(c.getSubmittedByUid(), block.getId(),
+                    firstNewLine != null ? firstNewLine.getId() : null, kind);
         } catch (Exception e) {
             log.warn("Post de feed ({}) de la contribución {} FALLÓ: {}",
                     kind, c.getId(), e.toString());

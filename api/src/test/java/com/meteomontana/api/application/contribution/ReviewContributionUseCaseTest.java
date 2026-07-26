@@ -81,7 +81,8 @@ class ReviewContributionUseCaseTest {
 
         useCase.approve("c1", admin, false);
 
-        verify(feedService).publishSystem(eq("author-uid"), any(SchoolBlockJpaEntity.class),
+        // publishSystem ahora recibe IDS (frontera limpia con el feed).
+        verify(feedService).publishSystem(eq("author-uid"), any(String.class),
                 isNull(), eq(com.meteomontana.api.application.feed.FeedViews.KIND_NEW_BLOCK));
     }
 

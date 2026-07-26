@@ -1,14 +1,12 @@
 package com.meteomontana.api.application.feed;
 
 import com.meteomontana.api.domain.model.User;
+import com.meteomontana.api.domain.port.FollowRepository;
+import com.meteomontana.api.domain.port.UserBlockRepository;
 import com.meteomontana.api.domain.port.UserRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFollowRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.UserBlockJpaEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * LA regla de privacidad y bloqueos del feed, en UN solo sitio.
@@ -21,12 +19,12 @@ import java.util.stream.Collectors;
 @Service
 public class FeedAccessGuard {
 
-    private final SpringDataUserBlockRepository blocks;
-    private final SpringDataFollowRepository follows;
+    private final UserBlockRepository blocks;
+    private final FollowRepository follows;
     private final UserRepository users;
 
-    public FeedAccessGuard(SpringDataUserBlockRepository blocks,
-                           SpringDataFollowRepository follows,
+    public FeedAccessGuard(UserBlockRepository blocks,
+                           FollowRepository follows,
                            UserRepository users) {
         this.blocks = blocks;
         this.follows = follows;
@@ -35,21 +33,17 @@ public class FeedAccessGuard {
 
     /** Uids que {@code uid} ha bloqueado (para filtrar páginas/comentarios). */
     public Set<String> blockedUids(String uid) {
-        return blocks.findByBlockerUid(uid).stream()
-                .map(UserBlockJpaEntity::getBlockedUid).collect(Collectors.toSet());
+        return blocks.blockedUidsOf(uid);
     }
 
     /** ¿{@code uid} ha bloqueado a {@code targetUid}? */
     public boolean hasBlocked(String uid, String targetUid) {
-        return blocks.findByBlockerUid(uid).stream()
-                .anyMatch(b -> b.getBlockedUid().equals(targetUid));
+        return blocks.isBlocked(uid, targetUid);
     }
 
     /** ¿{@code follower} sigue a {@code followed} con follow ACEPTADO? */
     public boolean isAcceptedFollower(String follower, String followed) {
-        return follows.findById_FollowerUidAndId_FollowedUid(follower, followed)
-                .map(f -> "ACCEPTED".equals(f.getStatus()))
-                .orElse(false);
+        return follows.isFollowing(follower, followed);
     }
 
     /**
