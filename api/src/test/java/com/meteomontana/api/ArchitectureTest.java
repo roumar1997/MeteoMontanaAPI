@@ -76,10 +76,7 @@ class ArchitectureTest {
                         "..application.alerts..",
                         "..application.contribution..",
                         "..application.moderation..",
-                        "..application.note..",
-                        "..application.admin..",
                         "..application.blocks..",
-                        "..application.submissions..",
                         "..application.users..",
                         "..application.meetups..")
                 .should().dependOnClassesThat()

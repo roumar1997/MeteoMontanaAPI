@@ -14,6 +14,9 @@ import java.util.Optional;
 @Primary
 public class JpaSchoolRepositoryAdapter implements SchoolRepository {
 
+    @Override
+    public long count() { return jpaRepo.count(); }
+
     private final SpringDataSchoolRepository jpaRepo;
 
     public JpaSchoolRepositoryAdapter(SpringDataSchoolRepository jpaRepo) {

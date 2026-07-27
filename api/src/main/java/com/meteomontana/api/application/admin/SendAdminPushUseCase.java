@@ -6,8 +6,7 @@ import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.AdminLogRepository;
 import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.domain.port.PushSender;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserDeviceRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.UserDeviceJpaEntity;
+import com.meteomontana.api.domain.port.UserDeviceRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -24,11 +23,11 @@ public class SendAdminPushUseCase {
     private final PushSender fcmService;
     private final AdminLogRepository adminLogRepository;
     private final AdminGuard adminGuard;
-    private final SpringDataUserDeviceRepository deviceRepository;
+    private final UserDeviceRepository deviceRepository;
 
     public SendAdminPushUseCase(UserRepository userRepository, PushSender fcmService,
                                 AdminLogRepository adminLogRepository, AdminGuard adminGuard,
-                                SpringDataUserDeviceRepository deviceRepository) {
+                                UserDeviceRepository deviceRepository) {
         this.userRepository = userRepository;
         this.fcmService = fcmService;
         this.adminLogRepository = adminLogRepository;
@@ -55,8 +54,7 @@ public class SendAdminPushUseCase {
             target = "user:" + req.targetUid();
         } else {
             // Broadcast a todos los dispositivos registrados (no un token por usuario).
-            List<String> tokens = deviceRepository.findAll().stream()
-                    .map(UserDeviceJpaEntity::getToken).toList();
+            List<String> tokens = deviceRepository.allTokens();
             sent = fcmService.sendToTokens(tokens, req.title(), req.body(), null);
             recipients = tokens.size();
             target = "broadcast";

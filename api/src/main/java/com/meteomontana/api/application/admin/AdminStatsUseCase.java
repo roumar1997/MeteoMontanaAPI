@@ -2,9 +2,9 @@ package com.meteomontana.api.application.admin;
 
 import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.domain.port.SchoolSubmissionRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataNoteRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
+import com.meteomontana.api.domain.port.NoteRepository;
+import com.meteomontana.api.domain.port.SchoolRepository;
+import com.meteomontana.api.domain.port.UserRepository;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,15 +20,15 @@ public class AdminStatsUseCase {
             long submissionsRejected
     ) {}
 
-    private final SpringDataUserRepository users;
-    private final SpringDataSchoolRepository schools;
-    private final SpringDataNoteRepository notes;
+    private final UserRepository users;
+    private final SchoolRepository schools;
+    private final NoteRepository notes;
     private final SchoolSubmissionRepository submissions;
     private final AdminGuard adminGuard;
 
-    public AdminStatsUseCase(SpringDataUserRepository users,
-                             SpringDataSchoolRepository schools,
-                             SpringDataNoteRepository notes,
+    public AdminStatsUseCase(UserRepository users,
+                             SchoolRepository schools,
+                             NoteRepository notes,
                              SchoolSubmissionRepository submissions,
                              AdminGuard adminGuard) {
         this.users = users;

@@ -16,4 +16,10 @@ public interface UserRepository {
     /** Buscador de usuarios: username O displayName contienen la query
      *  (case-insensitive), acotado en BD para no cargar toda la tabla. */
     List<User> searchByUsernameOrDisplayName(String query);
+    /** Nº total de usuarios registrados (panel de admin). */
+    long count();
+    /** Nº de administradores (panel de admin). */
+    long countAdmins();
+    /** Todos los administradores (para avisarles de propuestas nuevas). */
+    List<User> findAdmins();
 }

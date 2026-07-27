@@ -62,6 +62,17 @@ public class JpaUserRepositoryAdapter implements UserRepository {
                 .stream().map(this::toDomain).toList();
     }
 
+    @Override
+    public long count() { return jpaRepo.count(); }
+
+    @Override
+    public long countAdmins() { return jpaRepo.countAdmins(); }
+
+    @Override
+    public List<User> findAdmins() {
+        return jpaRepo.findByIsAdminTrue().stream().map(this::toDomain).toList();
+    }
+
     private User toDomain(UserJpaEntity e) {
         return new User(
                 e.getUid(), e.getEmail(), e.getUsername(), e.getDisplayName(),

@@ -11,6 +11,9 @@ import java.util.Optional;
 @Repository
 public class JpaNoteRepositoryAdapter implements NoteRepository {
 
+    @Override
+    public long count() { return jpaRepo.count(); }
+
     private final SpringDataNoteRepository jpaRepo;
     private final SpringDataSchoolRepository schoolJpaRepo;
 
