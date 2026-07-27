@@ -61,10 +61,19 @@ class ArchitectureTest {
     /**
      * Los CASOS DE USO hablan con puertos, no con JPA.
      *
-     * Excepciones vivas (deuda conocida, tarea P2.5 — se irán quitando de esta
-     * lista según se saldan; el subsistema social/feed YA está limpio):
-     *   alerts, contribution, moderation, note, admin, blocks, submissions,
-     *   users, meetups.ResolveReport
+     * ÚNICA excepción viva, y es DELIBERADA (no deuda por hacer):
+     * `application.contribution` (BlockMaterializer, LineReconciler y la parte
+     * de aprobación de ReviewContributionUseCase). Esas clases MATERIALIZAN una
+     * propuesta sobre una piedra existente mutando las entidades en sitio, y
+     * dependen a propósito de la identidad y el dirty-checking de Hibernate
+     * para PRESERVAR los ids de las vías — que es justo lo que mantiene vivos
+     * los enganches del diario (el bug histórico de "La ola"). Reescribirlo con
+     * el modelo inmutable de dominio recrearía las vías y rompería esos
+     * enganches; el resto de contribution (SubmitContributionUseCase) SÍ pasa
+     * por PendingContributionRepository.
+     *
+     * Si algún día se cambia, hay que hacerlo con tests de preservación de ids
+     * primero (ver LineReconcilerTest).
      */
     @Test
     void losCasosDeUsoNoTocanJpaDirectamente() {

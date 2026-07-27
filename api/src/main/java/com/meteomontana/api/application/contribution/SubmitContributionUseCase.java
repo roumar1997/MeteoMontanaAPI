@@ -6,9 +6,7 @@ import com.meteomontana.api.domain.model.PendingContribution;
 import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.SchoolRepository;
-import com.meteomontana.api.infrastructure.persistence.SpringDataContributionRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.PendingContributionJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
+import com.meteomontana.api.domain.port.PendingContributionRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.stereotype.Service;
 
@@ -19,18 +17,18 @@ import java.util.UUID;
 @Service
 public class SubmitContributionUseCase {
 
-    private final SpringDataContributionRepository repo;
+    private final PendingContributionRepository repo;
     private final SchoolRepository schoolRepository;
     private final com.meteomontana.api.application.admin.AdminGuard adminGuard;
     private final ReviewContributionUseCase reviewUseCase;
-    private final SpringDataUserRepository userRepository;
+    private final com.meteomontana.api.domain.port.UserRepository userRepository;
     private final PushSender push;
 
-    public SubmitContributionUseCase(SpringDataContributionRepository repo,
+    public SubmitContributionUseCase(PendingContributionRepository repo,
                                      SchoolRepository schoolRepository,
                                      com.meteomontana.api.application.admin.AdminGuard adminGuard,
                                      ReviewContributionUseCase reviewUseCase,
-                                     SpringDataUserRepository userRepository,
+                                     com.meteomontana.api.domain.port.UserRepository userRepository,
                                      PushSender push) {
         this.repo = repo;
         this.schoolRepository = schoolRepository;
@@ -67,7 +65,7 @@ public class SubmitContributionUseCase {
                 LocalDateTime.now(), null
         );
 
-        repo.save(PendingContributionJpaEntity.from(contribution));
+        repo.save(contribution);
 
         // Si quien propone es ADMIN, se publica directamente (sin cola de
         // revisión): materializamos al instante reutilizando la aprobación.
@@ -95,7 +93,7 @@ public class SubmitContributionUseCase {
         };
         String title = "Propuesta nueva: " + what;
         String body = "En «" + schoolName + "» · toca para revisarla en el panel";
-        userRepository.findByIsAdminTrue().forEach(admin ->
+        userRepository.findAdmins().forEach(admin ->
                 push.sendToUser(admin.getUid(), title, body,
                         Map.of("targetType", "admin_contributions", "targetId", "")));
     }
