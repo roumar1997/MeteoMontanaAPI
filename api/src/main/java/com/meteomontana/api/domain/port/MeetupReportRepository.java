@@ -10,4 +10,8 @@ public interface MeetupReportRepository {
     Optional<MeetupReport> findById(String id);
     List<MeetupReport> findPending();
     boolean existsByReporterAndMeetup(String reporterUid, String meetupId);
+
+    /** Marca la denuncia como resuelta/descartada por un admin. */
+    MeetupReport resolve(String reportId, MeetupReport.Status status,
+                         String adminUid, java.time.LocalDateTime resolvedAt);
 }

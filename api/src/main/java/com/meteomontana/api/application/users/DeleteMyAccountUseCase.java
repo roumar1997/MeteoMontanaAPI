@@ -3,15 +3,7 @@ package com.meteomontana.api.application.users;
 import com.google.firebase.auth.FirebaseAuth;
 import com.meteomontana.api.domain.port.ChatRepository;
 import com.meteomontana.api.infrastructure.storage.StorageService;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFavoriteRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFollowRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataNoteRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataNotificationRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolSubmissionRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.UserJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataWeekendAlertRepository;
+import com.meteomontana.api.domain.port.AccountDataPurger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,35 +25,14 @@ public class DeleteMyAccountUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(DeleteMyAccountUseCase.class);
 
-    private final SpringDataUserRepository users;
-    private final SpringDataFavoriteRepository favorites;
-    private final SpringDataFollowRepository follows;
-    private final SpringDataJournalRepository journal;
-    private final SpringDataNotificationRepository notifications;
-    private final SpringDataSchoolSubmissionRepository submissions;
-    private final SpringDataNoteRepository notes;
-    private final SpringDataWeekendAlertRepository weekendAlerts;
+    private final AccountDataPurger purger;
     private final ChatRepository chat;
     private final StorageService storage;
 
-    public DeleteMyAccountUseCase(SpringDataUserRepository users,
-                                  SpringDataFavoriteRepository favorites,
-                                  SpringDataFollowRepository follows,
-                                  SpringDataJournalRepository journal,
-                                  SpringDataNotificationRepository notifications,
-                                  SpringDataSchoolSubmissionRepository submissions,
-                                  SpringDataNoteRepository notes,
-                                  SpringDataWeekendAlertRepository weekendAlerts,
+    public DeleteMyAccountUseCase(AccountDataPurger purger,
                                   ChatRepository chat,
                                   StorageService storage) {
-        this.users = users;
-        this.favorites = favorites;
-        this.follows = follows;
-        this.journal = journal;
-        this.notifications = notifications;
-        this.submissions = submissions;
-        this.notes = notes;
-        this.weekendAlerts = weekendAlerts;
+        this.purger = purger;
         this.chat = chat;
         this.storage = storage;
     }
@@ -71,16 +42,10 @@ public class DeleteMyAccountUseCase {
         if (uid == null || uid.isBlank()) return;
 
         // Ruta de la foto de perfil (Storage) ANTES de borrar la fila del usuario.
-        String photoPath = users.findById(uid).map(UserJpaEntity::getPhotoPath).orElse(null);
+        String photoPath = purger.photoPathOf(uid);
 
-        favorites.deleteByUid(uid);
-        follows.deleteAllForUid(uid);
-        journal.deleteByUid(uid);
-        notifications.deleteByUid(uid);
-        notes.deleteByUid(uid);
-        submissions.deleteBySubmittedByUid(uid);
-        if (weekendAlerts.existsById(uid)) weekendAlerts.deleteById(uid);
-        users.deleteById(uid);
+        // Datos locales: qué tablas hay y en qué orden lo sabe la infraestructura.
+        purger.purgeAllDataOf(uid);
 
         // Chat (Firestore): conversaciones 1-a-1 + salir de grupos. Best-effort.
         chat.deleteUserData(uid);

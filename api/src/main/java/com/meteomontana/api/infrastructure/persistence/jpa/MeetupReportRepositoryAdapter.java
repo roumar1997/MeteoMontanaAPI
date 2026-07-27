@@ -28,6 +28,18 @@ public class MeetupReportRepositoryAdapter implements MeetupReportRepository {
     }
 
     @Override
+    public MeetupReport resolve(String reportId, MeetupReport.Status status,
+                                String adminUid, java.time.LocalDateTime resolvedAt) {
+        MeetupReportJpaEntity entity = jpa.findById(reportId)
+                .orElseThrow(() -> new com.meteomontana.api.domain.exception.NotFoundException(
+                        "Denuncia no encontrada"));
+        entity.setStatus(status);
+        entity.setResolvedBy(adminUid);
+        entity.setResolvedAt(resolvedAt);
+        return jpa.save(entity).toDomain();
+    }
+
+    @Override
     public Optional<MeetupReport> findById(String id) {
         return jpa.findById(id).map(MeetupReportJpaEntity::toDomain);
     }
