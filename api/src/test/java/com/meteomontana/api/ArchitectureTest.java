@@ -73,7 +73,6 @@ class ArchitectureTest {
                 .and().resideOutsideOfPackages(
                         // ── Deuda pendiente (P2.5). Al saldar cada subsistema,
                         //    se borra su línea de aquí y el test lo vigila para siempre.
-                        "..application.alerts..",
                         "..application.contribution..",
                         "..application.moderation..",
                         "..application.blocks..",
