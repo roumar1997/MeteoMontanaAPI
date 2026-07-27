@@ -73,11 +73,7 @@ class ArchitectureTest {
                 .and().resideOutsideOfPackages(
                         // ── Deuda pendiente (P2.5). Al saldar cada subsistema,
                         //    se borra su línea de aquí y el test lo vigila para siempre.
-                        "..application.contribution..",
-                        "..application.moderation..",
-                        "..application.blocks..",
-                        "..application.users..",
-                        "..application.meetups..")
+                        "..application.contribution..")
                 .should().dependOnClassesThat()
                 .resideInAPackage("..infrastructure.persistence.jpa..")
                 .because("los casos de uso dependen de puertos de dominio, no de entidades JPA");

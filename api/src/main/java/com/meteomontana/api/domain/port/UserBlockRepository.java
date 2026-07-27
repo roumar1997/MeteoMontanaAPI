@@ -14,4 +14,10 @@ public interface UserBlockRepository {
 
     /** ¿{@code blockerUid} ha bloqueado a {@code blockedUid}? */
     boolean isBlocked(String blockerUid, String blockedUid);
+
+    /** Bloquea (idempotente). */
+    void block(String blockerUid, String blockedUid);
+
+    /** Desbloquea (idempotente). */
+    void unblock(String blockerUid, String blockedUid);
 }

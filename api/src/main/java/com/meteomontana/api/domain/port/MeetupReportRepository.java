@@ -11,6 +11,9 @@ public interface MeetupReportRepository {
     List<MeetupReport> findPending();
     boolean existsByReporterAndMeetup(String reporterUid, String meetupId);
 
+    /** Nº de denuncias recibidas por un usuario (consola de moderación). */
+    long countByReportedUid(String reportedUid);
+
     /** Marca la denuncia como resuelta/descartada por un admin. */
     MeetupReport resolve(String reportId, MeetupReport.Status status,
                          String adminUid, java.time.LocalDateTime resolvedAt);

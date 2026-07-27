@@ -6,20 +6,17 @@ import com.meteomontana.api.domain.exception.BadRequestException;
 import com.meteomontana.api.domain.exception.ForbiddenException;
 import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.port.PushSender;
-import com.meteomontana.api.infrastructure.persistence.jpa.ContentReportJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.MeetupReportJpaRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.ModerationActionJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataContentReportRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataModerationActionRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.UserJpaEntity;
+import com.meteomontana.api.domain.model.ContentReport;
+import com.meteomontana.api.domain.model.UserModerationState;
+import com.meteomontana.api.domain.port.ContentReportRepository;
+import com.meteomontana.api.domain.port.UserModerationRepository;
+import com.meteomontana.api.domain.port.MeetupReportRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Moderación de usuarios (consola de admin): aviso, suspensión temporal
@@ -37,52 +34,46 @@ public class UserModerationService {
                                  boolean banned, LocalDateTime suspendedUntil, int warnings,
                                  long reportCount, List<ReportRow> reports, List<ActionRow> actions) {}
 
-    private final SpringDataUserRepository users;
-    private final SpringDataContentReportRepository contentReports;
-    private final MeetupReportJpaRepository meetupReports;
-    private final SpringDataModerationActionRepository actions;
+    private final UserModerationRepository moderation;
+    private final ContentReportRepository contentReports;
+    private final MeetupReportRepository meetupReports;
     private final PushSender push;
 
-    public UserModerationService(SpringDataUserRepository users,
-                                 SpringDataContentReportRepository contentReports,
-                                 MeetupReportJpaRepository meetupReports,
-                                 SpringDataModerationActionRepository actions,
+    public UserModerationService(UserModerationRepository moderation,
+                                 ContentReportRepository contentReports,
+                                 MeetupReportRepository meetupReports,
                                  PushSender push) {
-        this.users = users;
+        this.moderation = moderation;
         this.contentReports = contentReports;
         this.meetupReports = meetupReports;
-        this.actions = actions;
         this.push = push;
     }
 
     @Transactional(readOnly = true)
     public ModerationView summary(String uid) {
-        UserJpaEntity u = users.findById(uid)
+        UserModerationState st = moderation.findState(uid)
                 .orElseThrow(() -> new NotFoundException("usuario no encontrado"));
-        long count = contentReports.countByAuthorUid(uid) + meetupReports.countByReportedUid(uid);
-        List<ReportRow> rows = contentReports.findByAuthorUidOrderByCreatedAtDesc(uid).stream()
+        long count = contentReports.countByAuthor(uid) + meetupReports.countByReportedUid(uid);
+        List<ReportRow> rows = contentReports.findByAuthor(uid).stream()
                 .map(this::toRow).toList();
-        List<ActionRow> acts = actions.findByTargetUidOrderByCreatedAtDesc(uid).stream()
-                .map(a -> new ActionRow(a.getAction(), a.getReason(), a.getSnapshot(),
-                        a.getCreatedAt() == null ? null : a.getCreatedAt().toString()))
+        List<ActionRow> acts = moderation.actionsOf(uid).stream()
+                .map(a -> new ActionRow(a.action(), a.reason(), a.snapshot(),
+                        a.createdAt() == null ? null : a.createdAt().toString()))
                 .toList();
-        return new ModerationView(u.getUid(), u.getUsername(), u.getDisplayName(),
-                u.isBanned(), u.getSuspendedUntil(), u.getWarnings(), count, rows, acts);
+        return new ModerationView(st.uid(), st.username(), st.displayName(),
+                st.banned(), st.suspendedUntil(), st.warnings(), count, rows, acts);
     }
 
     /** Registra una acción de moderación (auditoría con motivo). */
     @Transactional
     public void record(String adminUid, String targetUid, String action, String reason, String snapshot) {
-        actions.save(new ModerationActionJpaEntity(
-                UUID.randomUUID().toString(), adminUid, targetUid, action, reason, snapshot));
+        moderation.recordAction(adminUid, targetUid, action, reason, snapshot);
     }
 
     /** Aviso: incrementa el contador y notifica al usuario por push. */
     @Transactional
     public void warn(String adminUid, String uid, String reason) {
-        UserJpaEntity u = require(uid);
-        u.setWarnings(u.getWarnings() + 1);
-        users.save(u);
+        moderation.addWarning(uid);
         record(adminUid, uid, "WARN", reason, null);
         String body = (reason == null || reason.isBlank())
                 ? "Revisa las normas de la comunidad."
@@ -97,10 +88,8 @@ public class UserModerationService {
         if (uid.equals(adminUid)) {
             throw new BadRequestException("No puedes suspenderte a ti mismo.");
         }
-        UserJpaEntity u = require(uid);
         int d = Math.max(1, days);
-        u.setSuspendedUntil(LocalDateTime.now().plusDays(d));
-        users.save(u);
+        moderation.setSuspendedUntil(uid, LocalDateTime.now().plusDays(d));
         record(adminUid, uid, "SUSPEND", reason, "Suspendido " + d + " día(s)");
         push.sendToUser(uid, "⏸️ Cuenta suspendida",
                 "No podrás publicar durante " + d + " día(s) por incumplir las normas.",
@@ -113,19 +102,14 @@ public class UserModerationService {
         if (uid.equals(adminUid)) {
             throw new BadRequestException("No puedes banearte a ti mismo.");
         }
-        UserJpaEntity u = require(uid);
-        u.setBanned(true);
-        users.save(u);
+        moderation.setBanned(uid, true);
         record(adminUid, uid, "BAN", reason, null);
         setFirebaseDisabled(uid, true);
     }
 
     @Transactional
     public void unban(String adminUid, String uid, String reason) {
-        UserJpaEntity u = require(uid);
-        u.setBanned(false);
-        u.setSuspendedUntil(null);
-        users.save(u);
+        moderation.setBanned(uid, false);   // desbanear limpia la suspensión
         record(adminUid, uid, "UNBAN", reason, null);
         setFirebaseDisabled(uid, false);
     }
@@ -137,25 +121,20 @@ public class UserModerationService {
     @Transactional(readOnly = true)
     public void ensureCanPost(String uid) {
         if (uid == null) return;
-        UserJpaEntity u = users.findById(uid).orElse(null);
-        if (u == null) return;
-        if (u.isBanned()) {
+        UserModerationState st = moderation.findState(uid).orElse(null);
+        if (st == null) return;
+        if (st.banned()) {
             throw new ForbiddenException("Tu cuenta está suspendida.");
         }
-        if (u.getSuspendedUntil() != null && u.getSuspendedUntil().isAfter(LocalDateTime.now())) {
+        if (st.suspendedUntil() != null && st.suspendedUntil().isAfter(LocalDateTime.now())) {
             throw new ForbiddenException(
-                    "Estás suspendido hasta " + u.getSuspendedUntil().toLocalDate() + ".");
+                    "Estás suspendido hasta " + st.suspendedUntil().toLocalDate() + ".");
         }
     }
 
-    private UserJpaEntity require(String uid) {
-        return users.findById(uid)
-                .orElseThrow(() -> new NotFoundException("usuario no encontrado"));
-    }
-
-    private ReportRow toRow(ContentReportJpaEntity e) {
-        return new ReportRow(e.getTargetType(), e.getReason(), e.getSnapshot(),
-                e.getCreatedAt() == null ? null : e.getCreatedAt().toString());
+    private ReportRow toRow(ContentReport r) {
+        return new ReportRow(r.targetType(), r.reason(), r.snapshot(),
+                r.createdAt() == null ? null : r.createdAt().toString());
     }
 
     /** Deshabilita/rehabilita en Firebase Auth (best-effort; el flag en BD manda). */

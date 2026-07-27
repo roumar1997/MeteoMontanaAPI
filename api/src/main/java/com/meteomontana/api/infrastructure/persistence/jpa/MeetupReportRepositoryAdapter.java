@@ -40,6 +40,11 @@ public class MeetupReportRepositoryAdapter implements MeetupReportRepository {
     }
 
     @Override
+    public long countByReportedUid(String reportedUid) {
+        return jpa.countByReportedUid(reportedUid);
+    }
+
+    @Override
     public Optional<MeetupReport> findById(String id) {
         return jpa.findById(id).map(MeetupReportJpaEntity::toDomain);
     }

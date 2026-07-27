@@ -1,10 +1,9 @@
 package com.meteomontana.api.application.moderation;
 
-import com.meteomontana.api.infrastructure.persistence.jpa.UserJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataContentReportRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.MeetupReportJpaRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataModerationActionRepository;
+import com.meteomontana.api.domain.model.UserModerationState;
+import com.meteomontana.api.domain.port.ContentReportRepository;
+import com.meteomontana.api.domain.port.MeetupReportRepository;
+import com.meteomontana.api.domain.port.UserModerationRepository;
 import com.meteomontana.api.domain.exception.BadRequestException;
 import com.meteomontana.api.domain.exception.ForbiddenException;
 import com.meteomontana.api.domain.port.PushSender;
@@ -26,52 +25,47 @@ import static org.mockito.Mockito.*;
  */
 class UserModerationServiceTest {
 
-    private SpringDataUserRepository users;
+    private UserModerationRepository users;
     private UserModerationService svc;
 
     @BeforeEach void setUp() {
-        users = mock(SpringDataUserRepository.class);
+        users = mock(UserModerationRepository.class);
         svc = new UserModerationService(
                 users,
-                mock(SpringDataContentReportRepository.class),
-                mock(MeetupReportJpaRepository.class),
-                mock(SpringDataModerationActionRepository.class),
+                mock(ContentReportRepository.class),
+                mock(MeetupReportRepository.class),
                 mock(PushSender.class));
     }
 
-    private UserJpaEntity user(boolean banned, LocalDateTime suspendedUntil) {
-        var u = new UserJpaEntity("u", "e@x.com", "yo", "Yo", null, null, true, null,
-                false, false, null, null, LocalDateTime.now(), LocalDateTime.now());
-        u.setBanned(banned);
-        u.setSuspendedUntil(suspendedUntil);
-        return u;
+    private UserModerationState user(boolean banned, LocalDateTime suspendedUntil) {
+        return new UserModerationState("u", "yo", "Yo", banned, suspendedUntil, 0);
     }
 
     @Test void baneado_noPuedePublicar() {
-        when(users.findById("u")).thenReturn(Optional.of(user(true, null)));
+        when(users.findState("u")).thenReturn(Optional.of(user(true, null)));
         assertThatThrownBy(() -> svc.ensureCanPost("u"))
                 .isInstanceOf(ForbiddenException.class);
     }
 
     @Test void suspendidoConFechaFutura_noPuedePublicar() {
-        when(users.findById("u")).thenReturn(Optional.of(user(false, LocalDateTime.now().plusDays(3))));
+        when(users.findState("u")).thenReturn(Optional.of(user(false, LocalDateTime.now().plusDays(3))));
         assertThatThrownBy(() -> svc.ensureCanPost("u"))
                 .isInstanceOf(ForbiddenException.class);
     }
 
     @Test void suspensionYaVencida_puedePublicar() {
-        when(users.findById("u")).thenReturn(Optional.of(user(false, LocalDateTime.now().minusDays(1))));
+        when(users.findState("u")).thenReturn(Optional.of(user(false, LocalDateTime.now().minusDays(1))));
         svc.ensureCanPost("u");   // no lanza
     }
 
     @Test void usuarioLimpio_puedePublicar() {
-        when(users.findById("u")).thenReturn(Optional.of(user(false, null)));
+        when(users.findState("u")).thenReturn(Optional.of(user(false, null)));
         svc.ensureCanPost("u");
     }
 
     @Test void uidNuloODesconocido_noBloquea() {
         svc.ensureCanPost(null);                       // sale sin tocar el repo
-        when(users.findById("x")).thenReturn(Optional.empty());
+        when(users.findState("x")).thenReturn(Optional.empty());
         svc.ensureCanPost("x");                        // usuario inexistente → no bloquea
     }
 

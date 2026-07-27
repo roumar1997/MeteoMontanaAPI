@@ -65,50 +65,49 @@ class AuthorizationGuardsTest {
 
     // ── UserModerationService.ensureCanPost ────────────────────────────────
 
-    SpringDataUserRepository users = mock(SpringDataUserRepository.class);
+    com.meteomontana.api.domain.port.UserModerationRepository users =
+            mock(com.meteomontana.api.domain.port.UserModerationRepository.class);
     UserModerationService moderation;
 
     @BeforeEach
     void setUpModeration() {
         moderation = new UserModerationService(users,
-                mock(com.meteomontana.api.infrastructure.persistence.jpa.SpringDataContentReportRepository.class),
-                mock(com.meteomontana.api.infrastructure.persistence.jpa.MeetupReportJpaRepository.class),
-                mock(com.meteomontana.api.infrastructure.persistence.jpa.SpringDataModerationActionRepository.class),
+                mock(com.meteomontana.api.domain.port.ContentReportRepository.class),
+                mock(com.meteomontana.api.domain.port.MeetupReportRepository.class),
                 mock(com.meteomontana.api.domain.port.PushSender.class));
     }
 
-    private UserJpaEntity mockUser(boolean banned, LocalDateTime suspendedUntil) {
-        UserJpaEntity u = mock(UserJpaEntity.class);
-        when(u.isBanned()).thenReturn(banned);
-        when(u.getSuspendedUntil()).thenReturn(suspendedUntil);
-        return u;
+    private com.meteomontana.api.domain.model.UserModerationState mockUser(
+            boolean banned, LocalDateTime suspendedUntil) {
+        return new com.meteomontana.api.domain.model.UserModerationState(
+                "u", "yo", "Yo", banned, suspendedUntil, 0);
     }
 
     @Test
     void bannedUserCannotPost() {
         var u = mockUser(true, null);
-        when(users.findById("bad")).thenReturn(Optional.of(u));
+        when(users.findState("bad")).thenReturn(Optional.of(u));
         assertThrows(ForbiddenException.class, () -> moderation.ensureCanPost("bad"));
     }
 
     @Test
     void suspendedUserCannotPostUntilDatePasses() {
         var u = mockUser(false, LocalDateTime.now().plusDays(3));
-        when(users.findById("sus")).thenReturn(Optional.of(u));
+        when(users.findState("sus")).thenReturn(Optional.of(u));
         assertThrows(ForbiddenException.class, () -> moderation.ensureCanPost("sus"));
     }
 
     @Test
     void expiredSuspensionPostsAgain() {
         var u = mockUser(false, LocalDateTime.now().minusDays(1));
-        when(users.findById("ok")).thenReturn(Optional.of(u));
+        when(users.findState("ok")).thenReturn(Optional.of(u));
         assertDoesNotThrow(() -> moderation.ensureCanPost("ok"));
     }
 
     @Test
     void normalUserPosts() {
         var u = mockUser(false, null);
-        when(users.findById("u")).thenReturn(Optional.of(u));
+        when(users.findState("u")).thenReturn(Optional.of(u));
         assertDoesNotThrow(() -> moderation.ensureCanPost("u"));
     }
 

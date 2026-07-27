@@ -22,6 +22,18 @@ public class JpaUserBlockRepositoryAdapter implements UserBlockRepository {
     }
 
     @Override
+    public void block(String blockerUid, String blockedUid) {
+        if (!jpaRepo.existsByBlockerUidAndBlockedUid(blockerUid, blockedUid)) {
+            jpaRepo.save(new UserBlockJpaEntity(blockerUid, blockedUid));
+        }
+    }
+
+    @Override
+    public void unblock(String blockerUid, String blockedUid) {
+        jpaRepo.deleteById(new UserBlockJpaEntity.Key(blockerUid, blockedUid));
+    }
+
+    @Override
     public boolean isBlocked(String blockerUid, String blockedUid) {
         return jpaRepo.existsByBlockerUidAndBlockedUid(blockerUid, blockedUid);
     }
