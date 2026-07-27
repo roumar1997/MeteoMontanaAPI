@@ -56,8 +56,7 @@ public class WeekendAlertUseCase {
 
         // Para cada día de la semana elegido, su próxima ocurrencia dentro de
         // los 7 días empezando hoy (hoy cuenta si está elegido).
-        List<Integer> alertDays = com.meteomontana.api.infrastructure.web.WeekendAlertController
-                .parseDays(pref.alertDays());
+        List<Integer> alertDays = WeekendAlertPrefsUseCase.parseDays(pref.alertDays());
         LocalDate today = LocalDate.now(MADRID);
         List<String> targetDates = new ArrayList<>();
         for (int offset = 0; offset < 7; offset++) {

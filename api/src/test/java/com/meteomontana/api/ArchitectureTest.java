@@ -89,6 +89,36 @@ class ArchitectureTest {
         rule.check(classes);
     }
 
+    /**
+     * Los CONTROLLERS tampoco tocan JPA: mapean DTO↔dominio y delegan en un
+     * caso de uso o un puerto. Saldado el 2026-07-27 (AdminBrowse, Share y
+     * WeekendAlert eran los últimos); esta regla evita que vuelva a pasar.
+     */
+    @Test
+    void losControllersNoTocanJpaDirectamente() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..infrastructure.web..")
+                .should().dependOnClassesThat()
+                .resideInAPackage("..infrastructure.persistence.jpa..")
+                .because("los controllers delegan en casos de uso o puertos, no en entidades JPA");
+        rule.check(classes);
+    }
+
+    /**
+     * La APLICACIÓN no conoce la capa web (la flecha va web → application).
+     * Cazado en vivo el 2026-07-27: WeekendAlertUseCase llamaba a un helper
+     * estático del controller.
+     */
+    @Test
+    void laAplicacionNoDependeDeLaWeb() {
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..application..")
+                .should().dependOnClassesThat()
+                .resideInAPackage("..infrastructure.web..")
+                .because("los casos de uso no saben que existe HTTP ni los controllers");
+        rule.check(classes);
+    }
+
     /** El mapeo excepción→HTTP vive SOLO en GlobalExceptionHandler. */
     @Test
     void elDominioNoConoceHttp() {

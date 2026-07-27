@@ -13,4 +13,10 @@ import com.meteomontana.api.domain.model.PendingContribution;
 public interface PendingContributionRepository {
     /** Guarda una propuesta nueva y devuelve su id. */
     String save(PendingContribution contribution);
+
+    /** Mis propuestas, más recientes primero. */
+    java.util.List<PendingContribution> findBySubmitter(String uid);
+
+    /** Cola pendiente de revisión para admin, más recientes primero. */
+    java.util.List<PendingContribution> findPending();
 }

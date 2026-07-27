@@ -22,4 +22,6 @@ public interface UserRepository {
     long countAdmins();
     /** Todos los administradores (para avisarles de propuestas nuevas). */
     List<User> findAdmins();
+    /** Últimos usuarios registrados, más recientes primero (panel de admin). */
+    List<User> findRecent(int limit);
 }

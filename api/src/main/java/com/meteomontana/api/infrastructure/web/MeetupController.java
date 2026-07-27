@@ -210,7 +210,10 @@ public class MeetupController {
     @PutMapping("/alerts/me")
     public MeetupAlertDto setMyAlert(@AuthenticationPrincipal FirebaseUser user,
                                      @RequestBody SetAlertRequest req) {
-        return setMeetupAlert.execute(user.uid(), req);
+        return setMeetupAlert.execute(user.uid(),
+                new SetMeetupAlertUseCase.SetAlertCommand(
+                        req.enabled(), req.daysCsv(), req.schoolId(), req.discipline(),
+                        req.privacy(), req.maxDistanceKm(), req.userLat(), req.userLon()));
     }
 
     public record SetAlertRequest(

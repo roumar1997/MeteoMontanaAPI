@@ -5,7 +5,7 @@ import com.meteomontana.api.application.contribution.ContributionRequest;
 import com.meteomontana.api.application.contribution.ContributionResponse;
 import com.meteomontana.api.application.contribution.ReviewContributionUseCase;
 import com.meteomontana.api.application.contribution.SubmitContributionUseCase;
-import com.meteomontana.api.infrastructure.persistence.SpringDataContributionRepository;
+import com.meteomontana.api.domain.port.PendingContributionRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ class ContributionControllerTest {
     @BeforeEach void setUp() {
         submit = mock(SubmitContributionUseCase.class);
         var review = mock(ReviewContributionUseCase.class);
-        var repo = mock(SpringDataContributionRepository.class);
+        var repo = mock(PendingContributionRepository.class);
         var guard = mock(AdminGuard.class);
         var validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();

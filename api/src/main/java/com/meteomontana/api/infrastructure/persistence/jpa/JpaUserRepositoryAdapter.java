@@ -73,6 +73,14 @@ public class JpaUserRepositoryAdapter implements UserRepository {
         return jpaRepo.findByIsAdminTrue().stream().map(this::toDomain).toList();
     }
 
+    @Override
+    public List<User> findRecent(int limit) {
+        return jpaRepo.findAll(org.springframework.data.domain.PageRequest.of(0, limit,
+                        org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "createdAt")))
+                .stream().map(this::toDomain).toList();
+    }
+
     private User toDomain(UserJpaEntity e) {
         return new User(
                 e.getUid(), e.getEmail(), e.getUsername(), e.getDisplayName(),

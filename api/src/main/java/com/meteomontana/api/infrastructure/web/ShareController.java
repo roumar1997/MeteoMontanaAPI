@@ -3,8 +3,12 @@ package com.meteomontana.api.infrastructure.web;
 import com.meteomontana.api.domain.model.BlockLine;
 import com.meteomontana.api.domain.model.School;
 import com.meteomontana.api.domain.port.SchoolRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
+import com.meteomontana.api.domain.model.FeedPost;
+import com.meteomontana.api.domain.model.SchoolBlock;
+import com.meteomontana.api.domain.model.User;
+import com.meteomontana.api.domain.port.FeedPostRepository;
+import com.meteomontana.api.domain.port.SchoolBlockRepository;
+import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,22 +40,22 @@ public class ShareController {
             "https://play.google.com/store/apps/details?id=com.meteomontana.android";
     private static final String APPSTORE_URL = "https://apps.apple.com/app/id6785776686";
 
-    private final SpringDataSchoolBlockRepository blocks;
+    private final SchoolBlockRepository blocks;
     private final SchoolRepository schools;
     private final StorageService storage;
     private final com.meteomontana.api.domain.port.MeetupRepository meetups;
-    private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository users;
-    private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository feedPosts;
+    private final UserRepository users;
+    private final FeedPostRepository feedPosts;
     // LA regla de visibilidad del feed (autor público) vive en el guard —
     // antes estaba duplicada a mano aquí y podia divergir de la del feed.
     private final com.meteomontana.api.application.feed.FeedAccessGuard feedGuard;
 
-    public ShareController(SpringDataSchoolBlockRepository blocks,
+    public ShareController(SchoolBlockRepository blocks,
                            SchoolRepository schools,
                            StorageService storage,
                            com.meteomontana.api.domain.port.MeetupRepository meetups,
-                           com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository users,
-                           com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository feedPosts,
+                           UserRepository users,
+                           FeedPostRepository feedPosts,
                            com.meteomontana.api.application.feed.FeedAccessGuard feedGuard) {
         this.blocks = blocks;
         this.schools = schools;
@@ -70,11 +74,11 @@ public class ShareController {
      */
     @GetMapping(value = "/s/p/{postId}", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> shareFeedPost(@PathVariable long postId) {
-        var post = feedPosts.findById(postId).orElse(null);
+        FeedPost post = feedPosts.findById(postId).orElse(null);
         if (post == null || !feedGuard.isAuthorPublic(post.getUserUid())) {
             return ResponseEntity.notFound().build();
         }
-        var author = users.findById(post.getUserUid()).orElse(null);
+        User author = users.findByUid(post.getUserUid()).orElse(null);
         if (author == null) return ResponseEntity.notFound().build();
 
         String who = author.getUsername() != null ? "@" + author.getUsername()
@@ -99,7 +103,7 @@ public class ShareController {
 
     @GetMapping(value = "/s/p/{postId}/photo")
     public RedirectView shareFeedPostPhoto(@PathVariable long postId) {
-        var post = feedPosts.findById(postId).orElse(null);
+        FeedPost post = feedPosts.findById(postId).orElse(null);
         String photo = null;
         if (post != null && feedGuard.isAuthorPublic(post.getUserUid())) {
             photo = post.getPhotoPath() != null ? post.getPhotoPath()
@@ -115,7 +119,7 @@ public class ShareController {
 
     private String blockCoverPhoto(String blockId) {
         if (blockId == null) return null;
-        return blocks.findById(blockId).map(SchoolBlockJpaEntity::getPhotoPath).orElse(null);
+        return blocks.findById(blockId).map(SchoolBlock::getPhotoPath).orElse(null);
     }
 
     private static String nz(String s, String fallback) {
@@ -126,7 +130,7 @@ public class ShareController {
     @GetMapping(value = "/s/u/{handle}", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> shareUser(@PathVariable String handle) {
         String h = handle.startsWith("@") ? handle.substring(1) : handle;
-        var user = users.findByUsernameIgnoreCase(h).or(() -> users.findById(h)).orElse(null);
+        User user = users.findByUsername(h).or(() -> users.findByUid(h)).orElse(null);
         if (user == null) return ResponseEntity.notFound().build();
         String name = user.getUsername() != null ? "@" + user.getUsername()
                 : (user.getDisplayName() != null ? user.getDisplayName() : "Un escalador");
@@ -141,7 +145,7 @@ public class ShareController {
 
     @GetMapping(value = "/s/v/{schoolId}/{lineId}", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> shareLine(@PathVariable String schoolId, @PathVariable String lineId) {
-        SchoolBlockJpaEntity block = blocks.findByLineId(lineId).orElse(null);
+        SchoolBlock block = blocks.findByLineId(lineId).orElse(null);
         if (block == null) return ResponseEntity.notFound().build();
         var line = block.getLines().stream()
                 .filter(l -> lineId.equals(l.getId())).findFirst().orElse(null);
@@ -149,8 +153,7 @@ public class ShareController {
 
         String schoolName = schools.findById(block.getSchoolId())
                 .map(School::getName).orElse(block.getSchoolId());
-        boolean isBoulder = block.getDiscipline()
-                != com.meteomontana.api.domain.model.SchoolBlock.Discipline.ROUTE;
+        boolean isBoulder = block.getDiscipline() != SchoolBlock.Discipline.ROUTE;
         String kind = isBoulder ? "bloque" : "vía";
         String grade = line.getGrade() == null ? "" : " " + line.getGrade();
         String title = "«" + line.getName() + "»" + grade + " · " + block.getName() + " · Cumbre";
@@ -163,7 +166,7 @@ public class ShareController {
 
     @GetMapping(value = "/s/v/{schoolId}/{lineId}/photo")
     public RedirectView sharePhoto(@PathVariable String schoolId, @PathVariable String lineId) {
-        SchoolBlockJpaEntity block = blocks.findByLineId(lineId).orElse(null);
+        SchoolBlock block = blocks.findByLineId(lineId).orElse(null);
         String photo = null;
         if (block != null) {
             photo = block.getLines().stream()

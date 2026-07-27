@@ -2,7 +2,7 @@ package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.application.contribution.*;
 import com.meteomontana.api.domain.model.SubmissionStatus;
-import com.meteomontana.api.infrastructure.persistence.SpringDataContributionRepository;
+import com.meteomontana.api.domain.port.PendingContributionRepository;
 import com.meteomontana.api.application.admin.AdminGuard;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import jakarta.validation.Valid;
@@ -26,12 +26,12 @@ public class ContributionController {
 
     private final SubmitContributionUseCase submitUseCase;
     private final ReviewContributionUseCase reviewUseCase;
-    private final SpringDataContributionRepository repo;
+    private final PendingContributionRepository repo;
     private final AdminGuard adminGuard;
 
     public ContributionController(SubmitContributionUseCase submitUseCase,
                                   ReviewContributionUseCase reviewUseCase,
-                                  SpringDataContributionRepository repo,
+                                  PendingContributionRepository repo,
                                   AdminGuard adminGuard) {
         this.submitUseCase = submitUseCase;
         this.reviewUseCase = reviewUseCase;
@@ -53,10 +53,8 @@ public class ContributionController {
     @GetMapping("/api/contributions/me")
     public List<ContributionResponse> myContributions(
             @AuthenticationPrincipal FirebaseUser user) {
-        return repo.findBySubmittedByUidOrderByCreatedAtDesc(user.uid())
-                .stream()
-                .map(e -> ContributionResponse.from(e.toDomain()))
-                .toList();
+        return repo.findBySubmitter(user.uid())
+                .stream().map(ContributionResponse::from).toList();
     }
 
     /** Cola pendiente para admin. */
@@ -64,10 +62,8 @@ public class ContributionController {
     public List<ContributionResponse> adminQueue(
             @AuthenticationPrincipal FirebaseUser user) {
         adminGuard.ensureAdmin(user.uid());
-        return repo.findByStatusOrderByCreatedAtDesc(SubmissionStatus.PENDING)
-                .stream()
-                .map(e -> ContributionResponse.from(e.toDomain()))
-                .toList();
+        return repo.findPending()
+                .stream().map(ContributionResponse::from).toList();
     }
 
     /** Admin aprueba. Body opcional {"bloquesJson": "..."} = "EDITAR Y

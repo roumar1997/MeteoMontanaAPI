@@ -17,6 +17,31 @@ public class JpaAlertPreferenceRepositoryAdapter implements AlertPreferenceRepos
     }
 
     @Override
+    public java.util.Optional<AlertPreference> findByUid(String uid) {
+        return jpaRepo.findById(uid).map(this::toDomain);
+    }
+
+    @Override
+    public void save(AlertPreference p) {
+        var entity = jpaRepo.findById(p.uid())
+                .orElse(new WeekendAlertPrefJpaEntity(p.uid(), true, 4, 20, "",
+                        java.time.LocalDateTime.now()));
+        entity.setEnabled(p.enabled());
+        entity.setNotifyDay(p.notifyDay());
+        entity.setNotifyHour(p.notifyHour());
+        entity.setMode(p.mode());
+        entity.setRadiusKm(p.radiusKm());
+        entity.setUserLat(p.userLat());
+        entity.setUserLon(p.userLon());
+        entity.setSchoolIds(p.schoolIds());
+        entity.setAlertDays(p.alertDays());
+        entity.setOptimalEnabled(p.optimalEnabled());
+        entity.setOptimalThreshold(p.optimalThreshold());
+        entity.setUpdatedAt(java.time.LocalDateTime.now());
+        jpaRepo.save(entity);
+    }
+
+    @Override
     public List<AlertPreference> findEnabledFor(int notifyDay, int notifyHour) {
         return jpaRepo.findByEnabledTrueAndNotifyDayAndNotifyHour(notifyDay, notifyHour)
                 .stream().map(this::toDomain).toList();

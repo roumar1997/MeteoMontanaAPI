@@ -7,7 +7,6 @@ import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.MeetupAlertRepository;
 import com.meteomontana.api.domain.port.SchoolRepository;
 import com.meteomontana.api.domain.port.UserRepository;
-import com.meteomontana.api.infrastructure.web.MeetupController;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +30,12 @@ public class SetMeetupAlertUseCase {
 
     /** Activa (enabled=true) o desactiva (enabled=false) la alerta global del usuario. */
     @Transactional
-    public MeetupAlertDto execute(String uid, MeetupController.SetAlertRequest req) {
+    /** Comando de entrada del caso de uso (la web mapea su DTO a esto). */
+    public record SetAlertCommand(
+            boolean enabled, String daysCsv, String schoolId, String discipline,
+            String privacy, Integer maxDistanceKm, Double userLat, Double userLon) {}
+
+    public MeetupAlertDto execute(String uid, SetAlertCommand req) {
         if (!req.enabled()) {
             repo.deleteByUidAndSchoolId(uid, null);
             return new MeetupAlertDto(false, null, null, null, null, null, null, null, null);

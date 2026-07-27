@@ -48,6 +48,11 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
     }
 
     @Override
+    public Optional<SchoolBlock> findByLineId(String lineId) {
+        return jpaRepo.findByLineId(lineId).map(this::toDomain);
+    }
+
+    @Override
     public List<SchoolBlock> findBySchoolId(String schoolId) {
         return jpaRepo.findBySchoolIdOrderByCreatedAtAsc(schoolId).stream()
                 .map(this::toDomain).toList();

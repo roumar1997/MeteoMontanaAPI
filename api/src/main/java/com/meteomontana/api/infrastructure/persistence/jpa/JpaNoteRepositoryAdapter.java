@@ -24,6 +24,14 @@ public class JpaNoteRepositoryAdapter implements NoteRepository {
     }
 
     @Override
+    public List<Note> findRecent(int limit) {
+        return jpaRepo.findAll(org.springframework.data.domain.PageRequest.of(0, limit,
+                        org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "createdAt")))
+                .stream().map(this::toNote).toList();
+    }
+
+    @Override
     public List<Note> findBySchoolId(String schoolId) {
         return jpaRepo.findBySchoolId(schoolId).stream()
                 .map(this::toNote)
