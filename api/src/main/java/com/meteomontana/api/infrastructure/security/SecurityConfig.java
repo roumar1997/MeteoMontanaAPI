@@ -47,6 +47,16 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+            // 5.6 — Cabeceras de seguridad. La API sirve JSON y algunas landings
+            // (/s/**) que SÍ se abren en navegador: nosniff evita que el navegador
+            // adivine tipos, y no permitimos que nos embeban en un iframe ajeno.
+            .headers(headers -> headers
+                .contentTypeOptions(opts -> {})                       // X-Content-Type-Options: nosniff
+                .frameOptions(frame -> frame.sameOrigin())            // anti clickjacking
+                .referrerPolicy(ref -> ref.policy(
+                    org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter
+                        .ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
+
             // Reglas de autorización por endpoint
             .authorizeHttpRequests(auth -> auth
                 // El dispatch interno a /error también pasa por Security: sin esto,

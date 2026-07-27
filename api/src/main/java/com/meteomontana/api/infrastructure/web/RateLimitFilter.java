@@ -30,12 +30,20 @@ import java.util.concurrent.ConcurrentHashMap;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RateLimitFilter extends OncePerRequestFilter {
 
+    /** Límite de ESCRITURAS por minuto y IP (POST/PUT/DELETE). Mucho más bajo
+     *  que el global: 600 lecturas/min es razonable navegando, pero 600
+     *  escrituras/min solo lo hace un bot. 0 = usar solo el límite global. */
+    @Value("${RATE_LIMIT_WRITES_PER_MINUTE:60}")
+    private int maxWritesPerMinute;
+
     @Value("${RATE_LIMIT_PER_MINUTE:600}")
     private int maxPerMinute;
 
     private static final long WINDOW_MS = 60_000L;
 
     private final ConcurrentHashMap<String, Counter> counters = new ConcurrentHashMap<>();
+    /** Contadores aparte para las escrituras (cupo más estrecho). */
+    private final ConcurrentHashMap<String, Counter> writeCounters = new ConcurrentHashMap<>();
 
     private static final class Counter {
         long windowStart;
@@ -54,18 +62,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String ip = clientIp(req);
         long now = System.currentTimeMillis();
-        boolean limited;
-        Counter c = counters.computeIfAbsent(ip, k -> new Counter());
-        synchronized (c) {
-            if (now - c.windowStart >= WINDOW_MS) {
-                c.windowStart = now;
-                c.count = 0;
-            }
-            c.count++;
-            limited = c.count > maxPerMinute;
+        String method = req.getMethod();
+        boolean isWrite = "POST".equals(method) || "PUT".equals(method)
+                || "PATCH".equals(method) || "DELETE".equals(method);
+
+        boolean limited = hit(counters, ip, now, maxPerMinute);
+        // Las escrituras cuentan ADEMÁS contra su propio cupo, más estrecho.
+        if (!limited && isWrite && maxWritesPerMinute > 0) {
+            limited = hit(writeCounters, ip, now, maxWritesPerMinute);
         }
         // Cota de memoria: si el mapa crece demasiado (muchas IPs), se reinicia.
         if (counters.size() > 10_000) counters.clear();
+        if (writeCounters.size() > 10_000) writeCounters.clear();
 
         if (limited) {
             res.setStatus(429);
@@ -74,6 +82,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
         chain.doFilter(req, res);
+    }
+
+    /** Suma una petición al contador de esa IP y dice si pasó del cupo. */
+    private static boolean hit(java.util.Map<String, Counter> map, String ip, long now, int max) {
+        Counter c = map.computeIfAbsent(ip, k -> new Counter());
+        synchronized (c) {
+            if (now - c.windowStart >= WINDOW_MS) {
+                c.windowStart = now;
+                c.count = 0;
+            }
+            c.count++;
+            return c.count > max;
+        }
     }
 
     /** IP real del cliente (Railway va detrás de proxy → X-Forwarded-For). */

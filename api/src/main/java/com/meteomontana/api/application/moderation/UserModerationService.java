@@ -39,6 +39,19 @@ public class UserModerationService {
     private final MeetupReportRepository meetupReports;
     private final PushSender push;
 
+    /**
+     * 5.2 — Caché del cortafuegos de publicación. `ensureCanPost` lo llaman
+     * TODOS los endpoints de creación (nota, comentario, quedada, foto, post):
+     * sin caché es una consulta a BD por cada publicación. TTL corto (30 s) y
+     * se invalida al momento en warn/suspend/ban/unban, así que una sanción
+     * surte efecto inmediato y aun así se ahorran las consultas repetidas.
+     */
+    private final com.github.benmanes.caffeine.cache.Cache<String, UserModerationState> stateCache =
+            com.github.benmanes.caffeine.cache.Caffeine.newBuilder()
+                    .expireAfterWrite(java.time.Duration.ofSeconds(30))
+                    .maximumSize(10_000)
+                    .build();
+
     public UserModerationService(UserModerationRepository moderation,
                                  ContentReportRepository contentReports,
                                  MeetupReportRepository meetupReports,
@@ -74,6 +87,7 @@ public class UserModerationService {
     @Transactional
     public void warn(String adminUid, String uid, String reason) {
         moderation.addWarning(uid);
+        stateCache.invalidate(uid);
         record(adminUid, uid, "WARN", reason, null);
         String body = (reason == null || reason.isBlank())
                 ? "Revisa las normas de la comunidad."
@@ -90,6 +104,7 @@ public class UserModerationService {
         }
         int d = Math.max(1, days);
         moderation.setSuspendedUntil(uid, LocalDateTime.now().plusDays(d));
+        stateCache.invalidate(uid);
         record(adminUid, uid, "SUSPEND", reason, "Suspendido " + d + " día(s)");
         push.sendToUser(uid, "⏸️ Cuenta suspendida",
                 "No podrás publicar durante " + d + " día(s) por incumplir las normas.",
@@ -103,6 +118,7 @@ public class UserModerationService {
             throw new BadRequestException("No puedes banearte a ti mismo.");
         }
         moderation.setBanned(uid, true);
+        stateCache.invalidate(uid);
         record(adminUid, uid, "BAN", reason, null);
         setFirebaseDisabled(uid, true);
     }
@@ -110,6 +126,7 @@ public class UserModerationService {
     @Transactional
     public void unban(String adminUid, String uid, String reason) {
         moderation.setBanned(uid, false);   // desbanear limpia la suspensión
+        stateCache.invalidate(uid);
         record(adminUid, uid, "UNBAN", reason, null);
         setFirebaseDisabled(uid, false);
     }
@@ -121,7 +138,8 @@ public class UserModerationService {
     @Transactional(readOnly = true)
     public void ensureCanPost(String uid) {
         if (uid == null) return;
-        UserModerationState st = moderation.findState(uid).orElse(null);
+        UserModerationState st = stateCache.get(uid,
+                k -> moderation.findState(k).orElse(null));
         if (st == null) return;
         if (st.banned()) {
             throw new ForbiddenException("Tu cuenta está suspendida.");
