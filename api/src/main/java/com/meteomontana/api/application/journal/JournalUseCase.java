@@ -46,6 +46,19 @@ public class JournalUseCase {
         return JournalDtos.JournalSessionDto.from(repository.save(session));
     }
 
+    /** Cambia la fecha de MI entrada (C3: el diario refleja cuándo la hiciste). */
+    public JournalDtos.JournalSessionDto updateDate(String uid, String id, java.time.LocalDate newDate) {
+        if (newDate == null) throw new IllegalArgumentException("date is required");
+        if (newDate.isAfter(java.time.LocalDate.now().plusDays(1)))
+            throw new IllegalArgumentException("La fecha no puede ser futura");
+        JournalSession session = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Entrada no encontrada"));
+        if (!session.getUid().equals(uid))
+            throw new com.meteomontana.api.domain.exception.ForbiddenException("NOT_YOURS");
+        repository.updateSessionDate(id, newDate);
+        return JournalDtos.JournalSessionDto.from(repository.findById(id).orElseThrow());
+    }
+
     public List<JournalDtos.JournalSessionDto> listMine(String uid) {
         return repository.findByUid(uid).stream()
                 .map(JournalDtos.JournalSessionDto::from)

@@ -40,6 +40,14 @@ public class JpaJournalRepositoryAdapter implements JournalRepository {
     }
 
     @Override
+    public void updateSessionDate(String id, java.time.LocalDate newDate) {
+        jpaRepo.findById(id).ifPresent(e -> {
+            e.setSessionDate(newDate);
+            jpaRepo.save(e);
+        });
+    }
+
+    @Override
     public void deleteById(String id) {
         jpaRepo.deleteById(id);
     }

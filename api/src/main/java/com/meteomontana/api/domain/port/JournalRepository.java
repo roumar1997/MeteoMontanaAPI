@@ -10,4 +10,7 @@ public interface JournalRepository {
     Optional<JournalSession> findById(String id);
     List<JournalSession> findByUid(String uid);
     void deleteById(String id);
+
+    /** Cambia la fecha de una entrada (el diario cuenta cuándo la hiciste). */
+    void updateSessionDate(String id, java.time.LocalDate newDate);
 }

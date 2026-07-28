@@ -48,6 +48,9 @@ public class BlockLineJpaEntity {
     @Column(length = 60)
     private String variant;
 
+    @Column(name = "setter_grade", length = 8)
+    private String setterGrade;
+
     protected BlockLineJpaEntity() {}
 
     public BlockLineJpaEntity(String id, String name, String grade,
@@ -84,4 +87,6 @@ public class BlockLineJpaEntity {
     public void setDescription(String d) { this.description = d; }
     public String getVariant()        { return variant; }
     public void setVariant(String v)  { this.variant = v; }
+    public String getSetterGrade()    { return setterGrade; }
+    public void setSetterGrade(String g) { this.setterGrade = g; }
 }

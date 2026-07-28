@@ -21,6 +21,9 @@ public class BlockLine {
     // Variante opcional ("directa", "extensión"...) — distingue vías homónimas.
     // Mismo patrón mutable que description.
     private String variant;
+    // Grado ORIGINAL del equipador (V60): `grade` pasa a ser el MOSTRADO
+    // (consenso comunitario con 3+ votos). Mismo patrón mutable.
+    private String setterGrade;
 
     public BlockLine(String id, String blockId, String name, String grade,
                      StartType startType, String linePath, int sortOrder) {
@@ -49,4 +52,6 @@ public class BlockLine {
     public void setDescription(String d) { this.description = d; }
     public String getVariant()      { return variant; }
     public void setVariant(String v) { this.variant = v; }
+    public String getSetterGrade()  { return setterGrade; }
+    public void setSetterGrade(String g) { this.setterGrade = g; }
 }

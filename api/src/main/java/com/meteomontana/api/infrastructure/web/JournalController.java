@@ -54,6 +54,17 @@ public class JournalController {
         return useCase.statsFor(user.uid());
     }
 
+    /** C3: cambiar la fecha de una entrada ("la hice el 12 de abril"). */
+    public record UpdateDateRequest(java.time.LocalDate date) {}
+
+    @org.springframework.web.bind.annotation.PatchMapping("/journal/{id}/date")
+    public JournalDtos.JournalSessionDto updateDate(
+            @org.springframework.web.bind.annotation.PathVariable String id,
+            @org.springframework.web.bind.annotation.RequestBody UpdateDateRequest req,
+            @AuthenticationPrincipal FirebaseUser user) {
+        return useCase.updateDate(user.uid(), id, req.date());
+    }
+
     @DeleteMapping("/journal/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@AuthenticationPrincipal FirebaseUser user, @PathVariable String id) {

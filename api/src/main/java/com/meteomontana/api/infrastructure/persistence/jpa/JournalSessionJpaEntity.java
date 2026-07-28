@@ -85,6 +85,7 @@ public class JournalSessionJpaEntity {
     public void setLineId(String lineId) { this.lineId = lineId; }
     public String getStatus()          { return status; }
     public void setStatus(String status) { this.status = status != null ? status : "DONE"; }
+    public void setSessionDate(LocalDate d) { this.sessionDate = d; }
     public LocalDate getSessionDate()  { return sessionDate; }
     public LocalDateTime getCreatedAt(){ return createdAt; }
 }
