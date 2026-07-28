@@ -21,16 +21,6 @@ import java.util.UUID;
 @Repository
 public class JpaCommunityVoteRepositoryAdapter implements CommunityVoteRepository {
 
-    public interface SpringDataOrientationVoteRepository
-            extends JpaRepository<OrientationVoteJpaEntity, String> {
-        List<OrientationVoteJpaEntity> findByBlockId(String blockId);
-    }
-
-    public interface SpringDataGradeVoteRepository
-            extends JpaRepository<GradeVoteJpaEntity, String> {
-        List<GradeVoteJpaEntity> findByLineId(String lineId);
-    }
-
     private final SpringDataOrientationVoteRepository orientationRepo;
     private final SpringDataGradeVoteRepository gradeRepo;
     private final EntityManager em;
