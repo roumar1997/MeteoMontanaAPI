@@ -62,6 +62,12 @@ public class GetForecastUseCase {
 
         OpenMeteoResponse.HourlyData h = weather.hourly();
         int lookback = RockDryingProfile.forRockType(rockType).lookbackHours();
+        // Memoria térmica: serie de temperatura de la roca (retardo exponencial
+        // sobre aire + sol + viento). Con caché antigua sin radiación degrada a
+        // roca ≈ aire → ajuste 0 (comportamiento previo).
+        double[] rockTemp = com.meteomontana.api.domain.score.RockTemperatureModel.estimate(
+                h.temperature(), h.radiation(), h.windSpeed(),
+                com.meteomontana.api.domain.score.RockThermalProfile.forRockType(rockType).tauHours());
         List<ForecastResponse.HourForecast> result = new ArrayList<>(h.time().size());
 
         for (int i = 0; i < h.time().size(); i++) {
@@ -79,7 +85,8 @@ public class GetForecastUseCase {
             int    weatherCode = h.weatherCode()  != null ? h.weatherCode().get(i)  : 0;
 
             int score = ClimbScoreCalculator.calculate(
-                    temp, humidity, wind, precip, prob, cloud, recentRain, dewPoint, rockType);
+                    temp, humidity, wind, precip, prob, cloud, recentRain, dewPoint, rockType,
+                    rockTemp[i]);
 
             result.add(new ForecastResponse.HourForecast(
                     h.time().get(i),
