@@ -1,6 +1,8 @@
 package com.meteomontana.api.domain.model;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Post del feed social (pestaña Comunidad): un ascenso publicado (TICK /
@@ -11,6 +13,7 @@ import java.time.LocalDateTime;
  * Modelo de dominio puro (sin JPA): {@code id} y {@code createdAt} son null
  * hasta que la persistencia crea la fila (ver FeedPostRepository.create).
  */
+@Getter
 public class FeedPost {
 
     private final Long id;
@@ -26,12 +29,16 @@ public class FeedPost {
     private final LocalDateTime createdAt;
 
     /** Modalidad snapshoteada al publicar: BOULDER | ROUTE (null en posts viejos). */
+    @Setter
     private String discipline;
     /** Tipo de roca de la escuela snapshoteado al publicar (null en posts viejos). */
+    @Setter
     private String rockType;
     /** Descripción opcional del autor (null en posts automáticos). */
+    @Setter
     private String caption;
     /** Ruta en Storage de la foto de celebración opcional (null sin foto). */
+    @Setter
     private String photoPath;
 
     public FeedPost(Long id, String userUid, String schoolId, String schoolName,
@@ -50,24 +57,4 @@ public class FeedPost {
         this.createdAt = createdAt;
     }
 
-    public Long getId() { return id; }
-    public String getUserUid() { return userUid; }
-    public String getSchoolId() { return schoolId; }
-    public String getSchoolName() { return schoolName; }
-    public String getBlockId() { return blockId; }
-    public String getBlockName() { return blockName; }
-    public String getLineId() { return lineId; }
-    public String getLineName() { return lineName; }
-    public String getGrade() { return grade; }
-    public String getKind() { return kind; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    public String getDiscipline() { return discipline; }
-    public void setDiscipline(String discipline) { this.discipline = discipline; }
-    public String getRockType() { return rockType; }
-    public void setRockType(String rockType) { this.rockType = rockType; }
-    public String getCaption() { return caption; }
-    public void setCaption(String caption) { this.caption = caption; }
-    public String getPhotoPath() { return photoPath; }
-    public void setPhotoPath(String photoPath) { this.photoPath = photoPath; }
 }

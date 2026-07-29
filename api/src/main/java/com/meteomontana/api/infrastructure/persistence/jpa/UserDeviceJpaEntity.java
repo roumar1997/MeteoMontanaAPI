@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
 
 /** Token FCM de UN dispositivo de un usuario (ver V48). */
 @Entity
@@ -14,9 +15,11 @@ public class UserDeviceJpaEntity {
 
     @Id
     @Column(length = 500)
+    @Getter
     private String token;
 
     @Column(nullable = false)
+    @Getter
     private String uid;
 
     @Column(name = "updated_at")
@@ -30,7 +33,5 @@ public class UserDeviceJpaEntity {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public String getToken() { return token; }
-    public String getUid() { return uid; }
     public void setUid(String uid) { this.uid = uid; this.updatedAt = LocalDateTime.now(); }
 }

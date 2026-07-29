@@ -16,9 +16,12 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "school_blocks")
+@Getter
 public class SchoolBlockJpaEntity {
 
     @Id
@@ -42,12 +45,15 @@ public class SchoolBlockJpaEntity {
     private String name;
 
     @Column(nullable = false)
+    @Setter
     private double lat;
 
     @Column(nullable = false)
+    @Setter
     private double lon;
 
     @Column(name = "photo_path")
+    @Setter
     private String photoPath;
 
     private String description;
@@ -59,6 +65,7 @@ public class SchoolBlockJpaEntity {
     private LocalDateTime createdAt;
 
     @Column(name = "sector_block_id")
+    @Setter
     private String sectorBlockId;
 
     // Geometría/muro. Se setean aparte (setters) para no tocar los constructores.
@@ -67,6 +74,7 @@ public class SchoolBlockJpaEntity {
     private SchoolBlock.Geometry geometry = SchoolBlock.Geometry.POINT;
 
     @Column(columnDefinition = "TEXT")
+    @Setter
     private String path;                       // polilínea JSON si LINE
 
     @Column(name = "wall_direction", nullable = false)
@@ -93,35 +101,13 @@ public class SchoolBlockJpaEntity {
         this.sectorBlockId = sectorBlockId;
     }
 
-    public String getId()             { return id; }
-    public String getSchoolId()       { return schoolId; }
-    public SchoolBlock.Type getType() { return type; }
-    public SchoolBlock.Discipline getDiscipline() { return discipline; }
     public void setDiscipline(SchoolBlock.Discipline discipline) {
         this.discipline = discipline != null ? discipline : SchoolBlock.Discipline.BOULDER;
     }
-    public SchoolBlock.Geometry getGeometry() { return geometry; }
     public void setGeometry(SchoolBlock.Geometry geometry) {
         this.geometry = geometry != null ? geometry : SchoolBlock.Geometry.POINT;
     }
-    public String getPath() { return path; }
-    public void setPath(String path) { this.path = path; }
-    public String getDirection() { return direction; }
     public void setDirection(String direction) { this.direction = direction != null ? direction : "LTR"; }
-    public String getName()           { return name; }
-    public double getLat()            { return lat; }
-    public double getLon()            { return lon; }
-    public String getPhotoPath()      { return photoPath; }
-    public String getDescription()    { return description; }
-    public String getCreatedByUid()   { return createdByUid; }
-    public LocalDateTime getCreatedAt(){ return createdAt; }
-    public List<BlockLineJpaEntity> getLines() { return lines; }
-    public String getSectorBlockId() { return sectorBlockId; }
-
-    public void setLat(double lat) { this.lat = lat; }
-    public void setLon(double lon) { this.lon = lon; }
-    public void setPhotoPath(String photoPath) { this.photoPath = photoPath; }
-    public void setSectorBlockId(String sectorBlockId) { this.sectorBlockId = sectorBlockId; }
 
     public void addLine(BlockLineJpaEntity line) {
         line.setBlock(this);

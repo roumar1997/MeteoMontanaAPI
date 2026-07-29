@@ -6,9 +6,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "users")
+@Getter
 public class UserJpaEntity {
 
     @Id
@@ -50,12 +53,15 @@ public class UserJpaEntity {
 
     // ── Moderación ──────────────────────────────────────────────────────
     @Column(name = "banned", nullable = false)
+    @Setter
     private boolean banned;
 
     @Column(name = "suspended_until")
+    @Setter
     private LocalDateTime suspendedUntil;
 
     @Column(name = "warnings", nullable = false)
+    @Setter
     private int warnings;
 
     @Column(name = "created_at", nullable = false)
@@ -95,26 +101,4 @@ public class UserJpaEntity {
         this.updatedAt = updatedAt;
     }
 
-    public String getUid()             { return uid; }
-    public String getEmail()           { return email; }
-    public String getUsername()        { return username; }
-    public String getDisplayName()     { return displayName; }
-    public String getPhotoPath()       { return photoPath; }
-    public String getBio()             { return bio; }
-    public boolean isPublic()          { return isPublic; }
-    public String getTopGrade()        { return topGrade; }
-    public boolean isAdmin()           { return isAdmin; }
-    public boolean isPremium()         { return isPremium; }
-    public String getFcmToken()        { return fcmToken; }
-    public String getGender()          { return gender; }
-    public String getGearJson()        { return gearJson; }
-    public LocalDateTime getCreatedAt(){ return createdAt; }
-    public LocalDateTime getUpdatedAt(){ return updatedAt; }
-
-    public boolean isBanned()                { return banned; }
-    public void setBanned(boolean b)         { this.banned = b; }
-    public LocalDateTime getSuspendedUntil() { return suspendedUntil; }
-    public void setSuspendedUntil(LocalDateTime t) { this.suspendedUntil = t; }
-    public int getWarnings()                 { return warnings; }
-    public void setWarnings(int w)           { this.warnings = w; }
 }

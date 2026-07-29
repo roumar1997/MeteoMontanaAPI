@@ -6,10 +6,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
 
 /** Una acción de moderación registrada (auditoría con motivo). */
 @Entity
 @Table(name = "moderation_actions")
+@Getter
 public class ModerationActionJpaEntity {
 
     @Id
@@ -46,11 +48,4 @@ public class ModerationActionJpaEntity {
         this.createdAt = LocalDateTime.now();
     }
 
-    public String getId()            { return id; }
-    public String getAdminUid()      { return adminUid; }
-    public String getTargetUid()     { return targetUid; }
-    public String getAction()        { return action; }
-    public String getReason()        { return reason; }
-    public String getSnapshot()      { return snapshot; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
 }

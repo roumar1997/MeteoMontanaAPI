@@ -4,10 +4,13 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 /** Voto (±1) de un usuario a una nota comunitaria. id = noteId:uid. */
 @Entity
 @Table(name = "note_votes")
+@Getter
 public class NoteVoteJpaEntity {
 
     @Id
@@ -20,6 +23,7 @@ public class NoteVoteJpaEntity {
     private String uid;
 
     @Column(name = "vote_value", nullable = false)
+    @Setter
     private int voteValue;
 
     protected NoteVoteJpaEntity() {}
@@ -31,9 +35,4 @@ public class NoteVoteJpaEntity {
         this.voteValue = voteValue;
     }
 
-    public String getId() { return id; }
-    public String getNoteId() { return noteId; }
-    public String getUid() { return uid; }
-    public int getVoteValue() { return voteValue; }
-    public void setVoteValue(int voteValue) { this.voteValue = voteValue; }
 }

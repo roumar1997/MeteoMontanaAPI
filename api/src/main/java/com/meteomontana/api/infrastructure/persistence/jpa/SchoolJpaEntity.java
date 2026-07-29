@@ -4,9 +4,17 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 
 @Entity
 @Table(name = "schools")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class SchoolJpaEntity {
 
     @Id
@@ -21,40 +29,13 @@ public class SchoolJpaEntity {
     private String rockType;
 
     @Column( nullable = false)
+    @Setter
     private double lat;
 
     @Column(nullable = false)
+    @Setter
     private double lon;
-
 
     private String source;
 
-    protected SchoolJpaEntity(){}
-
-    public SchoolJpaEntity(String id, String name, String location, String region, String style,
-                           String rockType, double lat, double lon, String source){
-
-        this.id = id;
-        this.name =  name;
-        this.location = location;
-        this.region =  region;
-        this.style =  style;
-        this.rockType = rockType;
-        this.lat = lat;
-        this.lon = lon;
-        this.source = source;
-    }
-
-    public String getId()       { return id; }
-    public String getName()     { return name; }
-    public String getLocation() { return location; }
-    public String getRegion()   { return region; }
-    public String getStyle()    { return style; }
-    public String getRockType() { return rockType; }
-    public double getLat()      { return lat; }
-    public double getLon()      { return lon; }
-    public String getSource()   { return source; }
-
-    public void setLat(double lat) { this.lat = lat; }
-    public void setLon(double lon) { this.lon = lon; }
 }

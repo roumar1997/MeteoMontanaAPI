@@ -8,6 +8,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Post del feed social (pestaña Comunidad): un ascenso publicado (TICK /
@@ -17,6 +19,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "feed_posts")
+@Getter
 public class FeedPostJpaEntity {
 
     @Id
@@ -52,14 +55,17 @@ public class FeedPostJpaEntity {
 
     /** Modalidad snapshoteada al publicar: BOULDER | ROUTE (null en posts viejos). */
     @Column(length = 20)
+    @Setter
     private String discipline;
 
     /** Tipo de roca de la escuela snapshoteado al publicar (null en posts viejos). */
     @Column(name = "rock_type", length = 40)
+    @Setter
     private String rockType;
 
     /** Descripción opcional escrita por el autor al publicar (null en posts automáticos). Ver V55. */
     @Column(length = 500)
+    @Setter
     private String caption;
 
     /**
@@ -67,6 +73,7 @@ public class FeedPostJpaEntity {
      * (feed-photos/{postId}/{uuid}.{ext}). La URL firmada se genera al leer. Ver V56.
      */
     @Column(name = "photo_path", length = 500)
+    @Setter
     private String photoPath;
 
     @Column(name = "created_at", nullable = false)
@@ -90,23 +97,4 @@ public class FeedPostJpaEntity {
         this.createdAt = LocalDateTime.now();
     }
 
-    public Long getId() { return id; }
-    public String getUserUid() { return userUid; }
-    public String getSchoolId() { return schoolId; }
-    public String getSchoolName() { return schoolName; }
-    public String getBlockId() { return blockId; }
-    public String getBlockName() { return blockName; }
-    public String getLineId() { return lineId; }
-    public String getLineName() { return lineName; }
-    public String getGrade() { return grade; }
-    public String getKind() { return kind; }
-    public String getDiscipline() { return discipline; }
-    public void setDiscipline(String discipline) { this.discipline = discipline; }
-    public String getRockType() { return rockType; }
-    public void setRockType(String rockType) { this.rockType = rockType; }
-    public String getCaption() { return caption; }
-    public void setCaption(String caption) { this.caption = caption; }
-    public String getPhotoPath() { return photoPath; }
-    public void setPhotoPath(String photoPath) { this.photoPath = photoPath; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
 }

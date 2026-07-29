@@ -9,9 +9,16 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 
 @Entity
 @Table(name = "school_photos")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class SchoolPhotoJpaEntity {
 
     @Id
@@ -41,32 +48,4 @@ public class SchoolPhotoJpaEntity {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    protected SchoolPhotoJpaEntity() {}
-
-    public SchoolPhotoJpaEntity(String id, SchoolJpaEntity school, String storagePath,
-                                String uploadedByUid, String caption,
-                                Integer width, Integer height, Long sizeBytes,
-                                String contentType, LocalDateTime createdAt) {
-        this.id = id;
-        this.school = school;
-        this.storagePath = storagePath;
-        this.uploadedByUid = uploadedByUid;
-        this.caption = caption;
-        this.width = width;
-        this.height = height;
-        this.sizeBytes = sizeBytes;
-        this.contentType = contentType;
-        this.createdAt = createdAt;
-    }
-
-    public String getId()             { return id; }
-    public SchoolJpaEntity getSchool(){ return school; }
-    public String getStoragePath()    { return storagePath; }
-    public String getUploadedByUid()  { return uploadedByUid; }
-    public String getCaption()        { return caption; }
-    public Integer getWidth()         { return width; }
-    public Integer getHeight()        { return height; }
-    public Long getSizeBytes()        { return sizeBytes; }
-    public String getContentType()    { return contentType; }
-    public LocalDateTime getCreatedAt(){ return createdAt; }
 }

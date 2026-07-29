@@ -1,7 +1,11 @@
 package com.meteomontana.api.domain.model;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.AllArgsConstructor;
 
+@Getter
+@AllArgsConstructor
 public class Notification {
     private final String id;
     private final String uid;
@@ -13,27 +17,4 @@ public class Notification {
     private final LocalDateTime readAt;
     private final LocalDateTime createdAt;
 
-    public Notification(String id, String uid, String type, String title, String body,
-                        String targetType, String targetId, LocalDateTime readAt,
-                        LocalDateTime createdAt) {
-        this.id = id;
-        this.uid = uid;
-        this.type = type;
-        this.title = title;
-        this.body = body;
-        this.targetType = targetType;
-        this.targetId = targetId;
-        this.readAt = readAt;
-        this.createdAt = createdAt;
-    }
-
-    public String getId()              { return id; }
-    public String getUid()             { return uid; }
-    public String getType()            { return type; }
-    public String getTitle()           { return title; }
-    public String getBody()            { return body; }
-    public String getTargetType()      { return targetType; }
-    public String getTargetId()        { return targetId; }
-    public LocalDateTime getReadAt()   { return readAt; }
-    public LocalDateTime getCreatedAt(){ return createdAt; }
 }

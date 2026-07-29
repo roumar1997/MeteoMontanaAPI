@@ -1,5 +1,9 @@
 package com.meteomontana.api.domain.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
 public class BlockLine {
     // SEMI = semi-sentado/incorporado (añadido 2026-07-18; la columna es
     // VARCHAR vía @Enumerated(STRING) → sin migración; apps viejas tratan
@@ -17,12 +21,15 @@ public class BlockLine {
     private final int faceOrder;       // orden de su cara dentro de la piedra
     // Beta/detalle opcional. Mutable (setter) para no tocar los 8 constructores
     // repartidos por el código; se rellena solo donde aplica.
+    @Setter
     private String description;
     // Variante opcional ("directa", "extensión"...) — distingue vías homónimas.
     // Mismo patrón mutable que description.
+    @Setter
     private String variant;
     // Grado ORIGINAL del equipador (V60): `grade` pasa a ser el MOSTRADO
     // (consenso comunitario con 3+ votos). Mismo patrón mutable.
+    @Setter
     private String setterGrade;
 
     public BlockLine(String id, String blockId, String name, String grade,
@@ -39,19 +46,4 @@ public class BlockLine {
         this.photoPath = photoPath; this.faceOrder = faceOrder;
     }
 
-    public String getId()           { return id; }
-    public String getBlockId()      { return blockId; }
-    public String getName()         { return name; }
-    public String getGrade()        { return grade; }
-    public StartType getStartType() { return startType; }
-    public String getLinePath()     { return linePath; }
-    public int getSortOrder()       { return sortOrder; }
-    public String getPhotoPath()    { return photoPath; }
-    public int getFaceOrder()       { return faceOrder; }
-    public String getDescription()  { return description; }
-    public void setDescription(String d) { this.description = d; }
-    public String getVariant()      { return variant; }
-    public void setVariant(String v) { this.variant = v; }
-    public String getSetterGrade()  { return setterGrade; }
-    public void setSetterGrade(String g) { this.setterGrade = g; }
 }
