@@ -60,10 +60,13 @@ public class ContributionController {
     /** Cola pendiente para admin. */
     @GetMapping("/api/admin/contributions")
     public List<ContributionResponse> adminQueue(
-            @AuthenticationPrincipal FirebaseUser user) {
+            @AuthenticationPrincipal FirebaseUser user,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String status) {
         adminGuard.ensureAdmin(user.uid());
-        return repo.findPending()
-                .stream().map(ContributionResponse::from).toList();
+        // P6: sin status = PENDING (compat); APPROVED/REJECTED = historial.
+        var list = status == null ? repo.findPending()
+                : repo.findByStatus(SubmissionStatus.valueOf(status.toUpperCase()));
+        return list.stream().map(ContributionResponse::from).toList();
     }
 
     /** Admin aprueba. Body opcional {"bloquesJson": "..."} = "EDITAR Y

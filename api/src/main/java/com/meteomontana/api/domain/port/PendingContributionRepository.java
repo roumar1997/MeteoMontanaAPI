@@ -19,4 +19,7 @@ public interface PendingContributionRepository {
 
     /** Cola pendiente de revisión para admin, más recientes primero. */
     java.util.List<PendingContribution> findPending();
+
+    /** Historial por estado (APPROVED/REJECTED) para el admin, recientes primero. */
+    java.util.List<PendingContribution> findByStatus(com.meteomontana.api.domain.model.SubmissionStatus status);
 }

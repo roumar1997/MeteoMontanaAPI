@@ -26,6 +26,13 @@ public class JpaPendingContributionRepositoryAdapter implements PendingContribut
     }
 
     @Override
+    public java.util.List<PendingContribution> findByStatus(
+            com.meteomontana.api.domain.model.SubmissionStatus status) {
+        return jpaRepo.findByStatusOrderByCreatedAtDesc(status)
+                .stream().map(PendingContributionJpaEntity::toDomain).toList();
+    }
+
+    @Override
     public java.util.List<PendingContribution> findPending() {
         return jpaRepo.findByStatusOrderByCreatedAtDesc(
                         com.meteomontana.api.domain.model.SubmissionStatus.PENDING)
