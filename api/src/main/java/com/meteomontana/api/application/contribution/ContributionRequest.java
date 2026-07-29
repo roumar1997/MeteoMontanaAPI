@@ -54,5 +54,9 @@ public record ContributionRequest(
         @Size(max = 65536)
         String path,            // BOULDER+LINE: polilínea JSON [[lat,lon],...]
         @Size(max = 8)
-        String direction        // BOULDER+LINE: "LTR"/"RTL"
+        String direction,       // BOULDER+LINE: "LTR"/"RTL"
+        @Size(max = 2000)
+        String orientationsJson // BOULDER: orientación del autor (opcional):
+                                // {"block":"NE","faces":{"0":"N"}} → su primer
+                                // voto al aprobarse
 ) {}

@@ -5,12 +5,19 @@ import com.meteomontana.api.domain.model.SchoolBlock;
 import com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.meteomontana.api.domain.model.CommunityVotes.OrientationVote;
+import com.meteomontana.api.domain.port.CommunityVoteRepository;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 
 /**
  * Materializa un school_block NUEVO al aprobar una contribución
@@ -18,10 +25,16 @@ import lombok.RequiredArgsConstructor;
  * en caras y portada. Extraído de ReviewContributionUseCase (SRP).
  */
 @Service
-@RequiredArgsConstructor
 public class BlockMaterializer {
 
     private final SpringDataSchoolBlockRepository blockRepo;
+    private final CommunityVoteRepository votes;
+
+    public BlockMaterializer(SpringDataSchoolBlockRepository blockRepo,
+                             CommunityVoteRepository votes) {
+        this.blockRepo = blockRepo;
+        this.votes = votes;
+    }
 
     public SchoolBlockJpaEntity createBlock(PendingContribution c, SchoolBlock.Type type, String adminUid) {
         // Las PIEDRAS (BLOCK) no llevan nombre libre: se les asigna un NÚMERO
@@ -60,7 +73,47 @@ public class BlockMaterializer {
             attachLines(block, c.getBloquesJson());
         }
 
-        return blockRepo.save(block);
+        var saved = blockRepo.save(block);
+        // Orientación del autor (opcional al proponer): su PRIMER voto.
+        // El consenso comunitario sigue mandando después (más votos lo mueven).
+        for (OrientationVote v : parseAuthorOrientations(
+                c.getOrientationsJson(), saved.getId(), c.getSubmittedByUid())) {
+            votes.upsertOrientationVote(v);
+        }
+        return saved;
+    }
+
+    private static final Set<String> VALID_ASPECTS =
+            Set.of("N", "NE", "E", "SE", "S", "SO", "O", "NO");
+
+    /**
+     * Parsea {"block":"NE","faces":{"0":"N","2":"S"}} a votos del autor.
+     * Tolerante: JSON inválido, rumbos desconocidos o índices no numéricos
+     * se ignoran (la propuesta se aprueba igual; los votos son un extra).
+     */
+    static List<OrientationVote> parseAuthorOrientations(String json, String blockId, String uid) {
+        List<OrientationVote> out = new ArrayList<>();
+        if (json == null || json.isBlank() || uid == null) return out;
+        try {
+            JsonNode root = new ObjectMapper().readTree(json);
+            String whole = root.path("block").asText(null);
+            if (whole != null && VALID_ASPECTS.contains(whole)) {
+                out.add(new OrientationVote(blockId, null, uid, whole));
+            }
+            JsonNode faces = root.path("faces");
+            if (faces.isObject()) {
+                faces.properties().forEach(e2 -> {
+                    try {
+                        int idx = Integer.parseInt(e2.getKey());
+                        String aspect = e2.getValue().asText("");
+                        if (idx >= 0 && VALID_ASPECTS.contains(aspect)) {
+                            out.add(new OrientationVote(blockId, idx, uid, aspect));
+                        }
+                    } catch (NumberFormatException ignored) { }
+                });
+            }
+        } catch (Exception ignored) { }
+        return out;
     }
 
     /**

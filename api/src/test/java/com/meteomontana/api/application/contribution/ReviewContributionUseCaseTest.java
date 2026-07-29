@@ -40,6 +40,8 @@ class ReviewContributionUseCaseTest {
     com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository journalRepo =
             mock(com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository.class);
     FeedPublishService feedService = mock(FeedPublishService.class);
+    com.meteomontana.api.domain.port.CommunityVoteRepository communityVotes =
+            mock(com.meteomontana.api.domain.port.CommunityVoteRepository.class);
 
     ReviewContributionUseCase useCase;
 
@@ -50,7 +52,7 @@ class ReviewContributionUseCaseTest {
         // Colaboradores REALES cableados con los mocks de siempre (mismo patron
         // que los tests del FeedService troceado).
         useCase = new ReviewContributionUseCase(repo, blockRepo, schoolRepo,
-                new BlockMaterializer(blockRepo),
+                new BlockMaterializer(blockRepo, communityVotes),
                 new LineReconciler(blockRepo, journalRepo),
                 new ReviewNotifier(emailService, userRepository),
                 feedService);

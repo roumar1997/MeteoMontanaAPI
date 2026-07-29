@@ -53,6 +53,7 @@ public class SubmitContributionUseCase {
                 LocalDateTime.now(), null
         );
 
+        contribution.setOrientationsJson(req.orientationsJson());
         repo.save(contribution);
 
         // Si quien propone es ADMIN, se publica directamente (sin cola de
