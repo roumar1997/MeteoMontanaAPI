@@ -15,10 +15,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /** Comentarios + votos de utilidad en piedras/muros y vías. */
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class LineCommentController {
 
     public record CreateCommentRequest(String lineId, String text) {}
@@ -26,11 +28,6 @@ public class LineCommentController {
 
     private final LineCommentService service;
     private final UserRepository users;
-
-    public LineCommentController(LineCommentService service, UserRepository users) {
-        this.service = service;
-        this.users = users;
-    }
 
     /** Lectura pública; con token, cada comentario trae myVote. */
     @GetMapping("/blocks/{blockId}/comments")

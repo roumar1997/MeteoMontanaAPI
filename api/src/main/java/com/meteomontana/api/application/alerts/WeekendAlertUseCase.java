@@ -3,7 +3,7 @@ package com.meteomontana.api.application.alerts;
 import com.meteomontana.api.application.forecast.ForecastResponse;
 import com.meteomontana.api.application.forecast.GetForecastUseCase;
 import com.meteomontana.api.domain.port.UserRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.WeekendAlertPrefJpaEntity;
+import com.meteomontana.api.domain.model.AlertPreference;
 import com.meteomontana.api.domain.port.PushSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Evalúa el próximo vie/sáb/dom de las escuelas elegidas (máx 3) y manda un
@@ -23,6 +24,7 @@ import java.util.Map;
  * y aviso de lluvia (en cuántos días llueve y el máximo de mm acumulados).
  */
 @Service
+@RequiredArgsConstructor
 public class WeekendAlertUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(WeekendAlertUseCase.class);
@@ -35,29 +37,18 @@ public class WeekendAlertUseCase {
     private final com.meteomontana.api.domain.port.SchoolRepository schoolRepository;
     private final PushSender fcmService;
 
-    public WeekendAlertUseCase(GetForecastUseCase getForecast,
-                               UserRepository userRepository,
-                               com.meteomontana.api.domain.port.SchoolRepository schoolRepository,
-                               PushSender fcmService) {
-        this.getForecast = getForecast;
-        this.userRepository = userRepository;
-        this.schoolRepository = schoolRepository;
-        this.fcmService = fcmService;
-    }
-
     /** Resumen de una escuela para los días elegidos. */
     record SchoolWeekend(String schoolId, String name, int avgScore,
                          List<Integer> dayScores, List<DayOfWeek> days,
                          int rainDays, double maxRainMm) {}
 
-    public void evaluateAndSend(WeekendAlertPrefJpaEntity pref) {
-        var user = userRepository.findByUid(pref.getUid()).orElse(null);
+    public void evaluateAndSend(AlertPreference pref) {
+        var user = userRepository.findByUid(pref.uid()).orElse(null);
         if (user == null) return;
 
         // Para cada día de la semana elegido, su próxima ocurrencia dentro de
         // los 7 días empezando hoy (hoy cuenta si está elegido).
-        List<Integer> alertDays = com.meteomontana.api.infrastructure.web.WeekendAlertController
-                .parseDays(pref.getAlertDays());
+        List<Integer> alertDays = WeekendAlertPrefsUseCase.parseDays(pref.alertDays());
         LocalDate today = LocalDate.now(MADRID);
         List<String> targetDates = new ArrayList<>();
         for (int offset = 0; offset < 7; offset++) {
@@ -120,7 +111,7 @@ public class WeekendAlertUseCase {
                 "body", body.toString(),
                 "targetType", "compare",
                 "targetId", idsCsv)) > 0;
-        log.info("weekend alert para {} → {} ({} escuelas)", pref.getUid(), ok ? "enviada" : "FALLO", results.size());
+        log.info("weekend alert para {} → {} ({} escuelas)", pref.uid(), ok ? "enviada" : "FALLO", results.size());
     }
 
     /**
@@ -128,18 +119,18 @@ public class WeekendAlertUseCase {
      * radio desde la última posición del usuario, las más cercanas primero
      * (cap para no disparar demasiadas consultas de forecast por usuario).
      */
-    private List<String> resolveSchoolIds(WeekendAlertPrefJpaEntity pref) {
-        if (!"NEARBY".equalsIgnoreCase(pref.getMode())) {
-            String csv = pref.getSchoolIds();
+    private List<String> resolveSchoolIds(AlertPreference pref) {
+        if (!"NEARBY".equalsIgnoreCase(pref.mode())) {
+            String csv = pref.schoolIds();
             if (csv == null || csv.isBlank()) return List.of();
             return List.of(csv.split(","));
         }
-        if (pref.getUserLat() == null || pref.getUserLon() == null || pref.getRadiusKm() == null)
+        if (pref.userLat() == null || pref.userLon() == null || pref.radiusKm() == null)
             return List.of();
-        double lat = pref.getUserLat(), lon = pref.getUserLon();
+        double lat = pref.userLat(), lon = pref.userLon();
         return schoolRepository.findAll().stream()
                 .map(s -> Map.entry(s, haversineKm(lat, lon, s.getLat(), s.getLon())))
-                .filter(e -> e.getValue() <= pref.getRadiusKm())
+                .filter(e -> e.getValue() <= pref.radiusKm())
                 .sorted(Comparator.comparingDouble(Map.Entry::getValue))
                 .limit(12)
                 .map(e -> e.getKey().getId())

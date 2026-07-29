@@ -1,37 +1,34 @@
 package com.meteomontana.api.application.feed;
 
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
+import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
+import com.meteomontana.api.domain.model.FeedPost;
+import com.meteomontana.api.domain.port.FeedPostRepository;
 import com.meteomontana.api.infrastructure.storage.ImageValidation;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * FOTO DE CELEBRACIÓN del post: subir/reemplazar en Storage, validación de
  * imagen real (magic bytes) y borrado best-effort.
  */
 @Service
+@RequiredArgsConstructor
 public class FeedPhotoService {
 
     private static final Logger log = LoggerFactory.getLogger(FeedPhotoService.class);
 
     private static final long MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
-    private final SpringDataFeedPostRepository posts;
+    private final FeedPostRepository posts;
     private final StorageService storage;
-
-    public FeedPhotoService(SpringDataFeedPostRepository posts, StorageService storage) {
-        this.posts = posts;
-        this.storage = storage;
-    }
 
     /**
      * Sube (o reemplaza) la foto de celebración de un post PROPIO. Mismo patrón
@@ -43,10 +40,10 @@ public class FeedPhotoService {
      * @return URL firmada de la foto subida.
      */
     public String uploadPhoto(String uid, long postId, MultipartFile file) throws IOException {
-        FeedPostJpaEntity post = posts.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado"));
+        FeedPost post = posts.findById(postId)
+                .orElseThrow(() -> new NotFoundException("post no encontrado"));
         if (!post.getUserUid().equals(uid)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+            throw new ForbiddenException(
                     "solo puedes añadir foto a tus posts");
         }
         if (file == null || file.isEmpty()) {
@@ -68,8 +65,7 @@ public class FeedPhotoService {
         storage.upload(storagePath, file);
 
         try {
-            post.setPhotoPath(storagePath);
-            posts.save(post);
+            posts.updatePhotoPath(postId, storagePath);
         } catch (RuntimeException ex) {
             // Si Postgres falla, intentamos limpiar el archivo huérfano.
             deletePhotoQuietly(storagePath);

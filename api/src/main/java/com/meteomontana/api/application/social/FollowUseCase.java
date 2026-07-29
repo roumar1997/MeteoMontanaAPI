@@ -13,8 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class FollowUseCase {
 
     public record FollowStatusDto(
@@ -30,18 +32,6 @@ public class FollowUseCase {
     private final NotificationService notificationService;
     private final PushSender fcmService;
     private final UserDtoMapper userDtoMapper;
-
-    public FollowUseCase(FollowRepository followRepository,
-                         UserRepository userRepository,
-                         NotificationService notificationService,
-                         PushSender fcmService,
-                         UserDtoMapper userDtoMapper) {
-        this.followRepository = followRepository;
-        this.userRepository = userRepository;
-        this.notificationService = notificationService;
-        this.fcmService = fcmService;
-        this.userDtoMapper = userDtoMapper;
-    }
 
     @Transactional
     public void follow(String followerUid, String followedUid) {

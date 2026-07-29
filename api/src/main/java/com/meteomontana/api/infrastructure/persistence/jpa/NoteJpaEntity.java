@@ -8,9 +8,16 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 
 @Entity
 @Table(name = "notes")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class NoteJpaEntity {
 
     @Id
@@ -35,31 +42,6 @@ public class NoteJpaEntity {
     private int  downvotesCount;
     @Column(name = "photo_url", columnDefinition = "TEXT")
     private String photoUrl;
-
-    protected NoteJpaEntity(){}
-
-    public NoteJpaEntity(String id, SchoolJpaEntity school, String text, String author, String uid, LocalDateTime createdAt,
-                         int upvotesCount, int downvotesCount, String photoUrl){
-
-        this.id = id;
-        this.school = school;
-        this.text = text;
-        this.author = author;
-        this.uid = uid;
-        this.createdAt = createdAt;
-        this.upvotesCount = upvotesCount;
-        this.downvotesCount = downvotesCount;
-        this.photoUrl = photoUrl;
-    }
     //GETTERSSSS
 
-    public String getId() {return id;}
-    public SchoolJpaEntity getSchool(){return school;}
-    public String getText() {return text;}
-    public String getAuthor() {return author;}
-    public String getUid() {return uid;}
-    public LocalDateTime getCreatedAt() {return createdAt;}
-    public int getUpvotesCount() {return upvotesCount;}
-    public int getDownvotesCount() {return downvotesCount;}
-    public String getPhotoUrl() {return photoUrl;}
 }

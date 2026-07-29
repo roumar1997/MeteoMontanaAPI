@@ -4,27 +4,20 @@ import com.meteomontana.api.domain.model.SchoolSubmission;
 import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.SchoolSubmissionRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SubmitSchoolUseCase {
 
     private final SchoolSubmissionRepository repository;
-    private final SpringDataUserRepository userRepository;
+    private final com.meteomontana.api.domain.port.UserRepository userRepository;
     private final PushSender push;
-
-    public SubmitSchoolUseCase(SchoolSubmissionRepository repository,
-                               SpringDataUserRepository userRepository,
-                               PushSender push) {
-        this.repository = repository;
-        this.userRepository = userRepository;
-        this.push = push;
-    }
 
     public SubmissionDto execute(String submitterUid, SubmitSchoolRequest req) {
         if (req.name() == null || req.name().isBlank()) {
@@ -59,7 +52,7 @@ public class SubmitSchoolUseCase {
         // `admin_contributions` abre la pestaña PROPUESTAS (donde salen las
         // escuelas nuevas y las mejoras).
         String schoolName = req.name().trim();
-        userRepository.findByIsAdminTrue().forEach(admin ->
+        userRepository.findAdmins().forEach(admin ->
                 push.sendToUser(admin.getUid(), "Escuela nueva propuesta",
                         "«" + schoolName + "» · toca para revisarla en el panel",
                         Map.of("targetType", "admin_contributions", "targetId", "")));

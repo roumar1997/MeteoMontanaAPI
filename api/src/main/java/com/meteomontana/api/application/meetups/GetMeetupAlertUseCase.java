@@ -5,17 +5,14 @@ import com.meteomontana.api.domain.port.SchoolRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class GetMeetupAlertUseCase {
 
     private final MeetupAlertRepository repo;
     private final SchoolRepository schoolRepository;
-
-    public GetMeetupAlertUseCase(MeetupAlertRepository repo, SchoolRepository schoolRepository) {
-        this.repo = repo;
-        this.schoolRepository = schoolRepository;
-    }
 
     /** Devuelve la alerta global (schoolId=null en la búsqueda de la fila base) del usuario, o vacía si no existe. */
     public MeetupAlertDto execute(String uid) {

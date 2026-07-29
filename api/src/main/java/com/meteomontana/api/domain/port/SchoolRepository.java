@@ -6,6 +6,8 @@ import java.util.Optional;
 
 public interface SchoolRepository {
     List<School> findAll();
+    /** Nº total de escuelas del catálogo (panel de admin). */
+    long count();
     Optional<School> findById(String id);
     School save(School school);
 }

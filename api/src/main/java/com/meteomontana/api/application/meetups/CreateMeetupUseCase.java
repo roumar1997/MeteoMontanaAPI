@@ -1,5 +1,7 @@
 package com.meteomontana.api.application.meetups;
 
+import com.meteomontana.api.domain.exception.ForbiddenException;
+
 import com.meteomontana.api.application.social.NotificationService;
 import com.meteomontana.api.domain.model.MeetupAlert;
 import com.meteomontana.api.domain.model.Meetup;
@@ -19,8 +21,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class CreateMeetupUseCase {
 
     private final MeetupRepository meetupRepository;
@@ -33,28 +37,6 @@ public class CreateMeetupUseCase {
     private final PushSender pushSender;
     private final MeetupDtoMapper mapper;
     private final com.meteomontana.api.application.moderation.UserModerationService moderation;
-
-    public CreateMeetupUseCase(MeetupRepository meetupRepository,
-                               ChatRepository chatRepository,
-                               SchoolRepository schoolRepository,
-                               UserRepository userRepository,
-                               MeetupAlertRepository alertRepository,
-                               FollowRepository followRepository,
-                               NotificationService notificationService,
-                               PushSender pushSender,
-                               MeetupDtoMapper mapper,
-                               com.meteomontana.api.application.moderation.UserModerationService moderation) {
-        this.meetupRepository = meetupRepository;
-        this.chatRepository = chatRepository;
-        this.schoolRepository = schoolRepository;
-        this.userRepository = userRepository;
-        this.alertRepository = alertRepository;
-        this.followRepository = followRepository;
-        this.notificationService = notificationService;
-        this.pushSender = pushSender;
-        this.mapper = mapper;
-        this.moderation = moderation;
-    }
 
     @Transactional
     public MeetupDto execute(String creatorUid, CreateMeetupRequest req) {
@@ -81,7 +63,9 @@ public class CreateMeetupUseCase {
             User creator = userRepository.findByUid(creatorUid)
                     .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
             if (!"WOMAN".equals(creator.getGender())) {
-                throw new IllegalStateException("GENDER_REQUIRED");
+                // ForbiddenException (403) preserva el código para la app; un
+                // IllegalStateException caía al 500 genérico y lo neutralizaba.
+                throw new ForbiddenException("GENDER_REQUIRED");
             }
         }
 

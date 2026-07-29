@@ -3,6 +3,7 @@ package com.meteomontana.api.infrastructure.storage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Copia todas las fotos de Firebase Storage → Cloudflare R2. Se dispara a mano
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
  * STORAGE_BACKEND=firebase).
  */
 @Service
+@RequiredArgsConstructor
 public class StorageMigrationService {
 
     private static final Logger log = LoggerFactory.getLogger(StorageMigrationService.class);
@@ -20,11 +22,6 @@ public class StorageMigrationService {
 
     private final FirebaseStorageBackend firebase;
     private final R2StorageBackend r2;
-
-    public StorageMigrationService(FirebaseStorageBackend firebase, R2StorageBackend r2) {
-        this.firebase = firebase;
-        this.r2 = r2;
-    }
 
     /**
      * @param dryRun si true, solo cuenta objetos en Firebase y cuántos faltan en

@@ -1,17 +1,17 @@
 package com.meteomontana.api.application.feed;
 
 import com.meteomontana.api.application.feed.FeedViews.FeedPostView;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFollowRepository;
-import org.springframework.http.HttpStatus;
+import com.meteomontana.api.domain.exception.NotFoundException;
+import com.meteomontana.api.domain.model.FeedPost;
+import com.meteomontana.api.domain.port.FeedPostRepository;
+import com.meteomontana.api.domain.port.FollowRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
 /**
  * LECTURA del feed: página por scope, actividad de un usuario y post único.
@@ -19,24 +19,15 @@ import java.util.Set;
  * {@link FeedAccessGuard} y el mapeo a vistas {@link FeedViewMapper}.
  */
 @Service
+@RequiredArgsConstructor
 public class FeedQueryService {
 
     private static final int MAX_PAGE = 50;
 
-    private final SpringDataFeedPostRepository posts;
-    private final SpringDataFollowRepository follows;
+    private final FeedPostRepository posts;
+    private final FollowRepository follows;
     private final FeedAccessGuard guard;
     private final FeedViewMapper viewMapper;
-
-    public FeedQueryService(SpringDataFeedPostRepository posts,
-                            SpringDataFollowRepository follows,
-                            FeedAccessGuard guard,
-                            FeedViewMapper viewMapper) {
-        this.posts = posts;
-        this.follows = follows;
-        this.guard = guard;
-        this.viewMapper = viewMapper;
-    }
 
     /**
      * Página del feed, más recientes primero. Cursor keyset: {@code before} es
@@ -47,10 +38,10 @@ public class FeedQueryService {
         int capped = Math.max(1, Math.min(limit, MAX_PAGE));
         long cursor = before == null ? Long.MAX_VALUE : before;
 
-        List<FeedPostJpaEntity> page;
+        List<FeedPost> page;
         if ("following".equalsIgnoreCase(scope)) {
             // Seguidos ACEPTADOS + yo mismo (mis posts también salen en mi feed).
-            List<String> authors = new ArrayList<>(follows.findFollowingOf(uid));
+            List<String> authors = new ArrayList<>(follows.followingOf(uid));
             authors.add(uid);
             page = posts.pageByAuthors(authors, cursor, capped);
         } else if ("mine".equalsIgnoreCase(scope)) {
@@ -84,7 +75,7 @@ public class FeedQueryService {
             if (guard.hasBlocked(uid, targetUid)) return List.of();
             if (!guard.canSeeUserContent(uid, targetUid)) return List.of();
         }
-        List<FeedPostJpaEntity> page = posts.pageByAuthors(List.of(targetUid), cursor, capped);
+        List<FeedPost> page = posts.pageByAuthors(List.of(targetUid), cursor, capped);
         if (page.isEmpty()) return List.of();
         return viewMapper.mapViews(uid, page);
     }
@@ -97,22 +88,22 @@ public class FeedQueryService {
      */
     @Transactional(readOnly = true)
     public FeedPostView single(String uid, long postId) {
-        FeedPostJpaEntity p = posts.findById(postId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado"));
+        FeedPost p = posts.findById(postId)
+                .orElseThrow(() -> new NotFoundException("post no encontrado"));
 
         String authorUid = p.getUserUid();
         if (!authorUid.equals(uid)) {
             if (guard.hasBlocked(uid, authorUid)) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+                throw new NotFoundException("post no encontrado");
             }
             if (!guard.canSeeUserContent(uid, authorUid)) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+                throw new NotFoundException("post no encontrado");
             }
         }
 
         List<FeedPostView> views = viewMapper.mapViews(uid, List.of(p));
         if (views.isEmpty()) { // cuenta del autor borrada
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+            throw new NotFoundException("post no encontrado");
         }
         return views.get(0);
     }

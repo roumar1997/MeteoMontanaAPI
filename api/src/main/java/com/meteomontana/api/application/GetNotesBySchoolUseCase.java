@@ -7,18 +7,14 @@ import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class GetNotesBySchoolUseCase {
 
     private final NoteRepository noteRepository;
     private final SchoolRepository schoolRepository;
-
-    public GetNotesBySchoolUseCase(NoteRepository noteRepository,
-                                   SchoolRepository schoolRepository) {
-        this.noteRepository = noteRepository;
-        this.schoolRepository = schoolRepository;
-    }
 
     public List<Note> execute(String schoolId) {
         schoolRepository.findById(schoolId)

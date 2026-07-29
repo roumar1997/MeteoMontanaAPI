@@ -1,7 +1,11 @@
 package com.meteomontana.api.domain.model;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.AllArgsConstructor;
 
+@Getter
+@AllArgsConstructor
 public class User {
     private final String uid;
     private final String email;
@@ -30,40 +34,4 @@ public class User {
                 isAdmin, isPremium, fcmToken, gender, null, createdAt, updatedAt);
     }
 
-    public User(String uid, String email, String username, String displayName,
-                String photoPath, String bio, boolean isPublic, String topGrade,
-                boolean isAdmin, boolean isPremium, String fcmToken, String gender,
-                String gearJson, LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this.uid = uid;
-        this.email = email;
-        this.username = username;
-        this.displayName = displayName;
-        this.photoPath = photoPath;
-        this.bio = bio;
-        this.isPublic = isPublic;
-        this.topGrade = topGrade;
-        this.isAdmin = isAdmin;
-        this.isPremium = isPremium;
-        this.fcmToken = fcmToken;
-        this.gender = gender;
-        this.gearJson = gearJson;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
-
-    public String getUid()             { return uid; }
-    public String getEmail()           { return email; }
-    public String getUsername()        { return username; }
-    public String getDisplayName()     { return displayName; }
-    public String getPhotoPath()       { return photoPath; }
-    public String getBio()             { return bio; }
-    public boolean isPublic()          { return isPublic; }
-    public String getTopGrade()        { return topGrade; }
-    public boolean isAdmin()           { return isAdmin; }
-    public boolean isPremium()         { return isPremium; }
-    public String getFcmToken()        { return fcmToken; }
-    public String getGender()          { return gender; }
-    public String getGearJson()        { return gearJson; }
-    public LocalDateTime getCreatedAt(){ return createdAt; }
-    public LocalDateTime getUpdatedAt(){ return updatedAt; }
 }

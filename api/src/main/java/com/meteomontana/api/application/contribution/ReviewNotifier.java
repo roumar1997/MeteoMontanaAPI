@@ -5,6 +5,7 @@ import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.email.EmailTemplates;
 import com.meteomontana.api.infrastructure.email.ResendEmailService;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Email al autor de una contribución cuando se aprueba/rechaza. Best-effort:
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
  * transacción del approve/reject). Extraído de ReviewContributionUseCase (SRP).
  */
 @Service
+@RequiredArgsConstructor
 public class ReviewNotifier {
 
     private static final org.slf4j.Logger log =
@@ -19,11 +21,6 @@ public class ReviewNotifier {
 
     private final ResendEmailService emailService;
     private final UserRepository userRepository;
-
-    public ReviewNotifier(ResendEmailService emailService, UserRepository userRepository) {
-        this.emailService = emailService;
-        this.userRepository = userRepository;
-    }
 
     public void sendReviewEmail(PendingContribution c, boolean approved, String reason) {
         try {

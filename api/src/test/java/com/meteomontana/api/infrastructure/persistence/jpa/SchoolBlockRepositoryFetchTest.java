@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.properties.hibernate.generate_statistics=true",
-        "spring.datasource.url=jdbc:h2:mem:blocks;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
+        "spring.datasource.url=jdbc:h2:mem:blocks;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;NON_KEYWORDS=DAY",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password="

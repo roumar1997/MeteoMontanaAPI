@@ -29,9 +29,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/admin")
+@RequiredArgsConstructor
 public class AdminController {
 
     private final ListPendingSubmissionsUseCase listPending;
@@ -45,30 +47,6 @@ public class AdminController {
     private final SchoolRepository schoolRepository;
     private final AdminGuard adminGuard;
     private final com.meteomontana.api.infrastructure.storage.StorageMigrationService storageMigration;
-
-    public AdminController(ListPendingSubmissionsUseCase listPending,
-                           ApproveSubmissionUseCase approveUseCase,
-                           RejectSubmissionUseCase rejectUseCase,
-                           ListAdminLogsUseCase listLogs,
-                           SendAdminPushUseCase sendPushUseCase,
-                           AdminStatsUseCase statsUseCase,
-                           ListReportsUseCase listReports,
-                           ResolveReportUseCase resolveReport,
-                           SchoolRepository schoolRepository,
-                           AdminGuard adminGuard,
-                           com.meteomontana.api.infrastructure.storage.StorageMigrationService storageMigration) {
-        this.listPending = listPending;
-        this.approveUseCase = approveUseCase;
-        this.rejectUseCase = rejectUseCase;
-        this.listLogs = listLogs;
-        this.sendPushUseCase = sendPushUseCase;
-        this.statsUseCase = statsUseCase;
-        this.listReports = listReports;
-        this.resolveReport = resolveReport;
-        this.schoolRepository = schoolRepository;
-        this.adminGuard = adminGuard;
-        this.storageMigration = storageMigration;
-    }
 
     /** Mover una escuela directamente (admin). Body: {"lat": ..., "lon": ...}. */
     public record MoveSchoolRequest(double lat, double lon) {}

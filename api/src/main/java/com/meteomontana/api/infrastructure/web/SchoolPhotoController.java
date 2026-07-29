@@ -20,22 +20,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class SchoolPhotoController {
 
     private final UploadSchoolPhotoUseCase uploadUseCase;
     private final GetSchoolPhotosUseCase getUseCase;
     private final DeleteSchoolPhotoUseCase deleteUseCase;
-
-    public SchoolPhotoController(UploadSchoolPhotoUseCase uploadUseCase,
-                                 GetSchoolPhotosUseCase getUseCase,
-                                 DeleteSchoolPhotoUseCase deleteUseCase) {
-        this.uploadUseCase = uploadUseCase;
-        this.getUseCase    = getUseCase;
-        this.deleteUseCase = deleteUseCase;
-    }
 
     /** Público: listar fotos de una escuela. */
     @GetMapping("/schools/{id}/photos")

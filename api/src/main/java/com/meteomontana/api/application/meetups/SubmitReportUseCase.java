@@ -1,32 +1,28 @@
 package com.meteomontana.api.application.meetups;
 
+import com.meteomontana.api.domain.exception.ConflictException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.model.MeetupReport;
 import com.meteomontana.api.domain.port.MeetupReportRepository;
 import com.meteomontana.api.domain.port.MeetupRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SubmitReportUseCase {
 
     private final MeetupReportRepository reportRepository;
     private final MeetupRepository meetupRepository;
 
-    public SubmitReportUseCase(MeetupReportRepository reportRepository,
-                                MeetupRepository meetupRepository) {
-        this.reportRepository = reportRepository;
-        this.meetupRepository = meetupRepository;
-    }
-
     public ReportDto execute(String reporterUid, String meetupId, SubmitReportRequest req) {
         meetupRepository.findById(meetupId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Quedada no encontrada"));
+                .orElseThrow(() -> new NotFoundException("Quedada no encontrada"));
 
         if (reportRepository.existsByReporterAndMeetup(reporterUid, meetupId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya has denunciado esta quedada");
+            throw new ConflictException("Ya has denunciado esta quedada");
         }
 
         MeetupReport.Reason reason;

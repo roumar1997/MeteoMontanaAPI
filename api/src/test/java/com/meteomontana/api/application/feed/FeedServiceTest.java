@@ -4,28 +4,32 @@ import com.meteomontana.api.application.moderation.UserModerationService;
 import com.meteomontana.api.application.social.NotificationService;
 import com.meteomontana.api.application.users.PublicProfileDto;
 import com.meteomontana.api.application.users.UserDtoMapper;
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
+import com.meteomontana.api.domain.model.BlockLine;
+import com.meteomontana.api.domain.model.FeedComment;
+import com.meteomontana.api.domain.model.FeedPost;
+import com.meteomontana.api.domain.model.School;
+import com.meteomontana.api.domain.model.SchoolBlock;
 import com.meteomontana.api.domain.model.User;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedPostJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedLikeRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFollowRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserBlockRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedLikeJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.FollowJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.UserBlockJpaEntity;
+import com.meteomontana.api.domain.port.FeedCommentLikeRepository;
+import com.meteomontana.api.domain.port.FeedCommentRepository;
+import com.meteomontana.api.domain.port.FeedLikeRepository;
+import com.meteomontana.api.domain.port.FeedPostRepository;
+import com.meteomontana.api.domain.port.FollowRepository;
 import com.meteomontana.api.domain.port.PushSender;
+import com.meteomontana.api.domain.port.SchoolBlockRepository;
+import com.meteomontana.api.domain.port.SchoolRepository;
+import com.meteomontana.api.domain.port.UserBlockRepository;
 import com.meteomontana.api.domain.port.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,16 +43,21 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Tests del feed sobre los PUERTOS de dominio (P2.3b): los servicios de
+ * application/ ya no ven JPA — los mocks son de FeedPostRepository & cía y
+ * los objetos, modelos de dominio reales.
+ */
 class FeedServiceTest {
 
-    SpringDataFeedPostRepository posts = mock(SpringDataFeedPostRepository.class);
-    SpringDataFeedLikeRepository likes = mock(SpringDataFeedLikeRepository.class);
-    SpringDataFeedCommentRepository comments = mock(SpringDataFeedCommentRepository.class);
-    com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentLikeRepository commentLikes = mock(com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentLikeRepository.class);
-    SpringDataFollowRepository follows = mock(SpringDataFollowRepository.class);
-    SpringDataUserBlockRepository blocks = mock(SpringDataUserBlockRepository.class);
-    SpringDataSchoolBlockRepository schoolBlocks = mock(SpringDataSchoolBlockRepository.class);
-    SpringDataSchoolRepository schools = mock(SpringDataSchoolRepository.class);
+    FeedPostRepository posts = mock(FeedPostRepository.class);
+    FeedLikeRepository likes = mock(FeedLikeRepository.class);
+    FeedCommentRepository comments = mock(FeedCommentRepository.class);
+    FeedCommentLikeRepository commentLikes = mock(FeedCommentLikeRepository.class);
+    FollowRepository follows = mock(FollowRepository.class);
+    UserBlockRepository blocks = mock(UserBlockRepository.class);
+    SchoolBlockRepository schoolBlocks = mock(SchoolBlockRepository.class);
+    SchoolRepository schools = mock(SchoolRepository.class);
     UserRepository users = mock(UserRepository.class);
     UserDtoMapper mapper = mock(UserDtoMapper.class);
     UserModerationService moderation = mock(UserModerationService.class);
@@ -91,22 +100,36 @@ class FeedServiceTest {
         return new PublicProfileDto(uid, username, "Name " + username, null, null, null, false, true);
     }
 
-    private FeedPostJpaEntity post(String authorUid) {
-        FeedPostJpaEntity p = mock(FeedPostJpaEntity.class);
-        when(p.getId()).thenReturn(1L);
-        when(p.getUserUid()).thenReturn(authorUid);
-        when(p.getBlockId()).thenReturn("b1");
-        when(p.getKind()).thenReturn(FeedViews.KIND_TICK);
-        return p;
+    /** Post TICK básico (id=1, piedra b1) de un autor dado — modelo de dominio real. */
+    private FeedPost post(String authorUid) {
+        return new FeedPost(1L, authorUid, null, null, "b1", null, null, null, null,
+                FeedViews.KIND_TICK, null);
+    }
+
+    /** Copia con id asignado (lo que devuelve create() en el adaptador real). */
+    private static FeedPost withId(FeedPost p, long id) {
+        FeedPost out = new FeedPost(id, p.getUserUid(), p.getSchoolId(), p.getSchoolName(),
+                p.getBlockId(), p.getBlockName(), p.getLineId(), p.getLineName(),
+                p.getGrade(), p.getKind(), p.getCreatedAt());
+        out.setDiscipline(p.getDiscipline());
+        out.setRockType(p.getRockType());
+        out.setCaption(p.getCaption());
+        out.setPhotoPath(p.getPhotoPath());
+        return out;
+    }
+
+    private SchoolBlock block(String id, SchoolBlock.Discipline discipline,
+                              String photoPath, List<BlockLine> lines) {
+        return new SchoolBlock(id, "s1", SchoolBlock.Type.BLOCK, discipline, "Piedra",
+                0, 0, photoPath, null, "uid", null, lines, null);
     }
 
     // ------------------------------------------------------------ page
 
     @Test
     void followingScopeQueriesAcceptedFollowingPlusSelf() {
-        when(follows.findFollowingOf("me")).thenReturn(List.of("friend"));
+        when(follows.followingOf("me")).thenReturn(List.of("friend"));
         when(posts.pageByAuthors(anyList(), anyLong(), anyInt())).thenReturn(List.of());
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
 
         queryService.page("me", "following", null, 20);
 
@@ -117,7 +140,6 @@ class FeedServiceTest {
     @Test
     void allScopeUsesPublicOnlyQuery() {
         when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of());
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
 
         queryService.page("me", "all", 99L, 10);
 
@@ -127,9 +149,8 @@ class FeedServiceTest {
 
     @Test
     void blockedAuthorsAreFilteredOut() {
-        FeedPostJpaEntity trollPost = post("troll");
-        when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(trollPost));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of(new UserBlockJpaEntity("me", "troll")));
+        when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(post("troll")));
+        when(blocks.blockedUidsOf("me")).thenReturn(Set.of("troll"));
 
         var result = queryService.page("me", "all", null, 20);
 
@@ -138,14 +159,8 @@ class FeedServiceTest {
 
     @Test
     void deletedAuthorsAreDroppedFromFeed() {
-        FeedPostJpaEntity ghostPost = post("ghost");
-        when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(ghostPost));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
-        when(likes.countByPostIds(anyList())).thenReturn(List.of());
-        when(comments.countByPostIds(anyList())).thenReturn(List.of());
-        when(likes.likedPostIds(any(), anyList())).thenReturn(List.of());
+        when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(post("ghost")));
         when(users.findByUids(anyList())).thenReturn(List.of()); // cuenta borrada
-        when(schoolBlocks.findAllById(any())).thenReturn(List.of());
 
         var result = queryService.page("me", "all", null, 20);
 
@@ -154,16 +169,13 @@ class FeedServiceTest {
 
     @Test
     void pageMapsAuthorAndCounts() {
-        FeedPostJpaEntity anaPost = post("ana");
-        when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(anaPost));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
-        when(likes.countByPostIds(anyList())).thenReturn(List.<Object[]>of(new Object[]{1L, 3L}));
-        when(comments.countByPostIds(anyList())).thenReturn(List.<Object[]>of(new Object[]{1L, 2L}));
-        when(likes.likedPostIds(eq("me"), anyList())).thenReturn(List.of(1L));
+        when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(post("ana")));
+        when(likes.countByPostIds(anyList())).thenReturn(Map.of(1L, 3L));
+        when(comments.countByPostIds(anyList())).thenReturn(Map.of(1L, 2L));
+        when(likes.likedPostIds(eq("me"), anyList())).thenReturn(Set.of(1L));
         User ana = user("ana", true);
         when(users.findByUids(anyList())).thenReturn(List.of(ana));
         when(mapper.toPublic(ana)).thenReturn(profile("ana", "ana"));
-        when(schoolBlocks.findAllById(any())).thenReturn(List.of());
 
         var result = queryService.page("me", "all", null, 20);
 
@@ -179,7 +191,6 @@ class FeedServiceTest {
     @Test
     void mineScopeQueriesOnlySelf() {
         when(posts.pageByAuthors(anyList(), anyLong(), anyInt())).thenReturn(List.of());
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
 
         queryService.page("me", "mine", null, 20);
 
@@ -191,10 +202,9 @@ class FeedServiceTest {
 
     @Test
     void userScopeReturnsEmptyIfTargetPrivateAndCallerNotFollower() {
-        User ana = user("ana", false);
+        User ana = user("ana", false);   // fuera del when() — stubbing anidado revienta
         when(users.findByUid("ana")).thenReturn(Optional.of(ana));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
-        // follows → Optional.empty() por defecto (no la sigue)
+        // follows.isFollowing → false por defecto (no la sigue)
 
         var result = queryService.pageOfUser("me", "ana", null, 20);
 
@@ -204,7 +214,7 @@ class FeedServiceTest {
 
     @Test
     void userScopeReturnsEmptyIfCallerBlockedTarget() {
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of(new UserBlockJpaEntity("me", "troll")));
+        when(blocks.isBlocked("me", "troll")).thenReturn(true);
 
         var result = queryService.pageOfUser("me", "troll", null, 20);
 
@@ -216,11 +226,7 @@ class FeedServiceTest {
     void userScopeAllowsAcceptedFollowerOfPrivateTarget() {
         User ana = user("ana", false);
         when(users.findByUid("ana")).thenReturn(Optional.of(ana));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
-        FollowJpaEntity accepted = mock(FollowJpaEntity.class);
-        when(accepted.getStatus()).thenReturn("ACCEPTED");
-        when(follows.findById_FollowerUidAndId_FollowedUid("me", "ana"))
-                .thenReturn(Optional.of(accepted));
+        when(follows.isFollowing("me", "ana")).thenReturn(true);
         when(posts.pageByAuthors(anyList(), anyLong(), anyInt())).thenReturn(List.of());
 
         queryService.pageOfUser("me", "ana", null, 20);
@@ -240,61 +246,49 @@ class FeedServiceTest {
 
     // ------------------------------------------------------------ single
 
-    private FeedPostJpaEntity singlePost(long id, String authorUid) {
-        FeedPostJpaEntity p = mock(FeedPostJpaEntity.class);
-        when(p.getId()).thenReturn(id);
-        when(p.getUserUid()).thenReturn(authorUid);
-        when(p.getBlockId()).thenReturn("b1");
-        return p;
+    private FeedPost singlePost(long id, String authorUid) {
+        return new FeedPost(id, authorUid, null, null, "b1", null, null, null, null,
+                FeedViews.KIND_TICK, null);
     }
 
     @Test
     void singleReturns404IfMissing() {
         when(posts.findById(5L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> queryService.single("me", 5L))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("404");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("post no encontrado");
     }
 
     @Test
     void singleReturns404IfAuthorPrivateAndCallerNotFollower() {
-        FeedPostJpaEntity p = singlePost(5L, "ana");
         User ana = user("ana", false);
-        when(posts.findById(5L)).thenReturn(Optional.of(p));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+        when(posts.findById(5L)).thenReturn(Optional.of(singlePost(5L, "ana")));
         when(users.findByUid("ana")).thenReturn(Optional.of(ana));
-        // follows.findById_... → Optional.empty() por defecto (no la sigue)
+        // follows.isFollowing → false por defecto (no la sigue)
 
         assertThatThrownBy(() -> queryService.single("me", 5L))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("404");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("post no encontrado");
     }
 
     @Test
     void singleReturns404IfCallerBlockedAuthor() {
-        FeedPostJpaEntity p = singlePost(5L, "troll");
-        when(posts.findById(5L)).thenReturn(Optional.of(p));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of(new UserBlockJpaEntity("me", "troll")));
+        when(posts.findById(5L)).thenReturn(Optional.of(singlePost(5L, "troll")));
+        when(blocks.isBlocked("me", "troll")).thenReturn(true);
 
         assertThatThrownBy(() -> queryService.single("me", 5L))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("404");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("post no encontrado");
     }
 
     @Test
     void singleAllowsAcceptedFollowerOfPrivateAuthor() {
-        FeedPostJpaEntity p = singlePost(5L, "ana");
         User ana = user("ana", false);
-        when(posts.findById(5L)).thenReturn(Optional.of(p));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
+        when(posts.findById(5L)).thenReturn(Optional.of(singlePost(5L, "ana")));
         when(users.findByUid("ana")).thenReturn(Optional.of(ana));
-        FollowJpaEntity accepted = mock(FollowJpaEntity.class);
-        when(accepted.getStatus()).thenReturn("ACCEPTED");
-        when(follows.findById_FollowerUidAndId_FollowedUid("me", "ana"))
-                .thenReturn(Optional.of(accepted));
+        when(follows.isFollowing("me", "ana")).thenReturn(true);
         when(users.findByUids(anyList())).thenReturn(List.of(ana));
         when(mapper.toPublicLocked(ana)).thenReturn(profile("ana", "ana"));
-        when(schoolBlocks.findAllById(any())).thenReturn(List.of());
 
         var v = queryService.single("me", 5L);
 
@@ -306,12 +300,12 @@ class FeedServiceTest {
 
     @Test
     void likeNotifiesOwnerOnlyOnCreation() {
-        FeedPostJpaEntity p = singlePost(1L, "ana");
-        when(posts.findById(1L)).thenReturn(Optional.of(p));
-        when(likes.existsById(any(FeedLikeJpaEntity.Key.class))).thenReturn(false);
+        when(posts.findById(1L)).thenReturn(Optional.of(singlePost(1L, "ana")));
+        when(likes.exists(1L, "me")).thenReturn(false);
 
         likeService.like("me", 1L);
 
+        verify(likes).add(1L, "me");
         verify(notifications).create(eq("ana"), eq("FEED_LIKE"), any(), any(),
                 eq("feed_post"), eq("1"));
         verify(push).sendDataToUserAsync(eq("ana"), any());
@@ -319,35 +313,30 @@ class FeedServiceTest {
 
     @Test
     void likeDoesNotNotifyOnRepeatOrSelfLike() {
-        FeedPostJpaEntity p = singlePost(1L, "ana");
-        when(posts.findById(1L)).thenReturn(Optional.of(p));
-        when(likes.existsById(any(FeedLikeJpaEntity.Key.class))).thenReturn(true);
+        when(posts.findById(1L)).thenReturn(Optional.of(singlePost(1L, "ana")));
+        when(likes.exists(1L, "me")).thenReturn(true);
         likeService.like("me", 1L); // repetido → nada
 
-        FeedPostJpaEntity own = singlePost(2L, "me");
-        when(posts.findById(2L)).thenReturn(Optional.of(own));
-        when(likes.existsById(any(FeedLikeJpaEntity.Key.class))).thenReturn(false);
+        when(posts.findById(2L)).thenReturn(Optional.of(singlePost(2L, "me")));
+        when(likes.exists(2L, "me")).thenReturn(false);
         likeService.like("me", 2L); // auto-like → nada
 
         verify(notifications, never()).create(any(), any(), any(), any(), any(), any());
     }
 
-    private FeedCommentJpaEntity comment(String uid) {
-        FeedCommentJpaEntity c = mock(FeedCommentJpaEntity.class);
-        when(c.getUid()).thenReturn(uid);
-        return c;
+    private FeedComment comment(String uid) {
+        return new FeedComment("c-" + uid + "-" + System.nanoTime(), 2L, uid, "@" + uid, "txt", null, null);
     }
 
     @Test
     void commentNotifiesOwnerAndPreviousCommentersWithoutDuplicates() {
-        FeedPostJpaEntity p = singlePost(2L, "ana");
         when(posts.existsById(2L)).thenReturn(true);
-        when(posts.findById(2L)).thenReturn(Optional.of(p));
+        when(posts.findById(2L)).thenReturn(Optional.of(singlePost(2L, "ana")));
         // Comentaristas previos: la dueña, bob dos veces y yo mismo.
-        List<FeedCommentJpaEntity> previous = List.of(
+        List<FeedComment> previous = List.of(
                 comment("ana"), comment("bob"), comment("bob"), comment("me"));
-        when(comments.findByPostIdOrderByCreatedAtAsc(2L)).thenReturn(previous);
-        when(comments.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(comments.findByPostId(2L)).thenReturn(previous);
+        when(comments.create(any())).thenAnswer(inv -> inv.getArgument(0));
 
         commentService.addComment("me", 2L, "¡Qué máquina!", null);
 
@@ -367,63 +356,43 @@ class FeedServiceTest {
     @Test
     void publishRejectsReservedKinds() {
         assertThatThrownBy(() -> publisher.publish("me", "b1", null, FeedViews.KIND_NEW_BLOCK))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(BadRequestException.class);
         assertThatThrownBy(() -> publisher.publish("me", "b1", null, "INVENTED"))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(BadRequestException.class);
     }
 
     @Test
     void publishIsIdempotentPerUserLineAndKind() {
-        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
-        com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity line =
-                mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
-        when(line.getId()).thenReturn("l1");
-        when(block.getLines()).thenReturn(List.of(line));
-        when(schoolBlocks.findById("b1")).thenReturn(Optional.of(block));
-
-        FeedPostJpaEntity existing = mock(FeedPostJpaEntity.class);
-        when(existing.getId()).thenReturn(42L);
-        when(posts.findByUserUidAndLineIdAndKind("me", "l1", FeedViews.KIND_TICK))
-                .thenReturn(Optional.of(existing));
+        BlockLine line = new BlockLine("l1", "b1", "Vía", "6a", null, null, 0, null, 0);
+        when(schoolBlocks.findById("b1"))
+                .thenReturn(Optional.of(block("b1", SchoolBlock.Discipline.BOULDER, null, List.of(line))));
+        when(posts.findByUserLineAndKind("me", "l1", FeedViews.KIND_TICK))
+                .thenReturn(Optional.of(withId(post("me"), 42L)));
 
         long id = publisher.publish("me", "b1", "l1", FeedViews.KIND_TICK);
 
         assertThat(id).isEqualTo(42L);
-        verify(posts, never()).save(any());
+        verify(posts, never()).create(any());
     }
 
     @Test
     void publishRejectsLineOfAnotherBlock() {
-        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
-        when(block.getLines()).thenReturn(List.of());
-        when(schoolBlocks.findById("b1")).thenReturn(Optional.of(block));
+        when(schoolBlocks.findById("b1"))
+                .thenReturn(Optional.of(block("b1", SchoolBlock.Discipline.BOULDER, null, List.of())));
 
         assertThatThrownBy(() -> publisher.publish("me", "b1", "other-line", FeedViews.KIND_TICK))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(NotFoundException.class);
     }
 
     // ------------------------------------------------------------ snapshot discipline/rock
 
-    /** Piedra ROUTE en una escuela de arenisca, con save que devuelve el arg con id. */
-    private SchoolBlockJpaEntity blockWithSchool() {
-        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
-        when(block.getSchoolId()).thenReturn("s1");
-        when(block.getLines()).thenReturn(List.of());
-        when(block.getDiscipline())
-                .thenReturn(com.meteomontana.api.domain.model.SchoolBlock.Discipline.ROUTE);
-        when(schoolBlocks.findById("b1")).thenReturn(Optional.of(block));
-
-        var school = mock(com.meteomontana.api.infrastructure.persistence.jpa.SchoolJpaEntity.class);
-        when(school.getName()).thenReturn("Albarracín");
-        when(school.getRockType()).thenReturn("Arenisca");
-        when(schools.findById("s1")).thenReturn(Optional.of(school));
-
-        when(posts.save(any())).thenAnswer(inv -> {
-            FeedPostJpaEntity e = org.mockito.Mockito.spy((FeedPostJpaEntity) inv.getArgument(0));
-            org.mockito.Mockito.doReturn(7L).when(e).getId();
-            return e;
-        });
-        return block;
+    /** Piedra ROUTE en una escuela de arenisca, con create que devuelve el arg con id 7. */
+    private void blockWithSchool() {
+        when(schoolBlocks.findById("b1"))
+                .thenReturn(Optional.of(block("b1", SchoolBlock.Discipline.ROUTE, null, List.of())));
+        when(schools.findById("s1")).thenReturn(Optional.of(
+                new School("s1", "Albarracín", null, null, null, "Arenisca", 0, 0, null)));
+        when(posts.create(any())).thenAnswer(inv -> withId(inv.getArgument(0), 7L));
     }
 
     @Test
@@ -432,8 +401,8 @@ class FeedServiceTest {
 
         publisher.publish("me", "b1", null, FeedViews.KIND_TICK, null, null);
 
-        var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
-        verify(posts).save(captor.capture());
+        var captor = org.mockito.ArgumentCaptor.forClass(FeedPost.class);
+        verify(posts).create(captor.capture());
         assertThat(captor.getValue().getDiscipline()).isEqualTo("ROUTE"); // de la piedra
         assertThat(captor.getValue().getRockType()).isEqualTo("Arenisca");
         assertThat(captor.getValue().getSchoolName()).isEqualTo("Albarracín");
@@ -444,13 +413,13 @@ class FeedServiceTest {
         blockWithSchool();
 
         publisher.publish("me", "b1", null, FeedViews.KIND_TICK, "boulder", null);
-        var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
-        verify(posts).save(captor.capture());
+        var captor = org.mockito.ArgumentCaptor.forClass(FeedPost.class);
+        verify(posts).create(captor.capture());
         assertThat(captor.getValue().getDiscipline()).isEqualTo("BOULDER"); // normalizada
 
         org.mockito.Mockito.clearInvocations(posts);
         publisher.publish("me", "b1", null, FeedViews.KIND_TICK, "SPEED", null);
-        verify(posts).save(captor.capture());
+        verify(posts).create(captor.capture());
         assertThat(captor.getValue().getDiscipline()).isEqualTo("ROUTE"); // desconocida → piedra
     }
 
@@ -463,13 +432,13 @@ class FeedServiceTest {
 
         publisher.publish("me", "b1", null, FeedViews.KIND_TICK, null, longCaption);
 
-        var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
-        verify(posts).save(captor.capture());
+        var captor = org.mockito.ArgumentCaptor.forClass(FeedPost.class);
+        verify(posts).create(captor.capture());
         assertThat(captor.getValue().getCaption()).hasSize(500).startsWith("xxx");
 
         org.mockito.Mockito.clearInvocations(posts);
         publisher.publish("me", "b1", null, FeedViews.KIND_TICK, null, "  ¡Pegue duro!  ");
-        verify(posts).save(captor.capture());
+        verify(posts).create(captor.capture());
         assertThat(captor.getValue().getCaption()).isEqualTo("¡Pegue duro!"); // trimmed
     }
 
@@ -479,8 +448,8 @@ class FeedServiceTest {
 
         publisher.publish("me", "b1", null, FeedViews.KIND_TICK, null, "   ");
 
-        var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
-        verify(posts).save(captor.capture());
+        var captor = org.mockito.ArgumentCaptor.forClass(FeedPost.class);
+        verify(posts).create(captor.capture());
         assertThat(captor.getValue().getCaption()).isNull();
     }
 
@@ -488,22 +457,18 @@ class FeedServiceTest {
 
     @Test
     void viewExposesStartTypeReadLiveFromLine() {
-        FeedPostJpaEntity p = post("ana");
-        when(p.getLineId()).thenReturn("l1");
-        when(p.getCaption()).thenReturn("brutal");
+        FeedPost p = new FeedPost(1L, "ana", null, null, "b1", null, "l1", null, null,
+                FeedViews.KIND_TICK, null);
+        p.setCaption("brutal");
         when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(p));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
         User ana = user("ana", true);
         when(users.findByUids(anyList())).thenReturn(List.of(ana));
         when(mapper.toPublic(ana)).thenReturn(profile("ana", "ana"));
 
-        var line = mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
-        when(line.getId()).thenReturn("l1");
-        when(line.getStartType()).thenReturn(com.meteomontana.api.domain.model.BlockLine.StartType.SIT);
-        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
-        when(block.getId()).thenReturn("b1");
-        when(block.getLines()).thenReturn(List.of(line));
-        when(schoolBlocks.findAllById(any())).thenReturn(List.of(block));
+        BlockLine line = new BlockLine("l1", "b1", "Vía", "6a",
+                BlockLine.StartType.SIT, "[{\"x\":0.1}]", 0, null, 0);
+        when(schoolBlocks.findByIds(any()))
+                .thenReturn(List.of(block("b1", SchoolBlock.Discipline.BOULDER, null, List.of(line))));
 
         var result = queryService.page("me", "all", null, 20);
 
@@ -516,13 +481,13 @@ class FeedServiceTest {
 
     @Test
     void publishSystemCreatesNewBlockPostWithSnapshots() {
-        SchoolBlockJpaEntity block = blockWithSchool();
+        blockWithSchool();
 
-        long id = publisher.publishSystem("author", block, null, FeedViews.KIND_NEW_BLOCK);
+        long id = publisher.publishSystem("author", "b1", null, FeedViews.KIND_NEW_BLOCK);
 
         assertThat(id).isEqualTo(7L);
-        var captor = org.mockito.ArgumentCaptor.forClass(FeedPostJpaEntity.class);
-        verify(posts).save(captor.capture());
+        var captor = org.mockito.ArgumentCaptor.forClass(FeedPost.class);
+        verify(posts).create(captor.capture());
         assertThat(captor.getValue().getKind()).isEqualTo(FeedViews.KIND_NEW_BLOCK);
         assertThat(captor.getValue().getUserUid()).isEqualTo("author");
         assertThat(captor.getValue().getRockType()).isEqualTo("Arenisca");
@@ -530,8 +495,7 @@ class FeedServiceTest {
 
     @Test
     void publishSystemRejectsClientKinds() {
-        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
-        assertThatThrownBy(() -> publisher.publishSystem("author", block, null, FeedViews.KIND_TICK))
+        assertThatThrownBy(() -> publisher.publishSystem("author", "b1", null, FeedViews.KIND_TICK))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -539,31 +503,22 @@ class FeedServiceTest {
     void newBlockPostExposesCoverFaceLinesOnly() {
         // Post NEW_BLOCK (sin lineId) de una piedra con 3 vías: dos de la cara
         // portada (photoPath null o == portada) y una de OTRA cara.
-        FeedPostJpaEntity p = post("ana");
-        when(p.getKind()).thenReturn(FeedViews.KIND_NEW_BLOCK);
+        FeedPost p = new FeedPost(1L, "ana", null, null, "b1", null, null, null, null,
+                FeedViews.KIND_NEW_BLOCK, null);
         when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(p));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
         User ana = user("ana", true);
         when(users.findByUids(anyList())).thenReturn(List.of(ana));
         when(mapper.toPublic(ana)).thenReturn(profile("ana", "ana"));
 
-        var cover = mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
-        when(cover.getName()).thenReturn("Vía portada");
-        when(cover.getGrade()).thenReturn("6a");
-        when(cover.getLinePath()).thenReturn("[{\"x\":0.1,\"y\":0.9}]");
-        // photoPath null → hereda la portada de la piedra
-        var coverExplicit = mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
-        when(coverExplicit.getPhotoPath()).thenReturn("blocks/b1/cover.jpg");
-        when(coverExplicit.getLinePath()).thenReturn("[{\"x\":0.5,\"y\":0.5}]");
-        var otherFace = mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
-        when(otherFace.getPhotoPath()).thenReturn("blocks/b1/otra-cara.jpg");
-        when(otherFace.getLinePath()).thenReturn("[{\"x\":0.2,\"y\":0.2}]");
-
-        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
-        when(block.getId()).thenReturn("b1");
-        when(block.getPhotoPath()).thenReturn("blocks/b1/cover.jpg");
-        when(block.getLines()).thenReturn(List.of(cover, coverExplicit, otherFace));
-        when(schoolBlocks.findAllById(any())).thenReturn(List.of(block));
+        BlockLine cover = new BlockLine("v1", "b1", "Vía portada", "6a", null,
+                "[{\"x\":0.1,\"y\":0.9}]", 0, null, 0);   // photoPath null → hereda portada
+        BlockLine coverExplicit = new BlockLine("v2", "b1", "Otra", null, null,
+                "[{\"x\":0.5,\"y\":0.5}]", 1, "blocks/b1/cover.jpg", 0);
+        BlockLine otherFace = new BlockLine("v3", "b1", "Lejos", null, null,
+                "[{\"x\":0.2,\"y\":0.2}]", 2, "blocks/b1/otra-cara.jpg", 1);
+        when(schoolBlocks.findByIds(any())).thenReturn(List.of(
+                block("b1", SchoolBlock.Discipline.BOULDER, "blocks/b1/cover.jpg",
+                        List.of(cover, coverExplicit, otherFace))));
 
         var result = queryService.page("me", "all", null, 20);
 
@@ -577,17 +532,14 @@ class FeedServiceTest {
 
     @Test
     void tickPostDoesNotExposeBlockLines() {
-        FeedPostJpaEntity p = post("ana"); // kind TICK, sin lineId
+        FeedPost p = post("ana"); // kind TICK, sin lineId
         when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(p));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
         User ana = user("ana", true);
         when(users.findByUids(anyList())).thenReturn(List.of(ana));
         when(mapper.toPublic(ana)).thenReturn(profile("ana", "ana"));
-        var line = mock(com.meteomontana.api.infrastructure.persistence.jpa.BlockLineJpaEntity.class);
-        SchoolBlockJpaEntity block = mock(SchoolBlockJpaEntity.class);
-        when(block.getId()).thenReturn("b1");
-        when(block.getLines()).thenReturn(List.of(line));
-        when(schoolBlocks.findAllById(any())).thenReturn(List.of(block));
+        BlockLine line = new BlockLine("l1", "b1", "Vía", null, null, "[{\"x\":0.1}]", 0, null, 0);
+        when(schoolBlocks.findByIds(any()))
+                .thenReturn(List.of(block("b1", SchoolBlock.Discipline.BOULDER, null, List.of(line))));
 
         var result = queryService.page("me", "all", null, 20);
 
@@ -598,14 +550,13 @@ class FeedServiceTest {
 
     @Test
     void deleteRejectsForeignPostUnlessAdmin() {
-        FeedPostJpaEntity p = post("ana");
-        when(posts.findById(1L)).thenReturn(Optional.of(p));
+        when(posts.findById(1L)).thenReturn(Optional.of(post("ana")));
 
         assertThatThrownBy(() -> publisher.delete("me", 1L, false))
-                .isInstanceOf(ResponseStatusException.class);
+                .isInstanceOf(ForbiddenException.class);
 
         publisher.delete("me", 1L, true); // admin sí puede
-        verify(posts).delete(p);
+        verify(posts).deleteById(1L);
     }
 
     // ------------------------------------------------------------ foto de celebración
@@ -619,20 +570,18 @@ class FeedServiceTest {
 
     @Test
     void uploadPhotoRejectsNonOwner() {
-        FeedPostJpaEntity p = post("ana");
-        when(posts.findById(1L)).thenReturn(Optional.of(p));
+        when(posts.findById(1L)).thenReturn(Optional.of(post("ana")));
 
         assertThatThrownBy(() -> photoService.uploadPhoto("me", 1L, jpeg()))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("403");
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("solo puedes añadir foto");
     }
 
     @Test
     void uploadPhotoStoresPathReplacesOldAndReturnsSignedUrl() throws Exception {
-        FeedPostJpaEntity p = post("me");
-        when(p.getPhotoPath()).thenReturn("feed-photos/1/old.jpg");
+        FeedPost p = post("me");
+        p.setPhotoPath("feed-photos/1/old.jpg");
         when(posts.findById(1L)).thenReturn(Optional.of(p));
-        when(posts.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(storage.signedReadUrl(any(), anyInt()))
                 .thenReturn(java.net.URI.create("https://signed.example/foto").toURL());
 
@@ -640,7 +589,7 @@ class FeedServiceTest {
 
         assertThat(url).isEqualTo("https://signed.example/foto");
         var pathCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(p).setPhotoPath(pathCaptor.capture());
+        verify(posts).updatePhotoPath(eq(1L), pathCaptor.capture());
         assertThat(pathCaptor.getValue()).startsWith("feed-photos/1/").endsWith(".jpg");
         verify(storage).upload(eq(pathCaptor.getValue()), any());
         verify(storage).delete("feed-photos/1/old.jpg"); // la anterior se limpia
@@ -648,8 +597,7 @@ class FeedServiceTest {
 
     @Test
     void uploadPhotoRejectsNonImageBytes() {
-        FeedPostJpaEntity p = post("me");
-        when(posts.findById(1L)).thenReturn(Optional.of(p));
+        when(posts.findById(1L)).thenReturn(Optional.of(post("me")));
         var fake = new org.springframework.mock.web.MockMultipartFile(
                 "file", "evil.jpg", "image/jpeg", "MZ ejecutable".getBytes());
 
@@ -660,16 +608,13 @@ class FeedServiceTest {
 
     @Test
     void viewPhotoUrlIsNullWithoutPhotoAndSignedWithPhoto() throws Exception {
-        FeedPostJpaEntity noPhoto = post("ana");
-        FeedPostJpaEntity withPhoto = post("ana");
-        when(withPhoto.getId()).thenReturn(2L);
-        when(withPhoto.getPhotoPath()).thenReturn("feed-photos/2/x.jpg");
+        FeedPost noPhoto = post("ana");
+        FeedPost withPhoto = withId(post("ana"), 2L);
+        withPhoto.setPhotoPath("feed-photos/2/x.jpg");
         when(posts.pageAllPublic(anyLong(), anyInt())).thenReturn(List.of(noPhoto, withPhoto));
-        when(blocks.findByBlockerUid("me")).thenReturn(List.of());
         User ana = user("ana", true);
         when(users.findByUids(anyList())).thenReturn(List.of(ana));
         when(mapper.toPublic(ana)).thenReturn(profile("ana", "ana"));
-        when(schoolBlocks.findAllById(any())).thenReturn(List.of());
         when(storage.signedReadUrl(eq("feed-photos/2/x.jpg"), anyInt()))
                 .thenReturn(java.net.URI.create("https://signed.example/x").toURL());
 
@@ -682,15 +627,15 @@ class FeedServiceTest {
 
     @Test
     void deleteRemovesPhotoFromStorageAndSurvivesStorageFailure() {
-        FeedPostJpaEntity p = post("me");
-        when(p.getPhotoPath()).thenReturn("feed-photos/1/x.jpg");
+        FeedPost p = post("me");
+        p.setPhotoPath("feed-photos/1/x.jpg");
         when(posts.findById(1L)).thenReturn(Optional.of(p));
         org.mockito.Mockito.doThrow(new RuntimeException("storage caído"))
                 .when(storage).delete("feed-photos/1/x.jpg");
 
         publisher.delete("me", 1L, false); // no lanza pese al fallo del Storage
 
-        verify(posts).delete(p);
+        verify(posts).deleteById(1L);
         verify(storage).delete("feed-photos/1/x.jpg");
     }
 }

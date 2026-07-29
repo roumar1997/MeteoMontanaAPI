@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Boletín de montaña listo para la app: localiza el macizo de unas
@@ -19,13 +20,10 @@ import java.util.Map;
  * (cabecera/texto) y/o "lugar"[] (puntos con altitud y temperaturas).
  */
 @Service
+@RequiredArgsConstructor
 public class MountainBulletinService {
 
     private final AemetMountainClient client;
-
-    public MountainBulletinService(AemetMountainClient client) {
-        this.client = client;
-    }
 
     /** Null si las coordenadas no caen en ningún macizo o AEMET no responde. */
     @Cacheable(cacheNames = "mountain-bulletin", key = "#areaCode + '/' + #day")

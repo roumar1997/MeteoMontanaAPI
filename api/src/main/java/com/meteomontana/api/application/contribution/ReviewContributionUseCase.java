@@ -2,6 +2,8 @@ package com.meteomontana.api.application.contribution;
 
 import com.meteomontana.api.application.feed.FeedPublishService;
 import com.meteomontana.api.application.feed.FeedViews;
+import com.meteomontana.api.domain.exception.ConflictException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.model.PendingContribution;
 import com.meteomontana.api.domain.model.SchoolBlock;
 import com.meteomontana.api.domain.model.SubmissionStatus;
@@ -12,12 +14,11 @@ import com.meteomontana.api.infrastructure.persistence.jpa.SchoolBlockJpaEntity;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlockRepository;
 import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
 
 /**
  * ORQUESTA la aprobación/rechazo de una contribución pendiente y delega el
@@ -35,6 +36,7 @@ import java.time.LocalDateTime;
  *                         si targetBlockId == null  → mueve la escuela entera.
  */
 @Service
+@RequiredArgsConstructor
 public class ReviewContributionUseCase {
 
     private static final org.slf4j.Logger log =
@@ -48,22 +50,6 @@ public class ReviewContributionUseCase {
     private final ReviewNotifier notifier;
     private final FeedPublishService feedService;
 
-    public ReviewContributionUseCase(SpringDataContributionRepository repo,
-                                     SpringDataSchoolBlockRepository blockRepo,
-                                     SpringDataSchoolRepository schoolRepo,
-                                     BlockMaterializer materializer,
-                                     LineReconciler reconciler,
-                                     ReviewNotifier notifier,
-                                     FeedPublishService feedService) {
-        this.repo       = repo;
-        this.blockRepo  = blockRepo;
-        this.schoolRepo = schoolRepo;
-        this.materializer = materializer;
-        this.reconciler = reconciler;
-        this.notifier = notifier;
-        this.feedService = feedService;
-    }
-
     /**
      * Post automático del feed al aprobar (NEW_BLOCK para piedra nueva, NEW_LINE
      * si se añadieron vías a una piedra ya existente), con autor = autor de la
@@ -73,7 +59,10 @@ public class ReviewContributionUseCase {
                                  BlockLineJpaEntity firstNewLine, String kind) {
         try {
             if (block == null || c.getSubmittedByUid() == null) return;
-            feedService.publishSystem(c.getSubmittedByUid(), block, firstNewLine, kind);
+            // El feed recibe IDS y relee la piedra por su puerto de dominio —
+            // las entidades JPA de contribuciones no cruzan esa frontera.
+            feedService.publishSystem(c.getSubmittedByUid(), block.getId(),
+                    firstNewLine != null ? firstNewLine.getId() : null, kind);
         } catch (Exception e) {
             log.warn("Post de feed ({}) de la contribución {} FALLÓ: {}",
                     kind, c.getId(), e.toString());
@@ -203,10 +192,10 @@ public class ReviewContributionUseCase {
 
     private PendingContributionJpaEntity findPending(String id) {
         var entity = repo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new NotFoundException(
                         "Contribución no encontrada: " + id));
         if (entity.getStatus() != SubmissionStatus.PENDING) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new ConflictException(
                     "Esta contribución ya fue revisada.");
         }
         return entity;

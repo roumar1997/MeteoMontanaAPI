@@ -7,6 +7,7 @@ import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Devuelve el perfil del usuario autenticado.
@@ -16,18 +17,12 @@ import java.time.LocalDateTime;
  * pedir GET /api/me crea el usuario en BD si aún no existe.
  */
 @Service
+@RequiredArgsConstructor
 public class GetOrCreateMyProfileUseCase {
 
     private final UserRepository userRepository;
     private final UserDtoMapper mapper;
     private final JournalUseCase journalUseCase;
-
-    public GetOrCreateMyProfileUseCase(UserRepository userRepository, UserDtoMapper mapper,
-                                       JournalUseCase journalUseCase) {
-        this.userRepository = userRepository;
-        this.mapper = mapper;
-        this.journalUseCase = journalUseCase;
-    }
 
     public PrivateProfileDto execute(FirebaseUser firebaseUser) {
         User user = userRepository.findByUid(firebaseUser.uid())

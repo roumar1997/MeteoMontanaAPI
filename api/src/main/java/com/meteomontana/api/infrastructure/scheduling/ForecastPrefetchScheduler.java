@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Pre-descarga el forecast de TODAS las escuelas cada hora (y al arrancar) con
@@ -20,18 +21,13 @@ import java.util.List;
  * 10.000 usuarios. Mata de raíz el 429 por picos de tráfico.
  */
 @Component
+@RequiredArgsConstructor
 public class ForecastPrefetchScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(ForecastPrefetchScheduler.class);
 
     private final SchoolRepository schoolRepository;
     private final OpenMeteoClient openMeteoClient;
-
-    public ForecastPrefetchScheduler(SchoolRepository schoolRepository,
-                                     OpenMeteoClient openMeteoClient) {
-        this.schoolRepository = schoolRepository;
-        this.openMeteoClient = openMeteoClient;
-    }
 
     /** Cada hora en el minuto 5 (los modelos de Open-Meteo se actualizan ~cada 3h). */
     @Scheduled(cron = "0 5 * * * *", zone = "Europe/Madrid")

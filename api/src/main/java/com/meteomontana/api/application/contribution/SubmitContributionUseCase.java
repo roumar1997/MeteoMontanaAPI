@@ -1,45 +1,30 @@
 package com.meteomontana.api.application.contribution;
 
+import com.meteomontana.api.domain.exception.BadRequestException;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.model.PendingContribution;
 import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.domain.port.PushSender;
 import com.meteomontana.api.domain.port.SchoolRepository;
-import com.meteomontana.api.infrastructure.persistence.SpringDataContributionRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.PendingContributionJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataUserRepository;
+import com.meteomontana.api.domain.port.PendingContributionRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SubmitContributionUseCase {
 
-    private final SpringDataContributionRepository repo;
+    private final PendingContributionRepository repo;
     private final SchoolRepository schoolRepository;
     private final com.meteomontana.api.application.admin.AdminGuard adminGuard;
     private final ReviewContributionUseCase reviewUseCase;
-    private final SpringDataUserRepository userRepository;
+    private final com.meteomontana.api.domain.port.UserRepository userRepository;
     private final PushSender push;
-
-    public SubmitContributionUseCase(SpringDataContributionRepository repo,
-                                     SchoolRepository schoolRepository,
-                                     com.meteomontana.api.application.admin.AdminGuard adminGuard,
-                                     ReviewContributionUseCase reviewUseCase,
-                                     SpringDataUserRepository userRepository,
-                                     PushSender push) {
-        this.repo = repo;
-        this.schoolRepository = schoolRepository;
-        this.adminGuard = adminGuard;
-        this.reviewUseCase = reviewUseCase;
-        this.userRepository = userRepository;
-        this.push = push;
-    }
 
     public ContributionResponse execute(String schoolId, ContributionRequest req,
                                         FirebaseUser user) {
@@ -50,7 +35,7 @@ public class SubmitContributionUseCase {
         try {
             type = PendingContribution.Type.valueOf(req.type().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            throw new BadRequestException(
                     "Tipo de contribución inválido: " + req.type());
         }
 
@@ -68,7 +53,8 @@ public class SubmitContributionUseCase {
                 LocalDateTime.now(), null
         );
 
-        repo.save(PendingContributionJpaEntity.from(contribution));
+        contribution.setOrientationsJson(req.orientationsJson());
+        repo.save(contribution);
 
         // Si quien propone es ADMIN, se publica directamente (sin cola de
         // revisión): materializamos al instante reutilizando la aprobación.
@@ -96,7 +82,7 @@ public class SubmitContributionUseCase {
         };
         String title = "Propuesta nueva: " + what;
         String body = "En «" + schoolName + "» · toca para revisarla en el panel";
-        userRepository.findByIsAdminTrue().forEach(admin ->
+        userRepository.findAdmins().forEach(admin ->
                 push.sendToUser(admin.getUid(), title, body,
                         Map.of("targetType", "admin_contributions", "targetId", "")));
     }

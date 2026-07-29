@@ -1,6 +1,9 @@
 package com.meteomontana.api.infrastructure.web;
 
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ConflictException;
 import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.exception.UsernameAlreadyTakenException;
 import jakarta.validation.Valid;
@@ -34,6 +37,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/boom/notfound") String nf() { throw new SchoolNotFoundException("x"); }
         @GetMapping("/boom/forbidden") String fb() { throw new ForbiddenException("no puedes"); }
         @GetMapping("/boom/conflict") String cf() { throw new UsernameAlreadyTakenException("pillado"); }
+        // Excepciones de dominio GENÉRICAS (P1.3), las que lanza la capa
+        // application/ tras migrar de ResponseStatusException.
+        @GetMapping("/boom/notfound2") String nf2() { throw new NotFoundException("no está"); }
+        @GetMapping("/boom/conflict2") String cf2() { throw new ConflictException("ya revisada"); }
+        @GetMapping("/boom/badrequest") String br() { throw new BadRequestException("parámetro inválido"); }
         @GetMapping("/boom/status") String st() {
             throw new ResponseStatusException(HttpStatus.I_AM_A_TEAPOT, "soy tetera");
         }
@@ -52,6 +60,11 @@ class GlobalExceptionHandlerTest {
         mvc = MockMvcBuilders.standaloneSetup(new BoomController())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
+                // Jackson explícito: desde Spring Boot 3.5.16 standaloneSetup ya no
+                // registra el conversor JSON por defecto de forma fiable → sin esto
+                // el body de ApiError sale como String y los jsonPath fallan.
+                // (Producción usa el contexto completo, sí tiene Jackson.)
+                .setMessageConverters(new org.springframework.http.converter.json.MappingJackson2HttpMessageConverter())
                 .build();
     }
 
@@ -73,6 +86,27 @@ class GlobalExceptionHandlerTest {
         mvc.perform(get("/boom/conflict"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONFLICT"));
+    }
+
+    @Test void notFoundExceptionDominio_da404() throws Exception {
+        mvc.perform(get("/boom/notfound2"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("no está"));
+    }
+
+    @Test void conflictExceptionDominio_da409() throws Exception {
+        mvc.perform(get("/boom/conflict2"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("ya revisada"));
+    }
+
+    @Test void badRequestExceptionDominio_da400() throws Exception {
+        mvc.perform(get("/boom/badrequest"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").value("parámetro inválido"));
     }
 
     @Test void responseStatusException_respetaElStatus() throws Exception {

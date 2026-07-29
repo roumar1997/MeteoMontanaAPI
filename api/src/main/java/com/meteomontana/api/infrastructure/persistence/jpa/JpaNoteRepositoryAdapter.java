@@ -11,6 +11,9 @@ import java.util.Optional;
 @Repository
 public class JpaNoteRepositoryAdapter implements NoteRepository {
 
+    @Override
+    public long count() { return jpaRepo.count(); }
+
     private final SpringDataNoteRepository jpaRepo;
     private final SpringDataSchoolRepository schoolJpaRepo;
 
@@ -18,6 +21,14 @@ public class JpaNoteRepositoryAdapter implements NoteRepository {
                                     SpringDataSchoolRepository schoolJpaRepo) {
         this.jpaRepo = jpaRepo;
         this.schoolJpaRepo = schoolJpaRepo;
+    }
+
+    @Override
+    public List<Note> findRecent(int limit) {
+        return jpaRepo.findAll(org.springframework.data.domain.PageRequest.of(0, limit,
+                        org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC, "createdAt")))
+                .stream().map(this::toNote).toList();
     }
 
     @Override

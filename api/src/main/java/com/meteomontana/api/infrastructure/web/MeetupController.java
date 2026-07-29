@@ -14,9 +14,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/meetups")
+@RequiredArgsConstructor
 public class MeetupController {
 
     private final GetMeetupsUseCase getMeetups;
@@ -31,34 +33,6 @@ public class MeetupController {
     private final MeetupRepository meetupRepository;
     private final MeetupDtoMapper mapper;
     private final com.meteomontana.api.application.meetups.MeetupInviteService inviteService;
-
-    public MeetupController(GetMeetupsUseCase getMeetups,
-                            CreateMeetupUseCase createMeetup,
-                            JoinMeetupUseCase joinMeetup,
-                            LeaveMeetupUseCase leaveMeetup,
-                            KickMemberUseCase kickMember,
-                            SubmitReportUseCase submitReport,
-                            GetMeetupAlertUseCase getMeetupAlert,
-                            SetMeetupAlertUseCase setMeetupAlert,
-                            UpdateMeetupUseCase updateMeetup,
-                            DeleteMeetupUseCase deleteMeetup,
-                            MeetupRepository meetupRepository,
-                            MeetupDtoMapper mapper,
-                            com.meteomontana.api.application.meetups.MeetupInviteService inviteService) {
-        this.getMeetups = getMeetups;
-        this.createMeetup = createMeetup;
-        this.joinMeetup = joinMeetup;
-        this.leaveMeetup = leaveMeetup;
-        this.kickMember = kickMember;
-        this.submitReport = submitReport;
-        this.getMeetupAlert = getMeetupAlert;
-        this.setMeetupAlert = setMeetupAlert;
-        this.updateMeetup = updateMeetup;
-        this.deleteMeetup = deleteMeetup;
-        this.meetupRepository = meetupRepository;
-        this.mapper = mapper;
-        this.inviteService = inviteService;
-    }
 
     private final DeleteMeetupUseCase deleteMeetup;
 
@@ -210,7 +184,10 @@ public class MeetupController {
     @PutMapping("/alerts/me")
     public MeetupAlertDto setMyAlert(@AuthenticationPrincipal FirebaseUser user,
                                      @RequestBody SetAlertRequest req) {
-        return setMeetupAlert.execute(user.uid(), req);
+        return setMeetupAlert.execute(user.uid(),
+                new SetMeetupAlertUseCase.SetAlertCommand(
+                        req.enabled(), req.daysCsv(), req.schoolId(), req.discipline(),
+                        req.privacy(), req.maxDistanceKm(), req.userLat(), req.userLon()));
     }
 
     public record SetAlertRequest(

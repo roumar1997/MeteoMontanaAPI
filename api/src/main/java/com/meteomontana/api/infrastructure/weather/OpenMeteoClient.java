@@ -31,7 +31,8 @@ public class OpenMeteoClient {
     private static final String BASE_URL = "https://api.open-meteo.com/v1/forecast";
     private static final String HOURLY_VARS =
             "temperature_2m,relative_humidity_2m,precipitation,"
-                    + "precipitation_probability,wind_speed_10m,cloud_cover,dew_point_2m,weather_code";
+                    + "precipitation_probability,wind_speed_10m,cloud_cover,dew_point_2m,weather_code,"
+                    + "shortwave_radiation";
 
     /** Máximo de localizaciones por petición batch (URL razonable; 326 → 4 calls). */
     private static final int BATCH_SIZE = 100;

@@ -1,17 +1,16 @@
 package com.meteomontana.api.application.note;
 
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.model.Note;
-import com.meteomontana.api.infrastructure.persistence.jpa.NoteVoteJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataNoteVoteRepository;
-import org.springframework.http.HttpStatus;
+import com.meteomontana.api.domain.port.NoteVoteRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Votos de utilidad de las notas comunitarias ("me gusta / no me gusta").
@@ -19,6 +18,7 @@ import java.util.stream.Collectors;
  * Las notas se sirven ordenadas por utilidad (up − down) y luego por fecha.
  */
 @Service
+@RequiredArgsConstructor
 public class NoteVotesService {
 
     /** Nota + el voto del usuario que consulta (0 si no votó o es anónimo). */
@@ -27,11 +27,7 @@ public class NoteVotesService {
                                  int upvotesCount, int downvotesCount, String photoUrl,
                                  int myVote) {}
 
-    private final SpringDataNoteVoteRepository votes;
-
-    public NoteVotesService(SpringDataNoteVoteRepository votes) {
-        this.votes = votes;
-    }
+    private final NoteVoteRepository votes;
 
     /**
      * Aplica el voto (1 = me gusta, -1 = no me gusta). Si el usuario repite
@@ -40,25 +36,21 @@ public class NoteVotesService {
     @Transactional
     public int vote(String uid, String noteId, int value) {
         if (value != 1 && value != -1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "value debe ser 1 o -1");
+            throw new BadRequestException("value debe ser 1 o -1");
         }
-        NoteVoteJpaEntity existing = votes.findByNoteIdAndUid(noteId, uid).orElse(null);
-        int old = existing == null ? 0 : existing.getVoteValue();
+        int old = votes.voteOf(noteId, uid);
         int neu = (old == value) ? 0 : value;   // repetir = quitar
 
-        if (neu == 0 && existing != null) {
-            votes.delete(existing);
-        } else if (existing != null) {
-            existing.setVoteValue(neu);
-            votes.save(existing);
+        if (neu == 0 && old != 0) {
+            votes.removeVote(noteId, uid);
         } else if (neu != 0) {
-            votes.save(new NoteVoteJpaEntity(noteId, uid, neu));
+            votes.setVote(noteId, uid, neu);
         }
         int dUp = (neu == 1 ? 1 : 0) - (old == 1 ? 1 : 0);
         int dDown = (neu == -1 ? 1 : 0) - (old == -1 ? 1 : 0);
         if (dUp != 0 || dDown != 0) {
-            if (votes.adjustCounts(noteId, dUp, dDown) == 0) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "nota no encontrada");
+            if (votes.adjustVoteCounts(noteId, dUp, dDown) == 0) {
+                throw new NotFoundException("nota no encontrada");
             }
         }
         return neu;
@@ -68,10 +60,7 @@ public class NoteVotesService {
     @Transactional(readOnly = true)
     public List<NoteWithMyVote> enrichAndSort(List<Note> notes, String uid) {
         Map<String, Integer> mine = (uid == null || notes.isEmpty()) ? Map.of()
-                : votes.findByUidAndNoteIdIn(uid, notes.stream().map(Note::getId).toList())
-                    .stream()
-                    .collect(Collectors.toMap(NoteVoteJpaEntity::getNoteId,
-                                              NoteVoteJpaEntity::getVoteValue));
+                : votes.votesOf(uid, notes.stream().map(Note::getId).toList());
         return notes.stream()
                 .map(n -> new NoteWithMyVote(n.getId(), n.getSchoolId(), n.getText(),
                         n.getAuthor(), n.getUid(), n.getCreatedAt(),

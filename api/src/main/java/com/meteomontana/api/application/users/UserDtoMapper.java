@@ -3,20 +3,18 @@ package com.meteomontana.api.application.users;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Convierte User → DTOs. Resuelve photoPath → URL firmada usando StorageService.
  */
 @Component
+@RequiredArgsConstructor
 public class UserDtoMapper {
 
     private static final int PHOTO_URL_TTL_MINUTES = 60;
 
     private final StorageService storageService;
-
-    public UserDtoMapper(StorageService storageService) {
-        this.storageService = storageService;
-    }
 
     public PublicProfileDto toPublic(User u) {
         return toPublic(u, null);

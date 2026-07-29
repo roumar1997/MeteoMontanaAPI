@@ -1,6 +1,9 @@
 package com.meteomontana.api.infrastructure.web;
 
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ConflictException;
 import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
 import com.meteomontana.api.domain.exception.PhotoNotFoundException;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.exception.UserNotFoundException;
@@ -44,7 +47,7 @@ public class GlobalExceptionHandler {
     // ── Excepciones de dominio (el dominio no sabe de HTTP; el mapeo vive aquí)
 
     @ExceptionHandler({SchoolNotFoundException.class, PhotoNotFoundException.class,
-            UserNotFoundException.class})
+            UserNotFoundException.class, NotFoundException.class})
     public ResponseEntity<ApiError> notFound(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiError.of("NOT_FOUND", e.getMessage()));
@@ -56,10 +59,16 @@ public class GlobalExceptionHandler {
                 .body(ApiError.of("FORBIDDEN", e.getMessage()));
     }
 
-    @ExceptionHandler(UsernameAlreadyTakenException.class)
-    public ResponseEntity<ApiError> conflict(UsernameAlreadyTakenException e) {
+    @ExceptionHandler({UsernameAlreadyTakenException.class, ConflictException.class})
+    public ResponseEntity<ApiError> conflict(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiError.of("CONFLICT", e.getMessage()));
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiError> badRequest(BadRequestException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiError.of("BAD_REQUEST", e.getMessage()));
     }
 
     // ── Validación declarativa (@Valid en los request DTOs) → 400 con detalle

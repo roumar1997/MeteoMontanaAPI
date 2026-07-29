@@ -6,18 +6,14 @@ import com.meteomontana.api.domain.port.SchoolSubmissionRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class ListPendingSubmissionsUseCase {
 
     private final SchoolSubmissionRepository repository;
     private final AdminGuard adminGuard;
-
-    public ListPendingSubmissionsUseCase(SchoolSubmissionRepository repository,
-                                         AdminGuard adminGuard) {
-        this.repository = repository;
-        this.adminGuard = adminGuard;
-    }
 
     public List<SubmissionDto> execute(String adminUid) {
         adminGuard.ensureAdmin(adminUid);

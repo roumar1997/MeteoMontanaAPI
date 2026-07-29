@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Forecast genérico para una ubicación arbitraria.
@@ -19,13 +20,10 @@ import java.util.Map;
  * No requiere escuela — usa caliza como roca por defecto.
  */
 @Service
+@RequiredArgsConstructor
 public class GetForecastByLocationUseCase {
 
     private final OpenMeteoClient openMeteoClient;
-
-    public GetForecastByLocationUseCase(OpenMeteoClient openMeteoClient) {
-        this.openMeteoClient = openMeteoClient;
-    }
 
     public ForecastResponse execute(double lat, double lon, String rockType) {
         // Redondeo a ~1km (2 decimales): el tiempo no varía de verdad en ese

@@ -27,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Feed social (pestaña Comunidad). TODO con token (sin scope público): así el
@@ -35,6 +36,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/feed")
+@RequiredArgsConstructor
 public class FeedController {
 
     /**
@@ -58,17 +60,6 @@ public class FeedController {
     private final FeedCommentService commentsService;
     private final FeedPhotoService photos;
     private final UserRepository users;
-
-    public FeedController(FeedQueryService query, FeedPublishService publisher,
-                          FeedLikeService likes, FeedCommentService commentsService,
-                          FeedPhotoService photos, UserRepository users) {
-        this.query = query;
-        this.publisher = publisher;
-        this.likes = likes;
-        this.commentsService = commentsService;
-        this.photos = photos;
-        this.users = users;
-    }
 
     /**
      * Página del feed. scope=following|all|mine|user; before = id del último

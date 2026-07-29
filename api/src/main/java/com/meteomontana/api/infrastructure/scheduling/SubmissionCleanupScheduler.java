@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Equivale a la Cloud Function cleanupOldProposals.
@@ -18,16 +19,13 @@ import java.util.List;
  * todos los días a las 03:00.
  */
 @Component
+@RequiredArgsConstructor
 public class SubmissionCleanupScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(SubmissionCleanupScheduler.class);
     private static final int RETENTION_DAYS = 5;
 
     private final SpringDataSchoolSubmissionRepository repository;
-
-    public SubmissionCleanupScheduler(SpringDataSchoolSubmissionRepository repository) {
-        this.repository = repository;
-    }
 
     /** Cron Spring: segundo minuto hora dia mes diaSemana. "0 0 3 * * *" = 03:00 todos los días. */
     @Scheduled(cron = "0 0 3 * * *", zone = "Europe/Madrid")

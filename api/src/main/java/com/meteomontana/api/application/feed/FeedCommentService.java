@@ -3,21 +3,21 @@ package com.meteomontana.api.application.feed;
 import com.meteomontana.api.application.feed.FeedViews.FeedAuthor;
 import com.meteomontana.api.application.feed.FeedViews.FeedCommentView;
 import com.meteomontana.api.application.moderation.UserModerationService;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.FeedCommentLikeJpaEntity;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentLikeRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedCommentRepository;
-import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataFeedPostRepository;
-import org.springframework.http.HttpStatus;
+import com.meteomontana.api.domain.exception.BadRequestException;
+import com.meteomontana.api.domain.exception.ForbiddenException;
+import com.meteomontana.api.domain.exception.NotFoundException;
+import com.meteomontana.api.domain.model.FeedComment;
+import com.meteomontana.api.domain.port.FeedCommentLikeRepository;
+import com.meteomontana.api.domain.port.FeedCommentRepository;
+import com.meteomontana.api.domain.port.FeedPostRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 /**
  * COMENTARIOS del feed: listar (con filtro de bloqueados y likes), crear
@@ -25,51 +25,33 @@ import java.util.stream.Collectors;
  * (dueño + comentaristas previos + menciones) las dispara {@link FeedNotifier}.
  */
 @Service
+@RequiredArgsConstructor
 public class FeedCommentService {
 
-    private final SpringDataFeedPostRepository posts;
-    private final SpringDataFeedCommentRepository comments;
-    private final SpringDataFeedCommentLikeRepository commentLikes;
+    private final FeedPostRepository posts;
+    private final FeedCommentRepository comments;
+    private final FeedCommentLikeRepository commentLikes;
     private final UserModerationService moderation;
     private final FeedAccessGuard guard;
     private final FeedViewMapper viewMapper;
     private final FeedNotifier notifier;
 
-    public FeedCommentService(SpringDataFeedPostRepository posts,
-                              SpringDataFeedCommentRepository comments,
-                              SpringDataFeedCommentLikeRepository commentLikes,
-                              UserModerationService moderation,
-                              FeedAccessGuard guard,
-                              FeedViewMapper viewMapper,
-                              FeedNotifier notifier) {
-        this.posts = posts;
-        this.comments = comments;
-        this.commentLikes = commentLikes;
-        this.moderation = moderation;
-        this.guard = guard;
-        this.viewMapper = viewMapper;
-        this.notifier = notifier;
-    }
-
     @Transactional(readOnly = true)
     public List<FeedCommentView> listComments(String uid, long postId) {
         Set<String> blocked = guard.blockedUids(uid);
-        List<FeedCommentJpaEntity> page = comments.findByPostIdOrderByCreatedAtAsc(postId);
+        List<FeedComment> page = comments.findByPostId(postId);
         Map<String, FeedAuthor> authors = viewMapper.loadAuthors(
-                page.stream().map(FeedCommentJpaEntity::getUid).distinct().toList());
-        List<String> ids = page.stream().map(FeedCommentJpaEntity::getId).toList();
-        Map<String, Long> likeCounts = ids.isEmpty() ? Map.of()
-                : commentLikes.countByCommentIds(ids).stream()
-                        .collect(Collectors.toMap(r -> (String) r[0], r -> (Long) r[1]));
-        Set<String> likedByMe = ids.isEmpty() ? Set.of()
-                : Set.copyOf(commentLikes.likedCommentIds(uid, ids));
+                page.stream().map(FeedComment::uid).distinct().toList());
+        List<String> ids = page.stream().map(FeedComment::id).toList();
+        Map<String, Long> likeCounts = commentLikes.countByCommentIds(ids);
+        Set<String> likedByMe = commentLikes.likedCommentIds(uid, ids);
         return page.stream()
-                .filter(c -> !blocked.contains(c.getUid()))
-                .map(c -> new FeedCommentView(c.getId(), c.getPostId(), c.getUid(),
-                        FeedViewMapper.commentAuthor(authors, c), c.getText(), c.getCreatedAt(),
-                        c.getUid().equals(uid),
-                        likeCounts.getOrDefault(c.getId(), 0L),
-                        likedByMe.contains(c.getId()), c.getParentId()))
+                .filter(c -> !blocked.contains(c.uid()))
+                .map(c -> new FeedCommentView(c.id(), c.postId(), c.uid(),
+                        FeedViewMapper.commentAuthor(authors, c), c.text(), c.createdAt(),
+                        c.uid().equals(uid),
+                        likeCounts.getOrDefault(c.id(), 0L),
+                        likedByMe.contains(c.id()), c.parentId()))
                 .toList();
     }
 
@@ -83,16 +65,16 @@ public class FeedCommentService {
     public FeedCommentView addComment(String uid, long postId, String text, String parentId) {
         moderation.ensureCanPost(uid);
         if (text == null || text.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "text is required");
+            throw new BadRequestException("text is required");
         }
         if (!posts.existsById(postId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "post no encontrado");
+            throw new NotFoundException("post no encontrado");
         }
         if (parentId != null) {
-            FeedCommentJpaEntity parent = comments.findById(parentId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "comentario no encontrado"));
-            if (parent.getPostId() != postId) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "el comentario no es de este post");
+            FeedComment parent = comments.findById(parentId)
+                    .orElseThrow(() -> new NotFoundException("comentario no encontrado"));
+            if (parent.postId() != postId) {
+                throw new BadRequestException("el comentario no es de este post");
             }
         }
         String trimmed = text.trim();
@@ -101,29 +83,29 @@ public class FeedCommentService {
         String author = notifier.authorLabelOf(uid);
 
         // Comentaristas previos ANTES de guardar el nuevo (para no notificarse a sí mismo).
-        List<FeedCommentJpaEntity> previous = comments.findByPostIdOrderByCreatedAtAsc(postId);
+        List<FeedComment> previous = comments.findByPostId(postId);
 
-        FeedCommentJpaEntity saved = comments.save(new FeedCommentJpaEntity(
-                UUID.randomUUID().toString(), postId, uid, author, trimmed, parentId));
+        FeedComment saved = comments.create(new FeedComment(
+                UUID.randomUUID().toString(), postId, uid, author, trimmed, parentId, null));
 
         posts.findById(postId).ifPresent(post -> notifier.notifyComment(uid, author, post, previous));
         notifier.notifyMentions(uid, author, trimmed, postId);
 
-        return new FeedCommentView(saved.getId(), saved.getPostId(), saved.getUid(),
+        return new FeedCommentView(saved.id(), saved.postId(), saved.uid(),
                 FeedViewMapper.commentAuthor(viewMapper.loadAuthors(List.of(uid)), saved),
-                saved.getText(), saved.getCreatedAt(), true,
-                0L, false, saved.getParentId());
+                saved.text(), saved.createdAt(), true,
+                0L, false, saved.parentId());
     }
 
     /** Da like a un comentario (idempotente). Devuelve el contador resultante. */
     @Transactional
     public long likeComment(String uid, String commentId) {
-        FeedCommentJpaEntity c = comments.findById(commentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "comentario no encontrado"));
-        if (!commentLikes.existsById(new FeedCommentLikeJpaEntity.Key(commentId, uid))) {
-            commentLikes.save(new FeedCommentLikeJpaEntity(commentId, uid));
+        FeedComment c = comments.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("comentario no encontrado"));
+        if (!commentLikes.exists(commentId, uid)) {
+            commentLikes.add(commentId, uid);
             // Solo al CREAR el like y nunca a uno mismo (mismo criterio que el post).
-            if (!c.getUid().equals(uid)) notifier.notifyCommentLike(uid, c);
+            if (!c.uid().equals(uid)) notifier.notifyCommentLike(uid, c);
         }
         return commentLikes.countByCommentId(commentId);
     }
@@ -131,19 +113,18 @@ public class FeedCommentService {
     /** Quita el like a un comentario (idempotente). Devuelve el contador. */
     @Transactional
     public long unlikeComment(String uid, String commentId) {
-        FeedCommentLikeJpaEntity.Key key = new FeedCommentLikeJpaEntity.Key(commentId, uid);
-        if (commentLikes.existsById(key)) commentLikes.deleteById(key);
+        commentLikes.remove(commentId, uid);
         return commentLikes.countByCommentId(commentId);
     }
 
     /** Borra un comentario propio (o cualquiera si es admin). */
     @Transactional
     public void deleteComment(String uid, String commentId, boolean isAdmin) {
-        FeedCommentJpaEntity c = comments.findById(commentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "comentario no encontrado"));
-        if (!isAdmin && !c.getUid().equals(uid)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "solo puedes borrar tus comentarios");
+        FeedComment c = comments.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("comentario no encontrado"));
+        if (!isAdmin && !c.uid().equals(uid)) {
+            throw new ForbiddenException("solo puedes borrar tus comentarios");
         }
-        comments.delete(c);
+        comments.deleteById(c.id());
     }
 }

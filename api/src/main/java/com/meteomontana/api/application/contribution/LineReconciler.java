@@ -10,6 +10,7 @@ import com.meteomontana.api.infrastructure.persistence.jpa.SpringDataSchoolBlock
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Aplica una contribución BOULDER sobre un bloque EXISTENTE: corregir una vía
@@ -18,16 +19,11 @@ import java.util.UUID;
  * sobreviven). Extraído de ReviewContributionUseCase (SRP).
  */
 @Service
+@RequiredArgsConstructor
 public class LineReconciler {
 
     private final SpringDataSchoolBlockRepository blockRepo;
     private final SpringDataJournalRepository journalRepo;
-
-    public LineReconciler(SpringDataSchoolBlockRepository blockRepo,
-                          SpringDataJournalRepository journalRepo) {
-        this.blockRepo = blockRepo;
-        this.journalRepo = journalRepo;
-    }
 
     /** Propaga el grado nuevo de una vía al diario de todos (si la vía tiene id). */
     private void propagateGrade(String lineId, String grade) {

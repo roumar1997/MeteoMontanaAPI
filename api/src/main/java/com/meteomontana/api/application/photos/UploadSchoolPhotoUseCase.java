@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Sube una foto de una escuela.
@@ -28,19 +29,12 @@ import java.util.UUID;
  * sin retener ninguna. Si el save falla, borramos la foto huérfana (best effort).
  */
 @Service
+@RequiredArgsConstructor
 public class UploadSchoolPhotoUseCase {
 
     private final SchoolRepository schoolRepository;
     private final SchoolPhotoRepository photoRepository;
     private final StorageService storageService;
-
-    public UploadSchoolPhotoUseCase(SchoolRepository schoolRepository,
-                                    SchoolPhotoRepository photoRepository,
-                                    StorageService storageService) {
-        this.schoolRepository = schoolRepository;
-        this.photoRepository = photoRepository;
-        this.storageService = storageService;
-    }
 
     public SchoolPhoto execute(String schoolId, String uploaderUid,
                                MultipartFile file, String caption) throws IOException {

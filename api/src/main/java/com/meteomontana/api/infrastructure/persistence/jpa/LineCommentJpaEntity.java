@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
 
 /**
  * Comentario de la comunidad en una piedra/muro (lineId=null) o en una vía
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "line_comments")
+@Getter
 public class LineCommentJpaEntity {
 
     @Id
@@ -56,13 +58,4 @@ public class LineCommentJpaEntity {
         this.createdAt = LocalDateTime.now();
     }
 
-    public String getId() { return id; }
-    public String getBlockId() { return blockId; }
-    public String getLineId() { return lineId; }
-    public String getUid() { return uid; }
-    public String getAuthor() { return author; }
-    public String getText() { return text; }
-    public int getUpvotesCount() { return upvotesCount; }
-    public int getDownvotesCount() { return downvotesCount; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
 }

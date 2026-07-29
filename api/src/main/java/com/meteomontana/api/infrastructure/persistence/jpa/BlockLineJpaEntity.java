@@ -9,9 +9,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "block_lines")
+@Getter
 public class BlockLineJpaEntity {
 
     @Id
@@ -19,34 +22,48 @@ public class BlockLineJpaEntity {
 
     @ManyToOne
     @JoinColumn(name = "block_id", nullable = false)
+    @Setter
     private SchoolBlockJpaEntity block;
 
     @Column(nullable = false)
+    @Setter
     private String name;
 
+    @Setter
     private String grade;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "start_type")
+    @Setter
     private BlockLine.StartType startType;
 
     @Column(name = "line_path", columnDefinition = "TEXT")
+    @Setter
     private String linePath;
 
     @Column(name = "sort_order", nullable = false)
+    @Setter
     private int sortOrder;
 
     @Column(name = "photo_path", columnDefinition = "TEXT")
+    @Setter
     private String photoPath;
 
     @Column(name = "face_order", nullable = false)
+    @Setter
     private int faceOrder;
 
     @Column(length = 500)
+    @Setter
     private String description;
 
     @Column(length = 60)
+    @Setter
     private String variant;
+
+    @Column(name = "setter_grade", length = 8)
+    @Setter
+    private String setterGrade;
 
     protected BlockLineJpaEntity() {}
 
@@ -63,25 +80,4 @@ public class BlockLineJpaEntity {
         this.photoPath = photoPath; this.faceOrder = faceOrder;
     }
 
-    public String getId()             { return id; }
-    public SchoolBlockJpaEntity getBlock() { return block; }
-    public void setBlock(SchoolBlockJpaEntity b) { this.block = b; }
-    public String getName()           { return name; }
-    public void setName(String name)  { this.name = name; }
-    public String getGrade()          { return grade; }
-    public void setGrade(String grade){ this.grade = grade; }
-    public BlockLine.StartType getStartType() { return startType; }
-    public void setStartType(BlockLine.StartType s) { this.startType = s; }
-    public String getLinePath()       { return linePath; }
-    public void setLinePath(String p) { this.linePath = p; }
-    public int getSortOrder()         { return sortOrder; }
-    public void setSortOrder(int s)   { this.sortOrder = s; }
-    public String getPhotoPath()      { return photoPath; }
-    public void setPhotoPath(String p){ this.photoPath = p; }
-    public int getFaceOrder()         { return faceOrder; }
-    public void setFaceOrder(int f)   { this.faceOrder = f; }
-    public String getDescription()    { return description; }
-    public void setDescription(String d) { this.description = d; }
-    public String getVariant()        { return variant; }
-    public void setVariant(String v)  { this.variant = v; }
 }

@@ -4,10 +4,13 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 /** Voto (±1) de un usuario a un comentario de piedra/vía. id = commentId:uid. */
 @Entity
 @Table(name = "line_comment_votes")
+@Getter
 public class LineCommentVoteJpaEntity {
 
     @Id
@@ -20,6 +23,7 @@ public class LineCommentVoteJpaEntity {
     private String uid;
 
     @Column(name = "vote_value", nullable = false)
+    @Setter
     private int voteValue;
 
     protected LineCommentVoteJpaEntity() {}
@@ -31,9 +35,4 @@ public class LineCommentVoteJpaEntity {
         this.voteValue = voteValue;
     }
 
-    public String getId() { return id; }
-    public String getCommentId() { return commentId; }
-    public String getUid() { return uid; }
-    public int getVoteValue() { return voteValue; }
-    public void setVoteValue(int voteValue) { this.voteValue = voteValue; }
 }

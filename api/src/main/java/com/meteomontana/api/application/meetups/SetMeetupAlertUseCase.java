@@ -1,35 +1,36 @@
 package com.meteomontana.api.application.meetups;
 
+import com.meteomontana.api.domain.exception.ForbiddenException;
+
 import com.meteomontana.api.domain.model.MeetupAlert;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.MeetupAlertRepository;
 import com.meteomontana.api.domain.port.SchoolRepository;
 import com.meteomontana.api.domain.port.UserRepository;
-import com.meteomontana.api.infrastructure.web.MeetupController;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SetMeetupAlertUseCase {
 
     private final MeetupAlertRepository repo;
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
 
-    public SetMeetupAlertUseCase(MeetupAlertRepository repo, UserRepository userRepository,
-                                  SchoolRepository schoolRepository) {
-        this.repo = repo;
-        this.userRepository = userRepository;
-        this.schoolRepository = schoolRepository;
-    }
-
     /** Activa (enabled=true) o desactiva (enabled=false) la alerta global del usuario. */
     @Transactional
-    public MeetupAlertDto execute(String uid, MeetupController.SetAlertRequest req) {
+    /** Comando de entrada del caso de uso (la web mapea su DTO a esto). */
+    public record SetAlertCommand(
+            boolean enabled, String daysCsv, String schoolId, String discipline,
+            String privacy, Integer maxDistanceKm, Double userLat, Double userLon) {}
+
+    public MeetupAlertDto execute(String uid, SetAlertCommand req) {
         if (!req.enabled()) {
             repo.deleteByUidAndSchoolId(uid, null);
             return new MeetupAlertDto(false, null, null, null, null, null, null, null, null);
@@ -52,7 +53,7 @@ public class SetMeetupAlertUseCase {
             User user = userRepository.findByUid(uid)
                     .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
             if (!"WOMAN".equals(user.getGender())) {
-                throw new IllegalStateException("GENDER_REQUIRED");
+                throw new ForbiddenException("GENDER_REQUIRED");
             }
         }
 

@@ -13,8 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SchoolBlockUseCase {
 
     public record CreateBlockLineRequest(
@@ -77,17 +79,7 @@ public class SchoolBlockUseCase {
     private final SchoolBlockRepository blockRepository;
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
-    private final com.meteomontana.api.infrastructure.persistence.jpa.SpringDataLineRatingRepository ratingRepo;
-
-    public SchoolBlockUseCase(SchoolBlockRepository blockRepository,
-                              SchoolRepository schoolRepository,
-                              UserRepository userRepository,
-                              com.meteomontana.api.infrastructure.persistence.jpa.SpringDataLineRatingRepository ratingRepo) {
-        this.blockRepository = blockRepository;
-        this.schoolRepository = schoolRepository;
-        this.userRepository = userRepository;
-        this.ratingRepo = ratingRepo;
-    }
+    private final com.meteomontana.api.domain.port.LineRatingRepository ratingRepo;
 
     public List<BlockDto> listBySchool(String schoolId) {
         return listBySchool(schoolId, null);
@@ -104,13 +96,9 @@ public class SchoolBlockUseCase {
         var avgByLine = new java.util.HashMap<String, Double>();
         var myByLine = new java.util.HashMap<String, Integer>();
         if (!lineIds.isEmpty()) {
-            for (Object[] row : ratingRepo.avgStarsByLineIds(lineIds)) {
-                avgByLine.put((String) row[0], (Double) row[1]);
-            }
+            avgByLine.putAll(ratingRepo.avgStarsByLineIds(lineIds));
             if (callerUid != null) {
-                for (var r : ratingRepo.findByUidAndLineIdIn(callerUid, lineIds)) {
-                    myByLine.put(r.getLineId(), r.getStars());
-                }
+                myByLine.putAll(ratingRepo.myStarsByLineIds(callerUid, lineIds));
             }
         }
         return blocks.stream().map(b -> toDto(b, avgByLine, myByLine)).toList();
@@ -286,9 +274,7 @@ public class SchoolBlockUseCase {
                 .map(com.meteomontana.api.domain.model.BlockLine::getId).toList();
         var avgByLine = new java.util.HashMap<String, Double>();
         if (!lineIds.isEmpty()) {
-            for (Object[] row : ratingRepo.avgStarsByLineIds(lineIds)) {
-                avgByLine.put((String) row[0], (Double) row[1]);
-            }
+            avgByLine.putAll(ratingRepo.avgStarsByLineIds(lineIds));
         }
         return toDto(b, avgByLine, java.util.Map.of());
     }

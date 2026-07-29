@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Datos de las historias sociales automáticas (proyecto n8n / Instagram).
@@ -20,16 +21,11 @@ import java.util.List;
  * lo hace n8n sobre el HTML (endpoints .html se añadirán después).
  */
 @RestController
+@RequiredArgsConstructor
 public class SocialStoryController {
 
     private final SocialStoryService service;
     private final GetTopContributorsUseCase contributors;
-
-    public SocialStoryController(SocialStoryService service,
-                                 GetTopContributorsUseCase contributors) {
-        this.service = service;
-        this.contributors = contributors;
-    }
 
     /** Top escuelas de una comunidad por índice de hoy. Ej: ?region=Comunidad de Madrid */
     @GetMapping("/api/social/conditions")

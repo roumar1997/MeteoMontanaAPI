@@ -2,7 +2,7 @@ package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.application.contribution.*;
 import com.meteomontana.api.domain.model.SubmissionStatus;
-import com.meteomontana.api.infrastructure.persistence.SpringDataContributionRepository;
+import com.meteomontana.api.domain.port.PendingContributionRepository;
 import com.meteomontana.api.application.admin.AdminGuard;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import jakarta.validation.Valid;
@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Endpoints de propuestas de mejora de escuelas existentes.
@@ -22,22 +23,13 @@ import java.util.Map;
  *  POST   /api/admin/contributions/{id}/reject     → rechazar con motivo (admin)
  */
 @RestController
+@RequiredArgsConstructor
 public class ContributionController {
 
     private final SubmitContributionUseCase submitUseCase;
     private final ReviewContributionUseCase reviewUseCase;
-    private final SpringDataContributionRepository repo;
+    private final PendingContributionRepository repo;
     private final AdminGuard adminGuard;
-
-    public ContributionController(SubmitContributionUseCase submitUseCase,
-                                  ReviewContributionUseCase reviewUseCase,
-                                  SpringDataContributionRepository repo,
-                                  AdminGuard adminGuard) {
-        this.submitUseCase = submitUseCase;
-        this.reviewUseCase = reviewUseCase;
-        this.repo = repo;
-        this.adminGuard = adminGuard;
-    }
 
     /** Usuario envía propuesta para una escuela concreta. */
     @PostMapping("/api/schools/{schoolId}/contributions")
@@ -53,21 +45,20 @@ public class ContributionController {
     @GetMapping("/api/contributions/me")
     public List<ContributionResponse> myContributions(
             @AuthenticationPrincipal FirebaseUser user) {
-        return repo.findBySubmittedByUidOrderByCreatedAtDesc(user.uid())
-                .stream()
-                .map(e -> ContributionResponse.from(e.toDomain()))
-                .toList();
+        return repo.findBySubmitter(user.uid())
+                .stream().map(ContributionResponse::from).toList();
     }
 
     /** Cola pendiente para admin. */
     @GetMapping("/api/admin/contributions")
     public List<ContributionResponse> adminQueue(
-            @AuthenticationPrincipal FirebaseUser user) {
+            @AuthenticationPrincipal FirebaseUser user,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String status) {
         adminGuard.ensureAdmin(user.uid());
-        return repo.findByStatusOrderByCreatedAtDesc(SubmissionStatus.PENDING)
-                .stream()
-                .map(e -> ContributionResponse.from(e.toDomain()))
-                .toList();
+        // P6: sin status = PENDING (compat); APPROVED/REJECTED = historial.
+        var list = status == null ? repo.findPending()
+                : repo.findByStatus(SubmissionStatus.valueOf(status.toUpperCase()));
+        return list.stream().map(ContributionResponse::from).toList();
     }
 
     /** Admin aprueba. Body opcional {"bloquesJson": "..."} = "EDITAR Y

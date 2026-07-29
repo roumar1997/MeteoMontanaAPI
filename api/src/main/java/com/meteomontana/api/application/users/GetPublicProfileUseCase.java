@@ -6,24 +6,16 @@ import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.FollowRepository;
 import com.meteomontana.api.domain.port.UserRepository;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class GetPublicProfileUseCase {
 
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
     private final UserDtoMapper mapper;
     private final JournalUseCase journalUseCase;
-
-    public GetPublicProfileUseCase(UserRepository userRepository,
-                                   FollowRepository followRepository,
-                                   UserDtoMapper mapper,
-                                   JournalUseCase journalUseCase) {
-        this.userRepository = userRepository;
-        this.followRepository = followRepository;
-        this.mapper = mapper;
-        this.journalUseCase = journalUseCase;
-    }
 
     /**
      * Busca por uid o username. Devuelve el perfil completo si es público,

@@ -13,16 +13,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/me/notifications")
+@RequiredArgsConstructor
 public class NotificationController {
 
     private final NotificationInboxUseCase useCase;
-
-    public NotificationController(NotificationInboxUseCase useCase) {
-        this.useCase = useCase;
-    }
 
     @GetMapping
     public NotificationDtos.InboxDto inbox(@AuthenticationPrincipal FirebaseUser me,

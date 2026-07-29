@@ -69,6 +69,25 @@ public class ClimbScoreCalculator {
             double precipSum, double precipProb,
             double cloudCover, double recentRain,
             Double dewPoint, String rockType) {
+        // Sin dato de roca: comportamiento histórico (roca = aire → ajuste 0).
+        return calculate(tempMax, humidity, windMax, precipSum, precipProb,
+                cloudCover, recentRain, dewPoint, rockType, tempMax);
+    }
+
+    /**
+     * Variante con MEMORIA TÉRMICA: rockTemp es la temperatura estimada de la
+     * superficie de la roca ({@link RockTemperatureModel}). El agarre depende
+     * de la roca, no solo del aire: granito que pasó la tarde a 35° al sol
+     * sigue "malo" un par de horas tras la sombra, y la roca fría de una
+     * mañana de invierno da fricción extra aunque el aire ya esté templado.
+     * Ajuste ADITIVO y acotado (-12..+5) sobre la fórmula base — no recalibra
+     * las tablas existentes.
+     */
+    public static int calculate(
+            double tempMax, double humidity, double windMax,
+            double precipSum, double precipProb,
+            double cloudCover, double recentRain,
+            Double dewPoint, String rockType, double rockTemp) {
 
         double score = lookup(tempMax, TEMP_TABLE)
                      + lookup(humidity, HUM_TABLE)
@@ -120,6 +139,9 @@ public class ClimbScoreCalculator {
         }
 
         // ── Ajustes por sol/nubes ──
+        // ── Memoria térmica de la roca ──
+        score += rockTempAdjust(rockTemp, tempMax);
+
         if      (tempMax >= 22 && cloudCover < 30) score -= 8;
         else if (tempMax >= 25 && cloudCover < 50) score -= 5;
         if      (tempMax <  8  && cloudCover < 40) score += 3;
@@ -128,6 +150,24 @@ public class ClimbScoreCalculator {
     }
 
     // ── Helpers privados ──
+
+    /**
+     * Penaliza roca CALIENTE (mala fricción aunque el aire haya refrescado) y
+     * premia roca FRÍA con aire soportable (fricción "crispy" de mañana de
+     * invierno). Solo actúa cuando roca y aire DIVERGEN — en régimen normal
+     * (roca ≈ aire) devuelve 0 y el score es el de siempre.
+     */
+    static int rockTempAdjust(double rockTemp, double airTemp) {
+        double delta = rockTemp - airTemp;
+        // Roca claramente más caliente que el aire (tarde de solana reciente):
+        if (rockTemp >= 28 && delta >= 2) return -12;
+        if (rockTemp >= 25 && delta >= 2) return -8;
+        if (rockTemp >= 22 && delta >= 3) return -4;
+        // Roca claramente más fría que el aire con aire agradable (mañana):
+        if (rockTemp <= 10 && delta <= -3 && airTemp >= 6 && airTemp <= 20) return 5;
+        if (rockTemp <= 14 && delta <= -3 && airTemp >= 6 && airTemp <= 22) return 3;
+        return 0;
+    }
 
     private static double lookup(double val, double[][] table) {
         for (double[] row : table) {

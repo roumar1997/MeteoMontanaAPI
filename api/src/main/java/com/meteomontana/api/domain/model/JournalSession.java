@@ -2,7 +2,11 @@ package com.meteomontana.api.domain.model;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.AllArgsConstructor;
 
+@Getter
+@AllArgsConstructor
 public class JournalSession {
     private final String id;
     private final String uid;
@@ -41,36 +45,4 @@ public class JournalSession {
              discipline, lineId, null, sessionDate, createdAt);
     }
 
-    public JournalSession(String id, String uid, String schoolId, String schoolName,
-                          String sector, String blockName, String grade, String notes,
-                          String discipline, String lineId, String status,
-                          LocalDate sessionDate, LocalDateTime createdAt) {
-        this.id = id;
-        this.uid = uid;
-        this.schoolId = schoolId;
-        this.schoolName = schoolName;
-        this.sector = sector;
-        this.blockName = blockName;
-        this.grade = grade;
-        this.notes = notes;
-        this.discipline = discipline;
-        this.lineId = lineId;
-        this.status = status;
-        this.sessionDate = sessionDate;
-        this.createdAt = createdAt;
-    }
-
-    public String getId()              { return id; }
-    public String getUid()             { return uid; }
-    public String getSchoolId()        { return schoolId; }
-    public String getSchoolName()      { return schoolName; }
-    public String getSector()          { return sector; }
-    public String getBlockName()       { return blockName; }
-    public String getGrade()           { return grade; }
-    public String getNotes()           { return notes; }
-    public String getDiscipline()      { return discipline; }
-    public String getLineId()          { return lineId; }
-    public String getStatus()          { return status; }
-    public LocalDate getSessionDate()  { return sessionDate; }
-    public LocalDateTime getCreatedAt(){ return createdAt; }
 }

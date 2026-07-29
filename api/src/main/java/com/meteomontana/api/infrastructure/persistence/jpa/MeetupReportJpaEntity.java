@@ -3,16 +3,25 @@ package com.meteomontana.api.infrastructure.persistence.jpa;
 import com.meteomontana.api.domain.model.MeetupReport;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 
 @Entity
 @Table(name = "meetup_reports")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class MeetupReportJpaEntity {
 
     @Id
     @Column
+    @Getter
     private String id;
 
     @Column(name = "meetup_id", nullable = false)
+    @Getter
     private String meetupId;
 
     @Column(name = "reporter_uid", nullable = false)
@@ -30,47 +39,26 @@ public class MeetupReportJpaEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Getter
+    @Setter
     private MeetupReport.Status status;
 
     @Column(name = "resolved_by")
+    @Getter
+    @Setter
     private String resolvedBy;
 
     @Column(name = "resolved_at")
+    @Getter
+    @Setter
     private LocalDateTime resolvedAt;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    protected MeetupReportJpaEntity() {}
-
-    public MeetupReportJpaEntity(String id, String meetupId, String reporterUid, String reportedUid,
-                                  MeetupReport.Reason reason, String context,
-                                  MeetupReport.Status status, String resolvedBy,
-                                  LocalDateTime resolvedAt, LocalDateTime createdAt) {
-        this.id = id;
-        this.meetupId = meetupId;
-        this.reporterUid = reporterUid;
-        this.reportedUid = reportedUid;
-        this.reason = reason;
-        this.context = context;
-        this.status = status;
-        this.resolvedBy = resolvedBy;
-        this.resolvedAt = resolvedAt;
-        this.createdAt = createdAt;
-    }
 
     public MeetupReport toDomain() {
         return new MeetupReport(id, meetupId, reporterUid, reportedUid, reason,
                                 context, status, resolvedBy, resolvedAt, createdAt);
     }
 
-    public String getId()          { return id; }
-    public String getMeetupId()    { return meetupId; }
-    public MeetupReport.Status getStatus()   { return status; }
-    public String getResolvedBy()  { return resolvedBy; }
-    public LocalDateTime getResolvedAt() { return resolvedAt; }
-
-    public void setStatus(MeetupReport.Status status)   { this.status = status; }
-    public void setResolvedBy(String resolvedBy)         { this.resolvedBy = resolvedBy; }
-    public void setResolvedAt(LocalDateTime resolvedAt)  { this.resolvedAt = resolvedAt; }
 }

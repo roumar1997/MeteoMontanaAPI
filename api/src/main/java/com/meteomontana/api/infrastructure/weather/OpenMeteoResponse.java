@@ -44,6 +44,11 @@ public record OpenMeteoResponse (
             List<Double> dewPoint,
 
             @JsonProperty("weather_code")
-            List<Integer> weatherCode
+            List<Integer> weatherCode,
+
+            /** W/m². Null en cachés antiguas (campo añadido 2026-07-28) —
+             *  RockTemperatureModel lo tolera (sin sol = roca sigue al aire). */
+            @JsonProperty("shortwave_radiation")
+            List<Double> radiation
     ){}
 }

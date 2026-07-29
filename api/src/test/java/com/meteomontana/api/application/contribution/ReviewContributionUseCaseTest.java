@@ -40,6 +40,8 @@ class ReviewContributionUseCaseTest {
     com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository journalRepo =
             mock(com.meteomontana.api.infrastructure.persistence.jpa.SpringDataJournalRepository.class);
     FeedPublishService feedService = mock(FeedPublishService.class);
+    com.meteomontana.api.domain.port.CommunityVoteRepository communityVotes =
+            mock(com.meteomontana.api.domain.port.CommunityVoteRepository.class);
 
     ReviewContributionUseCase useCase;
 
@@ -50,7 +52,7 @@ class ReviewContributionUseCaseTest {
         // Colaboradores REALES cableados con los mocks de siempre (mismo patron
         // que los tests del FeedService troceado).
         useCase = new ReviewContributionUseCase(repo, blockRepo, schoolRepo,
-                new BlockMaterializer(blockRepo),
+                new BlockMaterializer(blockRepo, communityVotes),
                 new LineReconciler(blockRepo, journalRepo),
                 new ReviewNotifier(emailService, userRepository),
                 feedService);
@@ -81,7 +83,8 @@ class ReviewContributionUseCaseTest {
 
         useCase.approve("c1", admin, false);
 
-        verify(feedService).publishSystem(eq("author-uid"), any(SchoolBlockJpaEntity.class),
+        // publishSystem ahora recibe IDS (frontera limpia con el feed).
+        verify(feedService).publishSystem(eq("author-uid"), any(String.class),
                 isNull(), eq(com.meteomontana.api.application.feed.FeedViews.KIND_NEW_BLOCK));
     }
 

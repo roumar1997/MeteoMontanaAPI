@@ -19,22 +19,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class JournalController {
 
     private final JournalUseCase useCase;
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
-
-    public JournalController(JournalUseCase useCase,
-                             UserRepository userRepository,
-                             FollowRepository followRepository) {
-        this.useCase = useCase;
-        this.userRepository = userRepository;
-        this.followRepository = followRepository;
-    }
 
     @PostMapping("/journal")
     @ResponseStatus(HttpStatus.CREATED)
@@ -52,6 +46,17 @@ public class JournalController {
     @GetMapping("/journal/me/stats")
     public JournalDtos.JournalStatsDto myStats(@AuthenticationPrincipal FirebaseUser user) {
         return useCase.statsFor(user.uid());
+    }
+
+    /** C3: cambiar la fecha de una entrada ("la hice el 12 de abril"). */
+    public record UpdateDateRequest(java.time.LocalDate date) {}
+
+    @org.springframework.web.bind.annotation.PatchMapping("/journal/{id}/date")
+    public JournalDtos.JournalSessionDto updateDate(
+            @org.springframework.web.bind.annotation.PathVariable String id,
+            @org.springframework.web.bind.annotation.RequestBody UpdateDateRequest req,
+            @AuthenticationPrincipal FirebaseUser user) {
+        return useCase.updateDate(user.uid(), id, req.date());
     }
 
     @DeleteMapping("/journal/{id}")

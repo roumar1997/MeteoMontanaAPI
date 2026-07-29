@@ -6,19 +6,17 @@ import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Búsqueda incremental para autocomplete.
  * Acentos-insensitive y case-insensitive.
  */
 @Service
+@RequiredArgsConstructor
 public class SearchSchoolsUseCase {
 
     private final SchoolRepository repository;
-
-    public SearchSchoolsUseCase(SchoolRepository repository) {
-        this.repository = repository;
-    }
 
     public List<School> execute(String query, int limit) {
         if (query == null || query.trim().isBlank()) return List.of();

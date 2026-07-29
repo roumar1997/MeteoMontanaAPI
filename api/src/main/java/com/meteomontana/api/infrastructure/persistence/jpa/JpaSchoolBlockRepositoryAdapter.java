@@ -37,6 +37,7 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
             );
             le.setDescription(line.getDescription());
             le.setVariant(line.getVariant());
+            le.setSetterGrade(line.getSetterGrade() != null ? line.getSetterGrade() : line.getGrade());
             e.addLine(le);
         });
         return toDomain(jpaRepo.save(e));
@@ -48,9 +49,20 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
     }
 
     @Override
+    public Optional<SchoolBlock> findByLineId(String lineId) {
+        return jpaRepo.findByLineId(lineId).map(this::toDomain);
+    }
+
+    @Override
     public List<SchoolBlock> findBySchoolId(String schoolId) {
         return jpaRepo.findBySchoolIdOrderByCreatedAtAsc(schoolId).stream()
                 .map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<SchoolBlock> findByIds(java.util.Collection<String> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return jpaRepo.findAllById(ids).stream().map(this::toDomain).toList();
     }
 
     @Override
@@ -64,6 +76,7 @@ public class JpaSchoolBlockRepositoryAdapter implements SchoolBlockRepository {
                     l.getPhotoPath(), l.getFaceOrder());
             bl.setDescription(l.getDescription());
             bl.setVariant(l.getVariant());
+            bl.setSetterGrade(l.getSetterGrade());
             return bl;
         }).toList();
         return new SchoolBlock(

@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class FavoriteUseCase {
 
     public record FavoriteSchoolDto(String id, String name, String region, String rockType, boolean isFavorite) {}
@@ -22,14 +24,6 @@ public class FavoriteUseCase {
     private final FavoriteRepository favoriteRepository;
     private final SchoolRepository schoolRepository;
     private final GetForecastUseCase forecastUseCase;
-
-    public FavoriteUseCase(FavoriteRepository favoriteRepository,
-                           SchoolRepository schoolRepository,
-                           GetForecastUseCase forecastUseCase) {
-        this.favoriteRepository = favoriteRepository;
-        this.schoolRepository = schoolRepository;
-        this.forecastUseCase = forecastUseCase;
-    }
 
     public void add(String uid, String schoolId) {
         schoolRepository.findById(schoolId)
