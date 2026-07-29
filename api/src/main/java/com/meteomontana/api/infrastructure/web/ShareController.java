@@ -49,6 +49,7 @@ public class ShareController {
     // LA regla de visibilidad del feed (autor público) vive en el guard —
     // antes estaba duplicada a mano aquí y podia divergir de la del feed.
     private final com.meteomontana.api.application.feed.FeedAccessGuard feedGuard;
+    private final com.meteomontana.api.application.community.CommunityVoteUseCase community;
 
     public ShareController(SchoolBlockRepository blocks,
                            SchoolRepository schools,
@@ -56,7 +57,8 @@ public class ShareController {
                            com.meteomontana.api.domain.port.MeetupRepository meetups,
                            UserRepository users,
                            FeedPostRepository feedPosts,
-                           com.meteomontana.api.application.feed.FeedAccessGuard feedGuard) {
+                           com.meteomontana.api.application.feed.FeedAccessGuard feedGuard,
+                           com.meteomontana.api.application.community.CommunityVoteUseCase community) {
         this.blocks = blocks;
         this.schools = schools;
         this.storage = storage;
@@ -64,6 +66,7 @@ public class ShareController {
         this.users = users;
         this.feedPosts = feedPosts;
         this.feedGuard = feedGuard;
+        this.community = community;
     }
 
     /**
@@ -157,7 +160,19 @@ public class ShareController {
         String kind = isBoulder ? "bloque" : "vía";
         String grade = line.getGrade() == null ? "" : " " + line.getGrade();
         String title = "«" + line.getName() + "»" + grade + " · " + block.getName() + " · Cumbre";
+        // C6: consenso de orientación (si la comunidad ya votó) y grado del
+        // equipador cuando diverge del mostrado (que ya ES el consenso).
+        String aspect = community.orientationSummaries(block.getId(), "").stream()
+                .filter(o -> o.photoIndex() == null)
+                .map(o -> o.consensus())
+                .filter(java.util.Objects::nonNull)
+                .findFirst().orElse(null);
+        String setterRef = line.getSetterGrade() != null
+                && !line.getSetterGrade().equals(line.getGrade())
+                ? " (equipador: " + line.getSetterGrade() + ")" : "";
         String desc = (isBoulder ? "Bloque" : "Vía") + " en " + schoolName
+                + (aspect != null ? " · pared " + aspect : "")
+                + setterRef
                 + ". Toca para verla con la línea dibujada en Cumbre.";
         String photo = line.getPhotoPath() != null ? line.getPhotoPath() : block.getPhotoPath();
         String img = photo != null ? "/s/v/" + schoolId + "/" + lineId + "/photo" : null;
