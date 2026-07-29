@@ -42,6 +42,15 @@ public class JpaCommunityVoteRepositoryAdapter implements CommunityVoteRepositor
     }
 
     @Override
+    public List<OrientationVote> findOrientationVotesForBlocks(java.util.Collection<String> blockIds) {
+        if (blockIds.isEmpty()) return List.of();
+        return orientationRepo.findByBlockIdIn(blockIds).stream()
+                .map(e -> new OrientationVote(e.getBlockId(), e.getPhotoIndex(),
+                        e.getVoterUid(), e.getAspect()))
+                .toList();
+    }
+
+    @Override
     @Transactional
     public void upsertOrientationVote(OrientationVote vote) {
         OrientationVoteJpaEntity existing = orientationRepo.findByBlockId(vote.blockId()).stream()

@@ -50,6 +50,12 @@ public class CommunityVoteController {
         return useCase.voteOrientation(blockId, req.photoIndex(), req.aspect(), user.uid());
     }
 
+    /** Consenso de orientación de todas las piedras de una escuela (filtro). */
+    @GetMapping("/schools/{schoolId}/orientations")
+    public java.util.Map<String, String> schoolOrientations(@PathVariable String schoolId) {
+        return useCase.schoolOrientations(schoolId);
+    }
+
     @GetMapping("/blocks/{blockId}/sun-hours")
     public SunHours sunHours(@PathVariable String blockId,
                              @RequestParam(required = false) Integer photoIndex) {

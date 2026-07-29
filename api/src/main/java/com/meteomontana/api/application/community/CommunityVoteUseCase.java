@@ -95,6 +95,28 @@ public class CommunityVoteUseCase {
                 GradeConsensus.orientationConsensus(counts), mine);
     }
 
+    /**
+     * Consenso de orientación de TODAS las piedras de una escuela en una sola
+     * llamada (filtro "caras norte en verano"). Solo photoIndex null (la
+     * superficie entera); las piedras sin votos no aparecen en el mapa.
+     */
+    public Map<String, String> schoolOrientations(String schoolId) {
+        List<String> blockIds = blocks.findBySchoolId(schoolId).stream()
+                .map(SchoolBlock::getId).toList();
+        Map<String, Map<String, Integer>> countsByBlock = new HashMap<>();
+        for (OrientationVote v : votes.findOrientationVotesForBlocks(blockIds)) {
+            if (v.photoIndex() != null) continue;
+            countsByBlock.computeIfAbsent(v.blockId(), k -> new HashMap<>())
+                    .merge(v.aspect(), 1, Integer::sum);
+        }
+        Map<String, String> out = new HashMap<>();
+        countsByBlock.forEach((blockId, counts) -> {
+            String consensus = GradeConsensus.orientationConsensus(counts);
+            if (consensus != null) out.put(blockId, consensus);
+        });
+        return out;
+    }
+
     // ── Sol/sombra ──────────────────────────────────────────────────────────
 
     /**

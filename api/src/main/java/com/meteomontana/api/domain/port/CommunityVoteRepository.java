@@ -13,6 +13,9 @@ public interface CommunityVoteRepository {
 
     List<OrientationVote> findOrientationVotes(String blockId);
 
+    /** Votos de VARIOS bloques en una sola query (filtro por orientación de una escuela). */
+    List<OrientationVote> findOrientationVotesForBlocks(java.util.Collection<String> blockIds);
+
     void upsertOrientationVote(OrientationVote vote);
 
     List<GradeVote> findGradeVotes(String lineId);

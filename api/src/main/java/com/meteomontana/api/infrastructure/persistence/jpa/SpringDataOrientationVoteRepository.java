@@ -13,4 +13,5 @@ import java.util.List;
 public interface SpringDataOrientationVoteRepository
         extends JpaRepository<OrientationVoteJpaEntity, String> {
     List<OrientationVoteJpaEntity> findByBlockId(String blockId);
+    List<OrientationVoteJpaEntity> findByBlockIdIn(java.util.Collection<String> blockIds);
 }
