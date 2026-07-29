@@ -12,6 +12,7 @@ import com.meteomontana.api.domain.port.SchoolBlockRepository;
 import com.meteomontana.api.domain.port.SchoolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 /**
  * ESCRITURA de posts del feed: publicar un ascenso propio (TICK/PROJECT_DONE),
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
  * borrado. Los snapshots (nombres, grado, modalidad, roca) se congelan aquí.
  */
 @Service
+@RequiredArgsConstructor
 public class FeedPublishService {
 
     private final FeedPostRepository posts;
@@ -27,20 +29,6 @@ public class FeedPublishService {
     private final UserModerationService moderation;
     private final FeedNotifier notifier;
     private final FeedPhotoService photos;
-
-    public FeedPublishService(FeedPostRepository posts,
-                              SchoolBlockRepository schoolBlocks,
-                              SchoolRepository schools,
-                              UserModerationService moderation,
-                              FeedNotifier notifier,
-                              FeedPhotoService photos) {
-        this.posts = posts;
-        this.schoolBlocks = schoolBlocks;
-        this.schools = schools;
-        this.moderation = moderation;
-        this.notifier = notifier;
-        this.photos = photos;
-    }
 
     /**
      * Publica un ascenso propio (TICK / PROJECT_DONE). Idempotente: repetir la

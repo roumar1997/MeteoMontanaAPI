@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Consola de moderación de usuarios (solo admin): ver el historial de denuncias
@@ -20,15 +21,11 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/admin/users")
+@RequiredArgsConstructor
 public class AdminModerationController {
 
     private final UserModerationService moderation;
     private final AdminGuard adminGuard;
-
-    public AdminModerationController(UserModerationService moderation, AdminGuard adminGuard) {
-        this.moderation = moderation;
-        this.adminGuard = adminGuard;
-    }
 
     @GetMapping("/{uid}/moderation")
     public UserModerationService.ModerationView summary(

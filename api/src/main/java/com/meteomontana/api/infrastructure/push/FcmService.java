@@ -21,21 +21,19 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Adaptador de {@link com.meteomontana.api.domain.port.PushSender} sobre el FCM
  * Admin SDK. La capa de aplicación depende del puerto, no de esta clase.
  */
 @Service
+@RequiredArgsConstructor
 public class FcmService implements com.meteomontana.api.domain.port.PushSender {
 
     private static final Logger log = LoggerFactory.getLogger(FcmService.class);
 
     private final SpringDataUserDeviceRepository devices;
-
-    public FcmService(SpringDataUserDeviceRepository devices) {
-        this.devices = devices;
-    }
 
     // Debe coincidir con el canal creado en la app (PushService.CHANNEL_ID) y el
     // icono/color de la marca, para cuando es el SISTEMA quien pinta la notificación

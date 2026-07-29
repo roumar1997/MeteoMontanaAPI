@@ -7,17 +7,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class LeaveMeetupUseCase {
 
     private final MeetupRepository meetupRepository;
     private final ChatRepository chatRepository;
-
-    public LeaveMeetupUseCase(MeetupRepository meetupRepository, ChatRepository chatRepository) {
-        this.meetupRepository = meetupRepository;
-        this.chatRepository = chatRepository;
-    }
 
     @Transactional
     public void execute(String uid, String meetupId) {

@@ -8,18 +8,14 @@ import com.meteomontana.api.domain.port.MeetupRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SubmitReportUseCase {
 
     private final MeetupReportRepository reportRepository;
     private final MeetupRepository meetupRepository;
-
-    public SubmitReportUseCase(MeetupReportRepository reportRepository,
-                                MeetupRepository meetupRepository) {
-        this.reportRepository = reportRepository;
-        this.meetupRepository = meetupRepository;
-    }
 
     public ReportDto execute(String reporterUid, String meetupId, SubmitReportRequest req) {
         meetupRepository.findById(meetupId)

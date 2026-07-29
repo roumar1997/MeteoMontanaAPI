@@ -14,16 +14,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class FollowController {
 
     private final FollowUseCase useCase;
-
-    public FollowController(FollowUseCase useCase) {
-        this.useCase = useCase;
-    }
 
     @PostMapping("/users/{uid}/follow")
     @ResponseStatus(HttpStatus.CREATED)

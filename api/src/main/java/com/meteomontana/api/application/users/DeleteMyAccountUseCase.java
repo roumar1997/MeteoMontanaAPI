@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Borrado de cuenta (requisito de Google Play y App Store cuando hay login):
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
  * de vías/notas ya publicadas como contenido comunitario.
  */
 @Service
+@RequiredArgsConstructor
 public class DeleteMyAccountUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(DeleteMyAccountUseCase.class);
@@ -28,14 +30,6 @@ public class DeleteMyAccountUseCase {
     private final AccountDataPurger purger;
     private final ChatRepository chat;
     private final StorageService storage;
-
-    public DeleteMyAccountUseCase(AccountDataPurger purger,
-                                  ChatRepository chat,
-                                  StorageService storage) {
-        this.purger = purger;
-        this.chat = chat;
-        this.storage = storage;
-    }
 
     @Transactional
     public void execute(String uid) {

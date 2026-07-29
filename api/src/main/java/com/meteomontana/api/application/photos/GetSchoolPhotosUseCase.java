@@ -8,8 +8,10 @@ import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class GetSchoolPhotosUseCase {
 
     // URL firmada válida durante 60 minutos.
@@ -18,14 +20,6 @@ public class GetSchoolPhotosUseCase {
     private final SchoolRepository schoolRepository;
     private final SchoolPhotoRepository photoRepository;
     private final StorageService storageService;
-
-    public GetSchoolPhotosUseCase(SchoolRepository schoolRepository,
-                                  SchoolPhotoRepository photoRepository,
-                                  StorageService storageService) {
-        this.schoolRepository = schoolRepository;
-        this.photoRepository = photoRepository;
-        this.storageService = storageService;
-    }
 
     public List<SchoolPhotoDto> execute(String schoolId) {
         schoolRepository.findById(schoolId)

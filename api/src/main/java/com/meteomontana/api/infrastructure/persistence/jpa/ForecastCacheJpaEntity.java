@@ -6,6 +6,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 
 /**
  * Fila de la caché persistente de forecast (tabla forecast_cache). Guarda el JSON
@@ -13,6 +18,9 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "forecast_cache")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class ForecastCacheJpaEntity {
 
     @Id
@@ -26,28 +34,11 @@ public class ForecastCacheJpaEntity {
     private double lon;
 
     @Column(columnDefinition = "TEXT", nullable = false)
+    @Setter
     private String payload;           // JSON crudo de OpenMeteoResponse
 
     @Column(name = "fetched_at", nullable = false)
+    @Setter
     private LocalDateTime fetchedAt;
 
-    protected ForecastCacheJpaEntity() {}
-
-    public ForecastCacheJpaEntity(String coordKey, double lat, double lon,
-                                  String payload, LocalDateTime fetchedAt) {
-        this.coordKey = coordKey;
-        this.lat = lat;
-        this.lon = lon;
-        this.payload = payload;
-        this.fetchedAt = fetchedAt;
-    }
-
-    public String getCoordKey()        { return coordKey; }
-    public double getLat()             { return lat; }
-    public double getLon()             { return lon; }
-    public String getPayload()         { return payload; }
-    public LocalDateTime getFetchedAt(){ return fetchedAt; }
-
-    public void setPayload(String payload)          { this.payload = payload; }
-    public void setFetchedAt(LocalDateTime fetchedAt){ this.fetchedAt = fetchedAt; }
 }

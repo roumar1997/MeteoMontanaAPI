@@ -6,9 +6,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "meetups")
+@Getter
 public class MeetupJpaEntity {
 
     @Id
@@ -22,6 +25,7 @@ public class MeetupJpaEntity {
     private String name;
 
     @Column(columnDefinition = "TEXT")
+    @Setter
     private String description;
 
     @Column(name = "discipline", length = 16)
@@ -78,20 +82,4 @@ public class MeetupJpaEntity {
         this.createdAt = createdAt;
     }
 
-    public String getId()             { return id; }
-    public String getSchoolId()       { return schoolId; }
-    public String getName()           { return name; }
-    public String getDescription()    { return description; }
-    public void setDescription(String description) { this.description = description; }
-    public String getDiscipline()     { return discipline; }
-    public String getPrivacy()        { return privacy; }
-    public Integer getMemberLimit()   { return memberLimit; }
-    public String getPhotoUrl()       { return photoUrl; }
-    public String getCreatorUid()     { return creatorUid; }
-    public String getConversationId() { return conversationId; }
-    public LocalDate getLastDay()     { return lastDay; }
-    public LocalDateTime getExpiresAt() { return expiresAt; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public List<MeetupDayJpaEntity> getDays()       { return days; }
-    public List<MeetupMemberJpaEntity> getMembers() { return members; }
 }

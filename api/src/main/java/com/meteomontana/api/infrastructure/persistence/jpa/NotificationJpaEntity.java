@@ -6,9 +6,17 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 
 @Entity
 @Table(name = "notifications")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class NotificationJpaEntity {
 
     @Id
@@ -32,36 +40,10 @@ public class NotificationJpaEntity {
     private String targetId;
 
     @Column(name = "read_at")
+    @Setter
     private LocalDateTime readAt;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    protected NotificationJpaEntity() {}
-
-    public NotificationJpaEntity(String id, String uid, String type, String title, String body,
-                                 String targetType, String targetId, LocalDateTime readAt,
-                                 LocalDateTime createdAt) {
-        this.id = id;
-        this.uid = uid;
-        this.type = type;
-        this.title = title;
-        this.body = body;
-        this.targetType = targetType;
-        this.targetId = targetId;
-        this.readAt = readAt;
-        this.createdAt = createdAt;
-    }
-
-    public String getId()              { return id; }
-    public String getUid()             { return uid; }
-    public String getType()            { return type; }
-    public String getTitle()           { return title; }
-    public String getBody()            { return body; }
-    public String getTargetType()      { return targetType; }
-    public String getTargetId()        { return targetId; }
-    public LocalDateTime getReadAt()   { return readAt; }
-    public LocalDateTime getCreatedAt(){ return createdAt; }
-
-    public void setReadAt(LocalDateTime v) { this.readAt = v; }
 }

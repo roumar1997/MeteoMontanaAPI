@@ -3,18 +3,16 @@ package com.meteomontana.api.application.blocks;
 import com.meteomontana.api.domain.port.LineRatingRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 
 @Service
+@RequiredArgsConstructor
 public class RateLineUseCase {
 
     public record RatingResult(float avgStars, long ratingCount, int myStars) {}
 
     private final LineRatingRepository repo;
-
-    public RateLineUseCase(LineRatingRepository repo) {
-        this.repo = repo;
-    }
 
     @Transactional
     public RatingResult rate(String uid, String lineId, int stars) {

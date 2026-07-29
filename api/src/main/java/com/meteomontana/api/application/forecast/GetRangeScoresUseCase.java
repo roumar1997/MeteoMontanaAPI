@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Score de un TRAMO de varios días (los que el usuario elige) para cada escuela.
@@ -28,6 +29,7 @@ import java.util.Objects;
  * renueva sola.
  */
 @Service
+@RequiredArgsConstructor
 public class GetRangeScoresUseCase {
 
     /** Un día cuenta como "con lluvia" a partir de este acumulado (mismo umbral que la alerta de finde). */
@@ -59,14 +61,6 @@ public class GetRangeScoresUseCase {
     private final GetForecastUseCase forecastUseCase;
     private final SchoolRepository schoolRepository;
     private final OpenMeteoClient openMeteoClient;
-
-    public GetRangeScoresUseCase(GetForecastUseCase forecastUseCase,
-                                 SchoolRepository schoolRepository,
-                                 OpenMeteoClient openMeteoClient) {
-        this.forecastUseCase = forecastUseCase;
-        this.schoolRepository = schoolRepository;
-        this.openMeteoClient = openMeteoClient;
-    }
 
     /**
      * @param ids   escuelas a evaluar (máx 60 por call).

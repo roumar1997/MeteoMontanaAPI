@@ -7,17 +7,14 @@ import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SearchUsersUseCase {
 
     private final UserRepository users;
     private final UserDtoMapper mapper;
-
-    public SearchUsersUseCase(UserRepository users, UserDtoMapper mapper) {
-        this.users = users;
-        this.mapper = mapper;
-    }
 
     /** Devuelve hasta 20 usuarios cuyo username/displayName contenga la query.
      *  Los privados aparecen pero con locked=true.

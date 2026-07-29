@@ -9,24 +9,16 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class GetMeetupsUseCase {
 
     private final MeetupRepository meetupRepository;
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final MeetupDtoMapper mapper;
-
-    public GetMeetupsUseCase(MeetupRepository meetupRepository,
-                             FollowRepository followRepository,
-                             UserRepository userRepository,
-                             MeetupDtoMapper mapper) {
-        this.meetupRepository = meetupRepository;
-        this.followRepository = followRepository;
-        this.userRepository = userRepository;
-        this.mapper = mapper;
-    }
 
     /**
      * @param requesterUid uid del usuario que pide la lista (requerido — el endpoint es auth)

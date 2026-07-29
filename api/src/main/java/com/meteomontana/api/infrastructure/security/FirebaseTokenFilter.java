@@ -16,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Se ejecuta UNA vez por request (OncePerRequestFilter).
@@ -28,15 +29,12 @@ import java.util.List;
  *   5. Si no es válido → limpia el contexto (la request llegará sin usuario)
  */
 @Component
+@RequiredArgsConstructor
 public class FirebaseTokenFilter extends OncePerRequestFilter {
 
     // ObjectProvider = acceso perezoso al repo (evita ciclos en el arranque de
     // seguridad) para comprobar si el usuario está baneado.
     private final ObjectProvider<SpringDataUserRepository> users;
-
-    public FirebaseTokenFilter(ObjectProvider<SpringDataUserRepository> users) {
-        this.users = users;
-    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Fotos "Tipo A" (piedra/perfil/nota/quedada) en Cloudflare R2. Antes las
@@ -37,6 +38,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/photo")
+@RequiredArgsConstructor
 public class PhotoController {
 
     /** TTL corto de la URL firmada del redirect (el móvil la usa al instante). */
@@ -48,10 +50,6 @@ public class PhotoController {
             "piedra-photos-pending/", "note-photos/", "meetup-photos/", "profile-photos/");
 
     private final StorageService storage;
-
-    public PhotoController(StorageService storage) {
-        this.storage = storage;
-    }
 
     // ─────────────────────────────────────────────────────────── lectura
 

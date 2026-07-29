@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * NOTIFICACIONES del feed (campanita + push): likes, comentarios, likes de
@@ -22,6 +23,7 @@ import java.util.Map;
  * async para no retener la conexión.
  */
 @Service
+@RequiredArgsConstructor
 public class FeedNotifier {
 
     private static final Logger log = LoggerFactory.getLogger(FeedNotifier.class);
@@ -35,14 +37,6 @@ public class FeedNotifier {
     private final UserDtoMapper mapper;
     private final NotificationService notifications;
     private final PushSender push;
-
-    public FeedNotifier(UserRepository users, UserDtoMapper mapper,
-                        NotificationService notifications, PushSender push) {
-        this.users = users;
-        this.mapper = mapper;
-        this.notifications = notifications;
-        this.push = push;
-    }
 
     /** Notifica al dueño del post que alguien le ha dado like. Nunca tumba la tx. */
     public void notifyLike(String likerUid, FeedPost post) {

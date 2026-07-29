@@ -13,12 +13,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * FOTO DE CELEBRACIÓN del post: subir/reemplazar en Storage, validación de
  * imagen real (magic bytes) y borrado best-effort.
  */
 @Service
+@RequiredArgsConstructor
 public class FeedPhotoService {
 
     private static final Logger log = LoggerFactory.getLogger(FeedPhotoService.class);
@@ -27,11 +29,6 @@ public class FeedPhotoService {
 
     private final FeedPostRepository posts;
     private final StorageService storage;
-
-    public FeedPhotoService(FeedPostRepository posts, StorageService storage) {
-        this.posts = posts;
-        this.storage = storage;
-    }
 
     /**
      * Sube (o reemplaza) la foto de celebración de un post PROPIO. Mismo patrón

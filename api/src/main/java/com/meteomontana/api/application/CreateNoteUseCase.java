@@ -9,8 +9,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class CreateNoteUseCase {
 
     /** photoUrl es opcional: URL pública de Firebase Storage si la nota lleva foto. */
@@ -20,16 +22,6 @@ public class CreateNoteUseCase {
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
     private final com.meteomontana.api.application.moderation.UserModerationService moderation;
-
-    public CreateNoteUseCase(NoteRepository noteRepository,
-                             SchoolRepository schoolRepository,
-                             UserRepository userRepository,
-                             com.meteomontana.api.application.moderation.UserModerationService moderation) {
-        this.noteRepository = noteRepository;
-        this.schoolRepository = schoolRepository;
-        this.userRepository = userRepository;
-        this.moderation = moderation;
-    }
 
     public Note execute(String uid, String schoolId, String text, String photoUrl) {
         moderation.ensureCanPost(uid);   // baneado/suspendido → 403

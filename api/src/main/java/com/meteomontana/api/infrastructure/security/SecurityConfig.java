@@ -14,6 +14,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Configuración central de Spring Security.
@@ -26,13 +27,10 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final FirebaseTokenFilter firebaseTokenFilter;
-
-    public SecurityConfig(FirebaseTokenFilter firebaseTokenFilter) {
-        this.firebaseTokenFilter = firebaseTokenFilter;
-    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {

@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Recolector del radar de AEMET.
@@ -33,6 +34,7 @@ import java.util.List;
  * - Retención: 6h (la UI enseña 2h por defecto con opción de 6h).
  */
 @Component
+@RequiredArgsConstructor
 public class RadarCollector {
 
     private static final Logger log = LoggerFactory.getLogger(RadarCollector.class);
@@ -49,11 +51,6 @@ public class RadarCollector {
 
     private final AemetRadarClient client;
     private final SpringDataRadarFrameRepository repo;
-
-    public RadarCollector(AemetRadarClient client, SpringDataRadarFrameRepository repo) {
-        this.client = client;
-        this.repo = repo;
-    }
 
     /** Cada 10 min. Configurable por entorno (RADAR_CRON): producción y
      *  staging comparten key de AEMET y NO deben disparar en el mismo minuto

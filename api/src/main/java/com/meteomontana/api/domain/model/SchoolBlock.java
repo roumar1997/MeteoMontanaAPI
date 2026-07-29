@@ -2,7 +2,9 @@ package com.meteomontana.api.domain.model;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.Getter;
 
+@Getter
 public class SchoolBlock {
     public enum Type { BLOCK, PARKING, ZONE }
 
@@ -69,20 +71,4 @@ public class SchoolBlock {
              createdByUid, createdAt, lines, null);
     }
 
-    public String getId()             { return id; }
-    public String getSchoolId()       { return schoolId; }
-    public Type getType()             { return type; }
-    public Discipline getDiscipline() { return discipline; }
-    public String getName()           { return name; }
-    public double getLat()            { return lat; }
-    public double getLon()            { return lon; }
-    public String getPhotoPath()      { return photoPath; }
-    public String getDescription()    { return description; }
-    public String getCreatedByUid()   { return createdByUid; }
-    public LocalDateTime getCreatedAt(){ return createdAt; }
-    public List<BlockLine> getLines() { return lines; }
-    public String getSectorBlockId()  { return sectorBlockId; }
-    public Geometry getGeometry()     { return geometry; }
-    public String getPath()           { return path; }
-    public String getDirection()      { return direction; }
 }

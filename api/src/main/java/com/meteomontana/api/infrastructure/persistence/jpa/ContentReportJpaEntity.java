@@ -6,10 +6,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
 
 /** Denuncia de contenido (comentario/nota/usuario). Ver V50. */
 @Entity
 @Table(name = "content_reports")
+@Getter
 public class ContentReportJpaEntity {
 
     @Id
@@ -54,18 +56,6 @@ public class ContentReportJpaEntity {
         this.targetId = targetId; this.reason = reason; this.snapshot = snapshot;
         this.authorUid = authorUid;
     }
-
-    public String getId() { return id; }
-    public String getReporterUid() { return reporterUid; }
-    public String getTargetType() { return targetType; }
-    public String getTargetId() { return targetId; }
-    public String getReason() { return reason; }
-    public String getSnapshot() { return snapshot; }
-    public String getAuthorUid() { return authorUid; }
-    public String getStatus() { return status; }
-    public String getResolution() { return resolution; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getResolvedAt() { return resolvedAt; }
 
     public void resolve(String resolution) {
         this.status = "RESOLVED";

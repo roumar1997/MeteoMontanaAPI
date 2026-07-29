@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Leer y guardar las preferencias de alerta del propio usuario
@@ -15,16 +16,13 @@ import java.util.List;
  * controller (que solo mapea DTO↔dominio).
  */
 @Service
+@RequiredArgsConstructor
 public class WeekendAlertPrefsUseCase {
 
     /** Días por defecto del aviso: vie/sáb/dom (formato ISO 1=lunes..7=domingo). */
     private static final String DEFAULT_DAYS = "5,6,7";
 
     private final AlertPreferenceRepository repository;
-
-    public WeekendAlertPrefsUseCase(AlertPreferenceRepository repository) {
-        this.repository = repository;
-    }
 
     /** Preferencias del usuario, con los defaults si nunca configuró nada. */
     public AlertPreference get(String uid) {

@@ -4,7 +4,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import lombok.Getter;
+import lombok.AllArgsConstructor;
 
+@Getter
+@AllArgsConstructor
 public class MeetupAlert {
 
     private final String id;
@@ -21,32 +25,6 @@ public class MeetupAlert {
     public MeetupAlert(String id, String uid, String schoolId, String daysCsv, LocalDateTime createdAt) {
         this(id, uid, schoolId, daysCsv, null, null, null, null, null, createdAt);
     }
-
-    public MeetupAlert(String id, String uid, String schoolId, String daysCsv,
-                        String discipline, String privacy, Integer maxDistanceKm,
-                        Double userLat, Double userLon, LocalDateTime createdAt) {
-        this.id = id;
-        this.uid = uid;
-        this.schoolId = schoolId;
-        this.daysCsv = daysCsv;
-        this.discipline = discipline;
-        this.privacy = privacy;
-        this.maxDistanceKm = maxDistanceKm;
-        this.userLat = userLat;
-        this.userLon = userLon;
-        this.createdAt = createdAt;
-    }
-
-    public String getId()               { return id; }
-    public String getUid()              { return uid; }
-    public String getSchoolId()         { return schoolId; }
-    public String getDaysCsv()          { return daysCsv; }
-    public String getDiscipline()       { return discipline; }
-    public String getPrivacy()          { return privacy; }
-    public Integer getMaxDistanceKm()   { return maxDistanceKm; }
-    public Double getUserLat()          { return userLat; }
-    public Double getUserLon()          { return userLon; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
 
     /** true si esta alerta coincide con alguno de los días de la quedada (fechas ISO yyyy-MM-dd). */
     public boolean matchesDays(List<LocalDate> meetupDays) {

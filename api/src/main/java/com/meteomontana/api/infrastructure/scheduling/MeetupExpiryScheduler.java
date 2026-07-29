@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Borra las quedadas caducadas cada día a las 02:00 Madrid.
@@ -13,17 +14,13 @@ import org.springframework.stereotype.Component;
  * La conversación de Firestore se borra antes de borrar el meetup.
  */
 @Component
+@RequiredArgsConstructor
 public class MeetupExpiryScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(MeetupExpiryScheduler.class);
 
     private final MeetupRepository meetupRepository;
     private final ChatRepository chatRepository;
-
-    public MeetupExpiryScheduler(MeetupRepository meetupRepository, ChatRepository chatRepository) {
-        this.meetupRepository = meetupRepository;
-        this.chatRepository = chatRepository;
-    }
 
     @Scheduled(cron = "0 0 2 * * *", zone = "Europe/Madrid")
     public void expireMeetups() {

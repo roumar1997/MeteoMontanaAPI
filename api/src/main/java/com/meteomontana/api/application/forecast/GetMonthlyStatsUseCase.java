@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Scores mensuales (0-100, uno por mes) de una escuela a partir de 3 años de
@@ -23,6 +24,7 @@ import java.util.List;
  * cambia, y el TTL global de 30 min de spring.cache sería absurdo aquí.
  */
 @Service
+@RequiredArgsConstructor
 public class GetMonthlyStatsUseCase {
 
     public record MonthlyStatsResponse(List<Integer> scores, String bestRange) {}
@@ -39,12 +41,6 @@ public class GetMonthlyStatsUseCase {
             .maximumSize(500)
             .expireAfterWrite(Duration.ofDays(30))
             .build();
-
-    public GetMonthlyStatsUseCase(SchoolRepository schoolRepository,
-                                  OpenMeteoArchiveClient archiveClient) {
-        this.schoolRepository = schoolRepository;
-        this.archiveClient = archiveClient;
-    }
 
     public MonthlyStatsResponse execute(String schoolId) {
         School school = schoolRepository.findById(schoolId)

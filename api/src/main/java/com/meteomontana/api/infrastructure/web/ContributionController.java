@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Endpoints de propuestas de mejora de escuelas existentes.
@@ -22,22 +23,13 @@ import java.util.Map;
  *  POST   /api/admin/contributions/{id}/reject     → rechazar con motivo (admin)
  */
 @RestController
+@RequiredArgsConstructor
 public class ContributionController {
 
     private final SubmitContributionUseCase submitUseCase;
     private final ReviewContributionUseCase reviewUseCase;
     private final PendingContributionRepository repo;
     private final AdminGuard adminGuard;
-
-    public ContributionController(SubmitContributionUseCase submitUseCase,
-                                  ReviewContributionUseCase reviewUseCase,
-                                  PendingContributionRepository repo,
-                                  AdminGuard adminGuard) {
-        this.submitUseCase = submitUseCase;
-        this.reviewUseCase = reviewUseCase;
-        this.repo = repo;
-        this.adminGuard = adminGuard;
-    }
 
     /** Usuario envía propuesta para una escuela concreta. */
     @PostMapping("/api/schools/{schoolId}/contributions")

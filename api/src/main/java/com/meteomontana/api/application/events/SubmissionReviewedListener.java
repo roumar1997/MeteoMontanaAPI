@@ -11,19 +11,16 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class SubmissionReviewedListener {
 
     private static final Logger log = LoggerFactory.getLogger(SubmissionReviewedListener.class);
 
     private final UserRepository userRepository;
     private final PushSender fcmService;
-
-    public SubmissionReviewedListener(UserRepository userRepository, PushSender fcmService) {
-        this.userRepository = userRepository;
-        this.fcmService = fcmService;
-    }
 
     @Async
     @EventListener

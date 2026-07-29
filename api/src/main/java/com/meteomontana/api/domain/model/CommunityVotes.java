@@ -18,6 +18,9 @@ public final class CommunityVotes {
                                      String consensus,
                                      String myVote) {}
 
+
+
+
     /** Un voto de grado de una vía. */
     public record GradeVote(String lineId, String voterUid, String grade) {}
 

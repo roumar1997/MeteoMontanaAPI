@@ -7,17 +7,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /** Búsqueda de localidades por nombre (para el buscador del tiempo). Público. */
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class GeocodeController {
 
     private final NominatimGeocoder geocoder;
-
-    public GeocodeController(NominatimGeocoder geocoder) {
-        this.geocoder = geocoder;
-    }
 
     @GetMapping("/geocode")
     public List<NominatimGeocoder.Place> geocode(@RequestParam("q") String q) {

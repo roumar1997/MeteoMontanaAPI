@@ -13,20 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SetMeetupAlertUseCase {
 
     private final MeetupAlertRepository repo;
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
-
-    public SetMeetupAlertUseCase(MeetupAlertRepository repo, UserRepository userRepository,
-                                  SchoolRepository schoolRepository) {
-        this.repo = repo;
-        this.userRepository = userRepository;
-        this.schoolRepository = schoolRepository;
-    }
 
     /** Activa (enabled=true) o desactiva (enabled=false) la alerta global del usuario. */
     @Transactional

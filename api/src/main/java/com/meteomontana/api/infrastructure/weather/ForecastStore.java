@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Caché PERSISTENTE (Postgres) del forecast crudo de Open-Meteo. Guarda el JSON
@@ -19,17 +20,13 @@ import java.util.Optional;
  * {@code ForecastPrefetchScheduler} cada hora; sobrevive a los redeploys.
  */
 @Component
+@RequiredArgsConstructor
 public class ForecastStore {
 
     private static final Logger log = LoggerFactory.getLogger(ForecastStore.class);
 
     private final SpringDataForecastCacheRepository repo;
     private final ObjectMapper mapper;
-
-    public ForecastStore(SpringDataForecastCacheRepository repo, ObjectMapper mapper) {
-        this.repo = repo;
-        this.mapper = mapper;
-    }
 
     /** Clave idéntica a la de la caché en memoria (#lat + ',' + #lon). */
     static String key(double lat, double lon) { return lat + "," + lon; }

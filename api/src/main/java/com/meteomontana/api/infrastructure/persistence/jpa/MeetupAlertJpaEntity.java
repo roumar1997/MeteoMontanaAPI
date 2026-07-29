@@ -2,9 +2,17 @@ package com.meteomontana.api.infrastructure.persistence.jpa;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 
 @Entity
 @Table(name = "meetup_alerts")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class MeetupAlertJpaEntity {
 
     @Id
@@ -17,57 +25,30 @@ public class MeetupAlertJpaEntity {
     private String schoolId;
 
     @Column(name = "days_csv")
+    @Setter
     private String daysCsv;
 
     @Column(name = "discipline")
+    @Setter
     private String discipline;
 
     @Column(name = "privacy")
+    @Setter
     private String privacy;
 
     @Column(name = "max_distance_km")
+    @Setter
     private Integer maxDistanceKm;
 
     @Column(name = "user_lat")
+    @Setter
     private Double userLat;
 
     @Column(name = "user_lon")
+    @Setter
     private Double userLon;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    protected MeetupAlertJpaEntity() {}
-
-    public MeetupAlertJpaEntity(String id, String uid, String schoolId, String daysCsv,
-                                 String discipline, String privacy, Integer maxDistanceKm,
-                                 Double userLat, Double userLon, LocalDateTime createdAt) {
-        this.id = id;
-        this.uid = uid;
-        this.schoolId = schoolId;
-        this.daysCsv = daysCsv;
-        this.discipline = discipline;
-        this.privacy = privacy;
-        this.maxDistanceKm = maxDistanceKm;
-        this.userLat = userLat;
-        this.userLon = userLon;
-        this.createdAt = createdAt;
-    }
-
-    public String getId()                { return id; }
-    public String getUid()               { return uid; }
-    public String getSchoolId()          { return schoolId; }
-    public String getDaysCsv()           { return daysCsv; }
-    public void setDaysCsv(String v)     { this.daysCsv = v; }
-    public String getDiscipline()        { return discipline; }
-    public void setDiscipline(String v)  { this.discipline = v; }
-    public String getPrivacy()           { return privacy; }
-    public void setPrivacy(String v)     { this.privacy = v; }
-    public Integer getMaxDistanceKm()    { return maxDistanceKm; }
-    public void setMaxDistanceKm(Integer v) { this.maxDistanceKm = v; }
-    public Double getUserLat()           { return userLat; }
-    public void setUserLat(Double v)     { this.userLat = v; }
-    public Double getUserLon()           { return userLon; }
-    public void setUserLon(Double v)     { this.userLon = v; }
-    public LocalDateTime getCreatedAt()  { return createdAt; }
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Boletín de montaña de AEMET (público, como el forecast).
@@ -19,13 +20,10 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/mountain")
+@RequiredArgsConstructor
 public class MountainController {
 
     private final MountainBulletinService service;
-
-    public MountainController(MountainBulletinService service) {
-        this.service = service;
-    }
 
     @GetMapping("/bulletin")
     public ResponseEntity<Map<String, Object>> bulletin(@RequestParam double lat,

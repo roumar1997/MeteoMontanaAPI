@@ -6,15 +6,13 @@ import com.meteomontana.api.domain.util.GeoDistance;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class GetSchoolsUseCase {
 
     private final SchoolRepository repository;
-
-    public GetSchoolsUseCase(SchoolRepository repository) {
-        this.repository = repository;
-    }
 
     public List<School> execute(String region, String style, List<String> rockTypes,
                                 Double lat, Double lon, Double radioKm) {

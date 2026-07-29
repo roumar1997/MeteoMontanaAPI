@@ -7,9 +7,12 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "journal_sessions")
+@Getter
 public class JournalSessionJpaEntity {
 
     @Id
@@ -34,11 +37,13 @@ public class JournalSessionJpaEntity {
 
     // Modalidad de la vía marcada (BOULDER/ROUTE). Snapshot para el conteo del
     // perfil. Se setea aparte (setDiscipline) para no tocar el constructor.
+    @Setter
     private String discipline;
 
     // Id estable de la BlockLine marcada. Enganche para mostrar en vivo y
     // propagar cambios de grado. Se setea aparte (setLineId).
     @Column(name = "line_id")
+    @Setter
     private String lineId;
 
     // DONE (hecho) | PROJECT (proyecto: lo estás probando, aún no te ha salido).
@@ -49,6 +54,7 @@ public class JournalSessionJpaEntity {
     private String status = "DONE";
 
     @Column(name = "session_date", nullable = false)
+    @Setter
     private LocalDate sessionDate;
 
     @Column(name = "created_at", nullable = false)
@@ -71,21 +77,5 @@ public class JournalSessionJpaEntity {
         this.createdAt = createdAt;
     }
 
-    public String getId()              { return id; }
-    public String getUid()             { return uid; }
-    public String getSchoolId()        { return schoolId; }
-    public String getSchoolName()      { return schoolName; }
-    public String getSector()          { return sector; }
-    public String getBlockName()       { return blockName; }
-    public String getGrade()           { return grade; }
-    public String getNotes()           { return notes; }
-    public String getDiscipline()      { return discipline; }
-    public void setDiscipline(String discipline) { this.discipline = discipline; }
-    public String getLineId()          { return lineId; }
-    public void setLineId(String lineId) { this.lineId = lineId; }
-    public String getStatus()          { return status; }
     public void setStatus(String status) { this.status = status != null ? status : "DONE"; }
-    public void setSessionDate(LocalDate d) { this.sessionDate = d; }
-    public LocalDate getSessionDate()  { return sessionDate; }
-    public LocalDateTime getCreatedAt(){ return createdAt; }
 }

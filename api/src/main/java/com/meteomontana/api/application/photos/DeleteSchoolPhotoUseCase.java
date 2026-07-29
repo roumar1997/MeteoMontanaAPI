@@ -7,18 +7,14 @@ import com.meteomontana.api.domain.port.SchoolPhotoRepository;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class DeleteSchoolPhotoUseCase {
 
     private final SchoolPhotoRepository photoRepository;
     private final StorageService storageService;
-
-    public DeleteSchoolPhotoUseCase(SchoolPhotoRepository photoRepository,
-                                    StorageService storageService) {
-        this.photoRepository = photoRepository;
-        this.storageService = storageService;
-    }
 
     @Transactional
     public void execute(String photoId, String requesterUid) {

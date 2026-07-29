@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Votación comunitaria SIN admin: orientación de paredes (cualquiera vota) y
@@ -26,16 +27,13 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class CommunityVoteController {
 
     public record OrientationVoteRequest(Integer photoIndex, @NotBlank String aspect) {}
     public record GradeVoteRequest(@NotBlank String grade) {}
 
     private final CommunityVoteUseCase useCase;
-
-    public CommunityVoteController(CommunityVoteUseCase useCase) {
-        this.useCase = useCase;
-    }
 
     @GetMapping("/blocks/{blockId}/orientation")
     public List<OrientationSummary> orientation(@PathVariable String blockId,

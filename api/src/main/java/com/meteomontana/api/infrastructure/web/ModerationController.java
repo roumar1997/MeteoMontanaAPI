@@ -16,10 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
 /** Denuncias de contenido + bloqueo entre usuarios (moderación UGC). */
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class ModerationController {
 
     public record ReportRequest(String targetType, String targetId, String reason) {}
@@ -27,11 +29,6 @@ public class ModerationController {
 
     private final ContentModerationService service;
     private final AdminGuard adminGuard;
-
-    public ModerationController(ContentModerationService service, AdminGuard adminGuard) {
-        this.service = service;
-        this.adminGuard = adminGuard;
-    }
 
     @PostMapping("/reports")
     public ContentModerationService.ReportView report(

@@ -8,16 +8,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
 public class UserSearchController {
 
     private final SearchUsersUseCase useCase;
-
-    public UserSearchController(SearchUsersUseCase useCase) {
-        this.useCase = useCase;
-    }
 
     @GetMapping("/search")
     public List<PublicProfileDto> search(@RequestParam("q") String query,

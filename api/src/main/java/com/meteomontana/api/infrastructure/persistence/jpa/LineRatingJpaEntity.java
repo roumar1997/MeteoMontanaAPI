@@ -6,9 +6,17 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 
 @Entity
 @Table(name = "line_ratings")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class LineRatingJpaEntity {
 
     @Id
@@ -21,25 +29,10 @@ public class LineRatingJpaEntity {
     private String lineId;
 
     @Column(nullable = false)
+    @Setter
     private int stars;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    protected LineRatingJpaEntity() {}
-
-    public LineRatingJpaEntity(String id, String uid, String lineId, int stars, LocalDateTime createdAt) {
-        this.id = id;
-        this.uid = uid;
-        this.lineId = lineId;
-        this.stars = stars;
-        this.createdAt = createdAt;
-    }
-
-    public String getId()                { return id; }
-    public String getUid()               { return uid; }
-    public String getLineId()            { return lineId; }
-    public int getStars()                { return stars; }
-    public void setStars(int stars)      { this.stars = stars; }
-    public LocalDateTime getCreatedAt()  { return createdAt; }
 }

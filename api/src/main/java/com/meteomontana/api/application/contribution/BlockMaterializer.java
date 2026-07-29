@@ -18,6 +18,7 @@ import java.util.Set;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Materializa un school_block NUEVO al aprobar una contribución
@@ -25,16 +26,11 @@ import java.util.UUID;
  * en caras y portada. Extraído de ReviewContributionUseCase (SRP).
  */
 @Service
+@RequiredArgsConstructor
 public class BlockMaterializer {
 
     private final SpringDataSchoolBlockRepository blockRepo;
     private final CommunityVoteRepository votes;
-
-    public BlockMaterializer(SpringDataSchoolBlockRepository blockRepo,
-                             CommunityVoteRepository votes) {
-        this.blockRepo = blockRepo;
-        this.votes = votes;
-    }
 
     public SchoolBlockJpaEntity createBlock(PendingContribution c, SchoolBlock.Type type, String adminUid) {
         // Las PIEDRAS (BLOCK) no llevan nombre libre: se les asigna un NÚMERO

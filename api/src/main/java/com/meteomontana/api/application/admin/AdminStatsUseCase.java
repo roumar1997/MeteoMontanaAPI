@@ -6,8 +6,10 @@ import com.meteomontana.api.domain.port.NoteRepository;
 import com.meteomontana.api.domain.port.SchoolRepository;
 import com.meteomontana.api.domain.port.UserRepository;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class AdminStatsUseCase {
 
     public record AdminStats(
@@ -25,18 +27,6 @@ public class AdminStatsUseCase {
     private final NoteRepository notes;
     private final SchoolSubmissionRepository submissions;
     private final AdminGuard adminGuard;
-
-    public AdminStatsUseCase(UserRepository users,
-                             SchoolRepository schools,
-                             NoteRepository notes,
-                             SchoolSubmissionRepository submissions,
-                             AdminGuard adminGuard) {
-        this.users = users;
-        this.schools = schools;
-        this.notes = notes;
-        this.submissions = submissions;
-        this.adminGuard = adminGuard;
-    }
 
     public AdminStats compute(String adminUid) {
         adminGuard.ensureAdmin(adminUid);

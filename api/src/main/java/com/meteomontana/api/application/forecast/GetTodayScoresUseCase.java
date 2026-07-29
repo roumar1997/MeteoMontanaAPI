@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Devuelve un score aproximado de hoy + array horario para cada escuela.
@@ -18,6 +19,7 @@ import java.util.List;
  * Nota: limitado a top 50 escuelas por defecto para no saturar.
  */
 @Service
+@RequiredArgsConstructor
 public class GetTodayScoresUseCase {
 
     public record SchoolScoreDto(
@@ -32,14 +34,6 @@ public class GetTodayScoresUseCase {
     private final SchoolRepository schoolRepository;
     private final GetForecastUseCase forecastUseCase;
     private final OpenMeteoClient openMeteoClient;
-
-    public GetTodayScoresUseCase(SchoolRepository schoolRepository,
-                                 GetForecastUseCase forecastUseCase,
-                                 OpenMeteoClient openMeteoClient) {
-        this.schoolRepository = schoolRepository;
-        this.forecastUseCase = forecastUseCase;
-        this.openMeteoClient = openMeteoClient;
-    }
 
     /** Devuelve scores para los IDs solicitados (max 50 por call). */
     @Cacheable(value = "today-scores", key = "#ids.toString()")

@@ -3,6 +3,7 @@ package com.meteomontana.api.infrastructure.persistence.jpa;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
+import lombok.Getter;
 
 @Entity
 @Table(name = "meetup_days")
@@ -11,10 +12,12 @@ public class MeetupDayJpaEntity {
 
     @Id
     @Column(name = "meetup_id")
+    @Getter
     private String meetupId;
 
     @Id
     @Column(name = "day")
+    @Getter
     private LocalDate day;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -28,6 +31,4 @@ public class MeetupDayJpaEntity {
         this.day = day;
     }
 
-    public String getMeetupId() { return meetupId; }
-    public LocalDate getDay()   { return day; }
 }

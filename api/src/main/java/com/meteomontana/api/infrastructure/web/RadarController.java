@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * API pública del radar de lluvia (datos AEMET cocinados por el backend).
@@ -26,15 +27,12 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/radar")
+@RequiredArgsConstructor
 public class RadarController {
 
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd-HHmm");
 
     private final RadarService service;
-
-    public RadarController(RadarService service) {
-        this.service = service;
-    }
 
     @GetMapping("/frames")
     public Map<String, Object> frames(@RequestParam(defaultValue = "2") int hours,

@@ -8,18 +8,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class UpdateFcmTokenUseCase {
 
     private final UserRepository userRepository;
     private final UserDeviceRepository deviceRepository;
-
-    public UpdateFcmTokenUseCase(UserRepository userRepository,
-                                 UserDeviceRepository deviceRepository) {
-        this.userRepository = userRepository;
-        this.deviceRepository = deviceRepository;
-    }
 
     public record FcmTokenRequest(String token) {}
 

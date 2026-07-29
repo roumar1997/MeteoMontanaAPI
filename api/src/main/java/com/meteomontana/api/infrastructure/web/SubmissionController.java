@@ -15,19 +15,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class SubmissionController {
 
     private final SubmitSchoolUseCase submitUseCase;
     private final ListMySubmissionsUseCase listMyUseCase;
-
-    public SubmissionController(SubmitSchoolUseCase submitUseCase,
-                                ListMySubmissionsUseCase listMyUseCase) {
-        this.submitUseCase = submitUseCase;
-        this.listMyUseCase = listMyUseCase;
-    }
 
     @PostMapping("/submissions")
     @ResponseStatus(HttpStatus.CREATED)

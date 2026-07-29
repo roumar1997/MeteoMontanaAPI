@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Datos para las historias/posts automáticos de Instagram (proyecto n8n).
@@ -29,6 +30,7 @@ import java.util.Map;
  * lo hace fuera (n8n sobre el HTML que sirve {@code SocialStoryController}).
  */
 @Service
+@RequiredArgsConstructor
 public class SocialStoryService {
 
     /** Una escuela en la historia de condiciones. wind = -1 → desconocido (días
@@ -91,17 +93,6 @@ public class SocialStoryService {
     private final FeedPostRepository feedPosts;
     private final SchoolBlockRepository schoolBlocks;
     private final UserRepository users;
-
-    public SocialStoryService(SchoolRepository schools, GetForecastUseCase forecast,
-                              FeedPostRepository feedPosts,
-                              SchoolBlockRepository schoolBlocks,
-                              UserRepository users) {
-        this.schools = schools;
-        this.forecast = forecast;
-        this.feedPosts = feedPosts;
-        this.schoolBlocks = schoolBlocks;
-        this.users = users;
-    }
 
     /**
      * Datos de la historia de una piedra nueva a partir de su post NEW_BLOCK.

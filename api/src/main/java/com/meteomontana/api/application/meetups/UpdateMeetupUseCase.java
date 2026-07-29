@@ -5,18 +5,15 @@ import com.meteomontana.api.domain.exception.ForbiddenException;
 import com.meteomontana.api.domain.port.MeetupRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 /** Edición de la descripción de una quedada. Solo el organizador puede hacerlo. */
 @Service
+@RequiredArgsConstructor
 public class UpdateMeetupUseCase {
 
     private final MeetupRepository meetupRepository;
     private final MeetupDtoMapper mapper;
-
-    public UpdateMeetupUseCase(MeetupRepository meetupRepository, MeetupDtoMapper mapper) {
-        this.meetupRepository = meetupRepository;
-        this.mapper = mapper;
-    }
 
     @Transactional
     public MeetupDto updateDescription(String uid, String meetupId, String description) {

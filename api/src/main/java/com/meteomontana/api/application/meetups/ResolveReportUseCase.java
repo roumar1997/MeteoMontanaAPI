@@ -8,18 +8,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class ResolveReportUseCase {
 
     private final MeetupReportRepository reportRepository;
     private final MeetupRepository meetupRepository;
-
-    public ResolveReportUseCase(MeetupReportRepository reportRepository,
-                                MeetupRepository meetupRepository) {
-        this.reportRepository = reportRepository;
-        this.meetupRepository = meetupRepository;
-    }
 
     /** action: "resolve" | "dismiss" | "delete" (borra la quedada denunciada). */
     @Transactional

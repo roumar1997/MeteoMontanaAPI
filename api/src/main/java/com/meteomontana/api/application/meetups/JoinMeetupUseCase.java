@@ -14,8 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class JoinMeetupUseCase {
 
     private final MeetupRepository meetupRepository;
@@ -23,18 +25,6 @@ public class JoinMeetupUseCase {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final MeetupDtoMapper mapper;
-
-    public JoinMeetupUseCase(MeetupRepository meetupRepository,
-                             ChatRepository chatRepository,
-                             FollowRepository followRepository,
-                             UserRepository userRepository,
-                             MeetupDtoMapper mapper) {
-        this.meetupRepository = meetupRepository;
-        this.chatRepository = chatRepository;
-        this.followRepository = followRepository;
-        this.userRepository = userRepository;
-        this.mapper = mapper;
-    }
 
     @Transactional
     public MeetupDto execute(String uid, String meetupId) {

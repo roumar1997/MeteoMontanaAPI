@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import lombok.Getter;
 
 /**
  * Comentario en un post del feed. Separado de line_comments a propósito:
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "feed_comments")
+@Getter
 public class FeedCommentJpaEntity {
 
     @Id
@@ -55,11 +57,4 @@ public class FeedCommentJpaEntity {
         this.createdAt = LocalDateTime.now();
     }
 
-    public String getId() { return id; }
-    public Long getPostId() { return postId; }
-    public String getUid() { return uid; }
-    public String getAuthor() { return author; }
-    public String getText() { return text; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public String getParentId() { return parentId; }
 }
