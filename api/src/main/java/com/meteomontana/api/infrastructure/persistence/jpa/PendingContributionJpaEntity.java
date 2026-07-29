@@ -98,6 +98,9 @@ public class PendingContributionJpaEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "orientations_json")
+    private String orientationsJson;
+
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
@@ -132,12 +135,19 @@ public class PendingContributionJpaEntity {
         e.submittedByName = c.getSubmittedByName();
         e.reviewedByUid = c.getReviewedByUid();
         e.reviewReason = c.getReviewReason();
+        e.orientationsJson = c.getOrientationsJson();
         e.createdAt = c.getCreatedAt();
         e.reviewedAt = c.getReviewedAt();
         return e;
     }
 
     public PendingContribution toDomain() {
+        PendingContribution d = buildDomain();
+        d.setOrientationsJson(orientationsJson);
+        return d;
+    }
+
+    private PendingContribution buildDomain() {
         return new PendingContribution(id, type, status, schoolId, schoolName, name,
                 lat, lon, notes, description, proposedLat, proposedLon, correctionReason,
                 targetBlockId, targetLineId, sectorBlockId,
@@ -146,6 +156,8 @@ public class PendingContributionJpaEntity {
                 submittedByUid, submittedByName, reviewedByUid, reviewReason,
                 createdAt, reviewedAt);
     }
+
+
 
     public String getTargetBlockId() { return targetBlockId; }
     public String getTargetLineId()  { return targetLineId; }

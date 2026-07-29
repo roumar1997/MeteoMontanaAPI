@@ -33,6 +33,10 @@ public class PendingContribution {
     private final String geometry;       // BOULDER: POINT / LINE (muro); null si no aplica
     private final String path;           // BOULDER+LINE: polilínea JSON
     private final String direction;      // BOULDER+LINE: "LTR"/"RTL"
+    /** Orientación propuesta por el autor al crear la piedra (opcional):
+     *  JSON {"block":"NE","faces":{"0":"N"}}. Mutable para no tocar los
+     *  constructores (mismo patrón que description). */
+    private String orientationsJson;
     private final String submittedByUid;
     private final String submittedByName;
     private final String reviewedByUid;
@@ -130,6 +134,8 @@ public class PendingContribution {
     public String getTargetLineId()      { return targetLineId; }
     public String getSectorBlockId()     { return sectorBlockId; }
     public String getPhotoUrl()          { return photoUrl; }
+    public String getOrientationsJson()  { return orientationsJson; }
+    public void setOrientationsJson(String v) { this.orientationsJson = v; }
     public String getBloquesJson()       { return bloquesJson; }
     public String getTopoLinesJson()     { return topoLinesJson; }
     public String getDiscipline()        { return discipline; }

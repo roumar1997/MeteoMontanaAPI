@@ -36,7 +36,7 @@ class RequestValidationTest {
     private ContributionRequest contribution(String bloquesJson, double lat, String type) {
         return new ContributionRequest(
                 type, "nombre", lat, -3.0, "notas", "desc", null, null, null,
-                null, null, null, null, bloquesJson, null, "BOULDER", "POINT", null, "LTR");
+                null, null, null, null, bloquesJson, null, "BOULDER", "POINT", null, "LTR", null);
     }
 
     @Test
