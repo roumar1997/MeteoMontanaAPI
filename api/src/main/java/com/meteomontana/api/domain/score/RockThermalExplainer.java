@@ -19,25 +19,32 @@ public final class RockThermalExplainer {
 
     public static Explanation explain(String rockType, double rockTempC,
                                       double airTempC, double tauHours) {
-        String rockName = rockType == null || rockType.isBlank()
-                ? "ROCA" : "ROCA · " + rockType.trim().toUpperCase();
+        // Nombre CORTO fijo («ROCA»): el largo «ROCA · GRANITO» chocaba con la
+        // descripción en la fila de factores de Android. El tipo va al texto.
+        String rock = rockType == null || rockType.isBlank()
+                ? "Roca" : capitalize(rockType.trim());
         String lag = "~" + Math.max(1, Math.round(tauHours)) + " h";
         long shown = Math.round(rockTempC);
 
         boolean warm = rockTempC >= WARM_ROCK_C
                 || (rockTempC - airTempC) >= HOLDING_HEAT_DELTA_C;
         if (warm) {
-            return new Explanation(rockName,
-                    "Aún templada (" + shown + "°): guarda el calor " + lag + " tras el sol",
+            return new Explanation("ROCA",
+                    rock + " aún templado (" + shown + "°): guarda el calor " + lag + " tras el sol",
                     false);
         }
         if (rockTempC <= 22.0) {
-            return new Explanation(rockName,
-                    "Fría (" + shown + "°): buena fricción · se enfría en " + lag,
+            return new Explanation("ROCA",
+                    rock + " frío (" + shown + "°): buena fricción · se enfría en " + lag,
                     true);
         }
-        return new Explanation(rockName,
-                "Templada (" + shown + "°) · inercia " + lag,
+        return new Explanation("ROCA",
+                rock + " templado (" + shown + "°) · inercia " + lag,
                 true);
+    }
+
+    private static String capitalize(String s) {
+        return s.isEmpty() ? s
+                : Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
     }
 }

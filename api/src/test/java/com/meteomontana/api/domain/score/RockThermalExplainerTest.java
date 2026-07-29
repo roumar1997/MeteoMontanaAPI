@@ -10,7 +10,8 @@ class RockThermalExplainerTest {
     @Test
     void granitoCalienteSuspendeYExplicaLaInercia() {
         var e = RockThermalExplainer.explain("Granito", 28.0, 24.0, 3.0);
-        assertEquals("ROCA · GRANITO", e.name());
+        assertEquals("ROCA", e.name());
+        assertTrue(e.display().startsWith("Granito"));
         assertFalse(e.passes());
         assertTrue(e.display().contains("28°"));
         assertTrue(e.display().contains("~3 h"));
