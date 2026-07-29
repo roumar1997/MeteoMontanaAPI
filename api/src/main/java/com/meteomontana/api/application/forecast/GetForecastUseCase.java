@@ -53,6 +53,14 @@ public class GetForecastUseCase {
     // HOURLY
     // ──────────────────────────────────────────────────────────────────────────
 
+    /** Serie horaria de temperatura de ROCA (memoria térmica, C1). */
+    private double[] rockTempSeries(OpenMeteoResponse weather, String rockType) {
+        OpenMeteoResponse.HourlyData h = weather.hourly();
+        return com.meteomontana.api.domain.score.RockTemperatureModel.estimate(
+                h.temperature(), h.radiation(), h.windSpeed(),
+                com.meteomontana.api.domain.score.RockThermalProfile.forRockType(rockType).tauHours());
+    }
+
     private List<ForecastResponse.HourForecast> buildHourlyForecast(
             OpenMeteoResponse weather, String rockType) {
 
@@ -61,9 +69,7 @@ public class GetForecastUseCase {
         // Memoria térmica: serie de temperatura de la roca (retardo exponencial
         // sobre aire + sol + viento). Con caché antigua sin radiación degrada a
         // roca ≈ aire → ajuste 0 (comportamiento previo).
-        double[] rockTemp = com.meteomontana.api.domain.score.RockTemperatureModel.estimate(
-                h.temperature(), h.radiation(), h.windSpeed(),
-                com.meteomontana.api.domain.score.RockThermalProfile.forRockType(rockType).tauHours());
+        double[] rockTemp = rockTempSeries(weather, rockType);
         List<ForecastResponse.HourForecast> result = new ArrayList<>(h.time().size());
 
         for (int i = 0; i < h.time().size(); i++) {
@@ -154,7 +160,11 @@ public class GetForecastUseCase {
 
         boolean dryRock = isDryRock(cur, precip72h, rockType);
 
-        List<ForecastResponse.ScoreFactor> factors = buildFactors(cur, precip24h, precip72h);
+        // Factor de ROCA (C1 visible): tipo + estado térmico + inercia.
+        double[] rockNow = rockTempSeries(weather, rockType);
+        double rockTempNow = nowIndex < rockNow.length ? rockNow[nowIndex] : cur.temperature();
+        List<ForecastResponse.ScoreFactor> factors =
+                buildFactors(cur, precip24h, precip72h, rockType, rockTempNow);
         ForecastResponse.RockDrying drying = buildDrying(rockType, precip72h, hours);
 
         return new ForecastResponse.Current(
@@ -287,7 +297,8 @@ public class GetForecastUseCase {
      * Cada factor tiene un threshold simple — si lo cumple, ✓; si no, ❌.
      */
     private List<ForecastResponse.ScoreFactor> buildFactors(
-            ForecastResponse.HourForecast cur, double precip24h, double precip72h) {
+            ForecastResponse.HourForecast cur, double precip24h, double precip72h,
+            String rockType, double rockTempNow) {
 
         List<ForecastResponse.ScoreFactor> list = new ArrayList<>();
 
@@ -296,6 +307,13 @@ public class GetForecastUseCase {
                 "TEMPERATURA", Math.round(cur.temperature()) + "°",
                 cur.temperature() >= 5 && cur.temperature() <= 22
         ));
+        // ROCA (C1): tipo, si sigue caliente y su inercia térmica — pedido
+        // por Rodrigo («granito y temp tarda no sé cuánto, aún caliente»).
+        var rock = com.meteomontana.api.domain.score.RockThermalExplainer.explain(
+                rockType, rockTempNow, cur.temperature(),
+                com.meteomontana.api.domain.score.RockThermalProfile.forRockType(rockType).tauHours());
+        list.add(new ForecastResponse.ScoreFactor(rock.name(), rock.display(), rock.passes()));
+
         // Humedad: <70% bien.
         list.add(new ForecastResponse.ScoreFactor(
                 "HUMEDAD", Math.round(cur.humidity()) + "%",
