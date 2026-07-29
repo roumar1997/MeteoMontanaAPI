@@ -8,25 +8,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * LIKES de posts del feed: dar/quitar (idempotentes) y notificación al dueño
  * solo al CREAR el like y nunca a uno mismo.
  */
 @Service
+@RequiredArgsConstructor
 public class FeedLikeService {
 
     private final FeedPostRepository posts;
     private final FeedLikeRepository likes;
     private final FeedNotifier notifier;
-
-    public FeedLikeService(FeedPostRepository posts,
-                           FeedLikeRepository likes,
-                           FeedNotifier notifier) {
-        this.posts = posts;
-        this.likes = likes;
-        this.notifier = notifier;
-    }
 
     /** Da like (idempotente). Devuelve el contador resultante. */
     @Transactional

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Endpoint que el cliente Android llama después de escribir un mensaje
@@ -26,6 +27,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/chat")
+@RequiredArgsConstructor
 public class ChatPushController {
 
     private final UserRepository userRepository;
@@ -35,18 +37,6 @@ public class ChatPushController {
     // lo expone como proxy de la interfaz PushSender, no como FcmService.
     private final PushSender fcmService;
     private final com.meteomontana.api.application.moderation.ContentModerationService moderationService;
-
-    public ChatPushController(UserRepository userRepository,
-                              FollowRepository followRepository,
-                              ChatRepository chatRepository,
-                              PushSender fcmService,
-                              com.meteomontana.api.application.moderation.ContentModerationService moderationService) {
-        this.userRepository = userRepository;
-        this.followRepository = followRepository;
-        this.chatRepository = chatRepository;
-        this.fcmService = fcmService;
-        this.moderationService = moderationService;
-    }
 
     public record NotifyRequest(String toUid, String preview) {}
 

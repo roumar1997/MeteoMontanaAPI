@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Votos de utilidad de las notas comunitarias ("me gusta / no me gusta").
@@ -17,6 +18,7 @@ import java.util.Map;
  * Las notas se sirven ordenadas por utilidad (up − down) y luego por fecha.
  */
 @Service
+@RequiredArgsConstructor
 public class NoteVotesService {
 
     /** Nota + el voto del usuario que consulta (0 si no votó o es anónimo). */
@@ -26,10 +28,6 @@ public class NoteVotesService {
                                  int myVote) {}
 
     private final NoteVoteRepository votes;
-
-    public NoteVotesService(NoteVoteRepository votes) {
-        this.votes = votes;
-    }
 
     /**
      * Aplica el voto (1 = me gusta, -1 = no me gusta). Si el usuario repite

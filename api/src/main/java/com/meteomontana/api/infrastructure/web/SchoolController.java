@@ -32,9 +32,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class SchoolController {
 
     private final GetSchoolsUseCase getSchoolsUseCase;
@@ -47,28 +49,6 @@ public class SchoolController {
     private final SearchSchoolsUseCase searchSchoolsUseCase;
     private final GetMonthlyStatsUseCase getMonthlyStatsUseCase;
     private final ObjectMapper objectMapper;
-
-    public SchoolController(GetSchoolsUseCase getSchoolsUseCase,
-                            GetSchoolByIdUseCase getSchoolByIdUseCase,
-                            GetNotesBySchoolUseCase getNotesBySchoolUseCase,
-                            GetForecastUseCase getForecastUseCase,
-                            CreateNoteUseCase createNoteUseCase,
-                            NoteVotesService noteVotesService,
-                            com.meteomontana.api.application.moderation.ContentModerationService moderationService,
-                            SearchSchoolsUseCase searchSchoolsUseCase,
-                            GetMonthlyStatsUseCase getMonthlyStatsUseCase,
-                            ObjectMapper objectMapper) {
-        this.getSchoolsUseCase       = getSchoolsUseCase;
-        this.getSchoolByIdUseCase    = getSchoolByIdUseCase;
-        this.getNotesBySchoolUseCase = getNotesBySchoolUseCase;
-        this.getForecastUseCase      = getForecastUseCase;
-        this.createNoteUseCase       = createNoteUseCase;
-        this.noteVotesService        = noteVotesService;
-        this.moderationService       = moderationService;
-        this.searchSchoolsUseCase    = searchSchoolsUseCase;
-        this.getMonthlyStatsUseCase  = getMonthlyStatsUseCase;
-        this.objectMapper            = objectMapper;
-    }
 
     @GetMapping("/schools/search")
     public List<School> search(@RequestParam("q") String query,

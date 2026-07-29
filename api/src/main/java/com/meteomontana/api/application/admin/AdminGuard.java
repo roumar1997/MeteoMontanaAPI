@@ -3,6 +3,7 @@ package com.meteomontana.api.application.admin;
 import com.meteomontana.api.domain.exception.ForbiddenException;
 import com.meteomontana.api.domain.port.UserRepository;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Verifica que el usuario autenticado tiene flag is_admin = true en BD.
@@ -12,13 +13,10 @@ import org.springframework.stereotype.Service;
  * cada request. Lo dejamos así de simple por ahora.
  */
 @Service
+@RequiredArgsConstructor
 public class AdminGuard {
 
     private final UserRepository userRepository;
-
-    public AdminGuard(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
 
     public void ensureAdmin(String uid) {
         if (!isAdmin(uid)) {

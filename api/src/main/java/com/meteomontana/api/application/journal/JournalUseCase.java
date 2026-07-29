@@ -13,15 +13,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class JournalUseCase {
 
     private final JournalRepository repository;
-
-    public JournalUseCase(JournalRepository repository) {
-        this.repository = repository;
-    }
 
     public JournalDtos.JournalSessionDto create(String uid, JournalDtos.CreateJournalRequest req) {
         if (req.blockName() == null || req.blockName().isBlank())

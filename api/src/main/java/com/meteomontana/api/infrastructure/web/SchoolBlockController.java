@@ -17,20 +17,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class SchoolBlockController {
 
     private final SchoolBlockUseCase useCase;
     private final AdminGuard adminGuard;
     private final RateLineUseCase rateLine;
-
-    public SchoolBlockController(SchoolBlockUseCase useCase, AdminGuard adminGuard, RateLineUseCase rateLine) {
-        this.useCase = useCase;
-        this.adminGuard = adminGuard;
-        this.rateLine = rateLine;
-    }
 
     /** Público: listar bloques de la escuela. Si el usuario está autenticado,
      *  las vías incluyen su valoración personal (myStars). */

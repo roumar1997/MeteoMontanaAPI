@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Servicio que crea entradas en la bandeja de notificaciones.
@@ -13,13 +14,10 @@ import java.util.UUID;
  * la notificación además de mandar el FCM push.
  */
 @Service
+@RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationRepository repository;
-
-    public NotificationService(NotificationRepository repository) {
-        this.repository = repository;
-    }
 
     public Notification create(String uid, String type, String title, String body,
                                String targetType, String targetId) {

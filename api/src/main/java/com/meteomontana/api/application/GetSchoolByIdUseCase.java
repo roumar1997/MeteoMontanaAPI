@@ -5,15 +5,13 @@ import com.meteomontana.api.domain.port.SchoolRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class GetSchoolByIdUseCase {
 
     private final SchoolRepository repository;
-
-    public GetSchoolByIdUseCase(SchoolRepository repository) {
-        this.repository = repository;
-    }
 
     public Optional<School> execute(String id) {
         return repository.findById(id);

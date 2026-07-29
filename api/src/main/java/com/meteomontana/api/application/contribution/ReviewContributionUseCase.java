@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
 
 /**
  * ORQUESTA la aprobación/rechazo de una contribución pendiente y delega el
@@ -35,6 +36,7 @@ import java.time.LocalDateTime;
  *                         si targetBlockId == null  → mueve la escuela entera.
  */
 @Service
+@RequiredArgsConstructor
 public class ReviewContributionUseCase {
 
     private static final org.slf4j.Logger log =
@@ -47,22 +49,6 @@ public class ReviewContributionUseCase {
     private final LineReconciler reconciler;
     private final ReviewNotifier notifier;
     private final FeedPublishService feedService;
-
-    public ReviewContributionUseCase(SpringDataContributionRepository repo,
-                                     SpringDataSchoolBlockRepository blockRepo,
-                                     SpringDataSchoolRepository schoolRepo,
-                                     BlockMaterializer materializer,
-                                     LineReconciler reconciler,
-                                     ReviewNotifier notifier,
-                                     FeedPublishService feedService) {
-        this.repo       = repo;
-        this.blockRepo  = blockRepo;
-        this.schoolRepo = schoolRepo;
-        this.materializer = materializer;
-        this.reconciler = reconciler;
-        this.notifier = notifier;
-        this.feedService = feedService;
-    }
 
     /**
      * Post automático del feed al aprobar (NEW_BLOCK para piedra nueva, NEW_LINE

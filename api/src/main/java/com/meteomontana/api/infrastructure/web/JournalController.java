@@ -19,22 +19,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class JournalController {
 
     private final JournalUseCase useCase;
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
-
-    public JournalController(JournalUseCase useCase,
-                             UserRepository userRepository,
-                             FollowRepository followRepository) {
-        this.useCase = useCase;
-        this.userRepository = userRepository;
-        this.followRepository = followRepository;
-    }
 
     @PostMapping("/journal")
     @ResponseStatus(HttpStatus.CREATED)

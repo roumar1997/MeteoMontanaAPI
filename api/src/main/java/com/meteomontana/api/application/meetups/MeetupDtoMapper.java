@@ -6,17 +6,14 @@ import com.meteomontana.api.domain.port.UserRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class MeetupDtoMapper {
 
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
-
-    public MeetupDtoMapper(SchoolRepository schoolRepository, UserRepository userRepository) {
-        this.schoolRepository = schoolRepository;
-        this.userRepository = userRepository;
-    }
 
     public MeetupDto toDto(Meetup m, String requesterUid) {
         var school = schoolRepository.findById(m.getSchoolId());

@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
 /**
  * LECTURA del feed: página por scope, actividad de un usuario y post único.
@@ -18,6 +19,7 @@ import java.util.Set;
  * {@link FeedAccessGuard} y el mapeo a vistas {@link FeedViewMapper}.
  */
 @Service
+@RequiredArgsConstructor
 public class FeedQueryService {
 
     private static final int MAX_PAGE = 50;
@@ -26,16 +28,6 @@ public class FeedQueryService {
     private final FollowRepository follows;
     private final FeedAccessGuard guard;
     private final FeedViewMapper viewMapper;
-
-    public FeedQueryService(FeedPostRepository posts,
-                            FollowRepository follows,
-                            FeedAccessGuard guard,
-                            FeedViewMapper viewMapper) {
-        this.posts = posts;
-        this.follows = follows;
-        this.guard = guard;
-        this.viewMapper = viewMapper;
-    }
 
     /**
      * Página del feed, más recientes primero. Cursor keyset: {@code before} es

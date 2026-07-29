@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Materializa un school_block NUEVO al aprobar una contribución
@@ -17,13 +18,10 @@ import java.util.UUID;
  * en caras y portada. Extraído de ReviewContributionUseCase (SRP).
  */
 @Service
+@RequiredArgsConstructor
 public class BlockMaterializer {
 
     private final SpringDataSchoolBlockRepository blockRepo;
-
-    public BlockMaterializer(SpringDataSchoolBlockRepository blockRepo) {
-        this.blockRepo = blockRepo;
-    }
 
     public SchoolBlockJpaEntity createBlock(PendingContribution c, SchoolBlock.Type type, String adminUid) {
         // Las PIEDRAS (BLOCK) no llevan nombre libre: se les asigna un NÚMERO

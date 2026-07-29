@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Moderación de usuarios (consola de admin): aviso, suspensión temporal
@@ -24,6 +25,7 @@ import java.util.Map;
  * contador de denuncias recibidas por cada usuario para que el admin decida.
  */
 @Service
+@RequiredArgsConstructor
 public class UserModerationService {
 
     /** Resumen de moderación de un usuario para el panel de admin. */
@@ -51,16 +53,6 @@ public class UserModerationService {
                     .expireAfterWrite(java.time.Duration.ofSeconds(30))
                     .maximumSize(10_000)
                     .build();
-
-    public UserModerationService(UserModerationRepository moderation,
-                                 ContentReportRepository contentReports,
-                                 MeetupReportRepository meetupReports,
-                                 PushSender push) {
-        this.moderation = moderation;
-        this.contentReports = contentReports;
-        this.meetupReports = meetupReports;
-        this.push = push;
-    }
 
     @Transactional(readOnly = true)
     public ModerationView summary(String uid) {

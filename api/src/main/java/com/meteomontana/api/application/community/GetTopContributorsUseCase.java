@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Ranking de mayores contribuidores: usuarios con más contribuciones APROBADAS
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
  * usuarios: perfil privado → vista "locked" (sin bio/grado, con username/foto).
  */
 @Service
+@RequiredArgsConstructor
 public class GetTopContributorsUseCase {
 
     /** Fila del ranking que consume la app. */
@@ -37,14 +39,6 @@ public class GetTopContributorsUseCase {
     private final ContributionStatsRepository statsRepo;
     private final UserRepository userRepository;
     private final UserDtoMapper mapper;
-
-    public GetTopContributorsUseCase(ContributionStatsRepository statsRepo,
-                                     UserRepository userRepository,
-                                     UserDtoMapper mapper) {
-        this.statsRepo = statsRepo;
-        this.userRepository = userRepository;
-        this.mapper = mapper;
-    }
 
     public List<TopContributorDto> topContributors(int limit) {
         int capped = Math.max(1, Math.min(limit, MAX_LIMIT));

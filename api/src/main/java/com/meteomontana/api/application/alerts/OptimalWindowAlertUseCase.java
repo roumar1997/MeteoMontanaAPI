@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Alerta "ventana óptima hoy": si alguna escuela favorita del usuario tiene
@@ -21,6 +22,7 @@ import java.util.Map;
  * con la mejor de todas. Máximo un aviso al día (optimal_last_sent).
  */
 @Service
+@RequiredArgsConstructor
 public class OptimalWindowAlertUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(OptimalWindowAlertUseCase.class);
@@ -32,18 +34,6 @@ public class OptimalWindowAlertUseCase {
     private final FavoriteRepository favoriteRepository;
     private final AlertPreferenceRepository alertRepository;
     private final PushSender fcmService;
-
-    public OptimalWindowAlertUseCase(GetForecastUseCase getForecast,
-                                     UserRepository userRepository,
-                                     FavoriteRepository favoriteRepository,
-                                     AlertPreferenceRepository alertRepository,
-                                     PushSender fcmService) {
-        this.getForecast = getForecast;
-        this.userRepository = userRepository;
-        this.favoriteRepository = favoriteRepository;
-        this.alertRepository = alertRepository;
-        this.fcmService = fcmService;
-    }
 
     /** Mejor candidata del usuario: escuela + ventana de hoy. */
     private record Candidate(String schoolId, String name, ForecastResponse.OptimalWindow window) {}

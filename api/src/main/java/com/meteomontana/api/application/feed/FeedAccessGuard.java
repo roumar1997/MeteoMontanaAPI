@@ -7,6 +7,7 @@ import com.meteomontana.api.domain.port.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
 /**
  * LA regla de privacidad y bloqueos del feed, en UN solo sitio.
@@ -17,19 +18,12 @@ import java.util.Set;
  * repartida por FeedService y DUPLICADA a mano en ShareController.
  */
 @Service
+@RequiredArgsConstructor
 public class FeedAccessGuard {
 
     private final UserBlockRepository blocks;
     private final FollowRepository follows;
     private final UserRepository users;
-
-    public FeedAccessGuard(UserBlockRepository blocks,
-                           FollowRepository follows,
-                           UserRepository users) {
-        this.blocks = blocks;
-        this.follows = follows;
-        this.users = users;
-    }
 
     /** Uids que {@code uid} ha bloqueado (para filtrar páginas/comentarios). */
     public Set<String> blockedUids(String uid) {

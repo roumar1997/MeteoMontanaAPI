@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Búsqueda GLOBAL de vías y bloques por nombre (buscador de la pantalla de
@@ -16,6 +17,7 @@ import java.util.Map;
  * resuelta y con foto+trazo para pintar el mini-topo en las sugerencias.
  */
 @Service
+@RequiredArgsConstructor
 public class SearchLinesService {
 
     private static final int MAX_LINES = 15;
@@ -24,11 +26,6 @@ public class SearchLinesService {
 
     private final LineSearchRepository search;
     private final SchoolRepository schools;
-
-    public SearchLinesService(LineSearchRepository search, SchoolRepository schools) {
-        this.search = search;
-        this.schools = schools;
-    }
 
     public List<LineSearchHit> search(String q) {
         String query = q == null ? "" : q.trim();

@@ -14,18 +14,15 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /** Casos de uso del radar: timeline y frame repintado en Cumbre. */
 @Service
+@RequiredArgsConstructor
 public class RadarService {
 
     private final SpringDataRadarFrameRepository repo;
     private final RadarCumbreRenderer renderer;
-
-    public RadarService(SpringDataRadarFrameRepository repo, RadarCumbreRenderer renderer) {
-        this.repo = repo;
-        this.renderer = renderer;
-    }
 
     @Transactional(readOnly = true)
     public List<RadarFrameEntity> timeline(String radar, int hours) {

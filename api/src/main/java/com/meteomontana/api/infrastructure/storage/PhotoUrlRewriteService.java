@@ -9,6 +9,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Reescribe las URLs de fotos "Tipo A" guardadas en la BD: de la URL de Firebase
@@ -18,6 +19,7 @@ import java.util.Map;
  * relativas (Tipo B) no se tocan. Reversible mientras Firebase siga vivo.
  */
 @Service
+@RequiredArgsConstructor
 public class PhotoUrlRewriteService {
 
     private static final Logger log = LoggerFactory.getLogger(PhotoUrlRewriteService.class);
@@ -38,10 +40,6 @@ public class PhotoUrlRewriteService {
     public record Result(int scanned, int rewritten, int skipped) {}
 
     private final JdbcTemplate jdbc;
-
-    public PhotoUrlRewriteService(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
-    }
 
     /**
      * @param base   URL base del entorno (p.ej. https://api.climbingteams.com).

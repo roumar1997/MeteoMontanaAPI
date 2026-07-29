@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Evalúa el próximo vie/sáb/dom de las escuelas elegidas (máx 3) y manda un
@@ -23,6 +24,7 @@ import java.util.Map;
  * y aviso de lluvia (en cuántos días llueve y el máximo de mm acumulados).
  */
 @Service
+@RequiredArgsConstructor
 public class WeekendAlertUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(WeekendAlertUseCase.class);
@@ -34,16 +36,6 @@ public class WeekendAlertUseCase {
     private final UserRepository userRepository;
     private final com.meteomontana.api.domain.port.SchoolRepository schoolRepository;
     private final PushSender fcmService;
-
-    public WeekendAlertUseCase(GetForecastUseCase getForecast,
-                               UserRepository userRepository,
-                               com.meteomontana.api.domain.port.SchoolRepository schoolRepository,
-                               PushSender fcmService) {
-        this.getForecast = getForecast;
-        this.userRepository = userRepository;
-        this.schoolRepository = schoolRepository;
-        this.fcmService = fcmService;
-    }
 
     /** Resumen de una escuela para los días elegidos. */
     record SchoolWeekend(String schoolId, String name, int avgScore,

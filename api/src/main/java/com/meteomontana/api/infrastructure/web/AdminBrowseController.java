@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Listas para el panel de admin (STATS pulsables): usuarios y notas más
@@ -19,6 +20,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/admin")
+@RequiredArgsConstructor
 public class AdminBrowseController {
 
     private static final int PAGE = 200;
@@ -31,14 +33,6 @@ public class AdminBrowseController {
     private final AdminGuard adminGuard;
     private final UserRepository users;
     private final NoteRepository notes;
-
-    public AdminBrowseController(AdminGuard adminGuard,
-                                 UserRepository users,
-                                 NoteRepository notes) {
-        this.adminGuard = adminGuard;
-        this.users = users;
-        this.notes = notes;
-    }
 
     /** Últimos 200 usuarios registrados (más recientes primero). */
     @GetMapping("/users")

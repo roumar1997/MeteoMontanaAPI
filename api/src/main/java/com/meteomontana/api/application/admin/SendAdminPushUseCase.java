@@ -12,8 +12,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SendAdminPushUseCase {
 
     public record AdminPushRequest(String targetUid, String title, String body) {}
@@ -24,16 +26,6 @@ public class SendAdminPushUseCase {
     private final AdminLogRepository adminLogRepository;
     private final AdminGuard adminGuard;
     private final UserDeviceRepository deviceRepository;
-
-    public SendAdminPushUseCase(UserRepository userRepository, PushSender fcmService,
-                                AdminLogRepository adminLogRepository, AdminGuard adminGuard,
-                                UserDeviceRepository deviceRepository) {
-        this.userRepository = userRepository;
-        this.fcmService = fcmService;
-        this.adminLogRepository = adminLogRepository;
-        this.adminGuard = adminGuard;
-        this.deviceRepository = deviceRepository;
-    }
 
     public AdminPushResponse execute(String adminUid, AdminPushRequest req) {
         adminGuard.ensureAdmin(adminUid);

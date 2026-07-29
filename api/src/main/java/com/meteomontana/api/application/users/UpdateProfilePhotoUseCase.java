@@ -10,17 +10,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class UpdateProfilePhotoUseCase {
 
     private final UserRepository userRepository;
     private final StorageService storageService;
-
-    public UpdateProfilePhotoUseCase(UserRepository userRepository, StorageService storageService) {
-        this.userRepository = userRepository;
-        this.storageService = storageService;
-    }
 
     // NO @Transactional: la subida a Firebase Storage (segundos de red) no debe
     // retener una conexión del pool. findByUid y save cogen/sueltan su conexión

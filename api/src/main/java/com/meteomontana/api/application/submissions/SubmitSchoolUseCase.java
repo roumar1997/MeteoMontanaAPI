@@ -9,21 +9,15 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SubmitSchoolUseCase {
 
     private final SchoolSubmissionRepository repository;
     private final com.meteomontana.api.domain.port.UserRepository userRepository;
     private final PushSender push;
-
-    public SubmitSchoolUseCase(SchoolSubmissionRepository repository,
-                               com.meteomontana.api.domain.port.UserRepository userRepository,
-                               PushSender push) {
-        this.repository = repository;
-        this.userRepository = userRepository;
-        this.push = push;
-    }
 
     public SubmissionDto execute(String submitterUid, SubmitSchoolRequest req) {
         if (req.name() == null || req.name().isBlank()) {

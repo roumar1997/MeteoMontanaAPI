@@ -4,15 +4,13 @@ import com.meteomontana.api.domain.model.Meetup;
 import com.meteomontana.api.domain.port.MeetupRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class DeleteMeetupUseCase {
 
     private final MeetupRepository meetupRepository;
-
-    public DeleteMeetupUseCase(MeetupRepository meetupRepository) {
-        this.meetupRepository = meetupRepository;
-    }
 
     @Transactional
     public void execute(String uid, String meetupId) {

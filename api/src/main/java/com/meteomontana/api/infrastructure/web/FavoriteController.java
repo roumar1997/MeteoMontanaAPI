@@ -13,16 +13,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/me/favorites")
+@RequiredArgsConstructor
 public class FavoriteController {
 
     private final FavoriteUseCase useCase;
-
-    public FavoriteController(FavoriteUseCase useCase) {
-        this.useCase = useCase;
-    }
 
     @GetMapping
     public List<FavoriteUseCase.FavoriteSchoolDto> list(@AuthenticationPrincipal FirebaseUser user) {

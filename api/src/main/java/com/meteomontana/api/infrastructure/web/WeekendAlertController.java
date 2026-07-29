@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Preferencias de la "alerta del finde": GET/PUT /api/me/weekend-alert.
@@ -20,6 +21,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/me/weekend-alert")
+@RequiredArgsConstructor
 public class WeekendAlertController {
 
     /**
@@ -35,10 +37,6 @@ public class WeekendAlertController {
                                   Boolean optimalEnabled, Integer optimalThreshold) {}
 
     private final WeekendAlertPrefsUseCase useCase;
-
-    public WeekendAlertController(WeekendAlertPrefsUseCase useCase) {
-        this.useCase = useCase;
-    }
 
     @GetMapping
     public WeekendAlertDto get(@AuthenticationPrincipal FirebaseUser user) {

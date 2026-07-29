@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 /**
  * MAPEO dominio → vista del feed: contadores en batch (sin N+1), autor con la
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
  * refleja; el snapshot del post queda como respaldo si se borran).
  */
 @Service
+@RequiredArgsConstructor
 public class FeedViewMapper {
 
     private static final Logger log = LoggerFactory.getLogger(FeedViewMapper.class);
@@ -45,20 +47,6 @@ public class FeedViewMapper {
     private final UserRepository users;
     private final UserDtoMapper mapper;
     private final StorageService storage;
-
-    public FeedViewMapper(FeedLikeRepository likes,
-                          FeedCommentRepository comments,
-                          SchoolBlockRepository schoolBlocks,
-                          UserRepository users,
-                          UserDtoMapper mapper,
-                          StorageService storage) {
-        this.likes = likes;
-        this.comments = comments;
-        this.schoolBlocks = schoolBlocks;
-        this.users = users;
-        this.mapper = mapper;
-        this.storage = storage;
-    }
 
     /** Mapea posts ya filtrados a vistas (contadores, autor, foto/trazo en vivo). */
     public List<FeedPostView> mapViews(String uid, List<FeedPost> page) {

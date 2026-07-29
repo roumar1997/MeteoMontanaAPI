@@ -14,24 +14,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class RejectSubmissionUseCase {
 
     private final SchoolSubmissionRepository submissionRepository;
     private final AdminLogRepository adminLogRepository;
     private final AdminGuard adminGuard;
     private final ApplicationEventPublisher events;
-
-    public RejectSubmissionUseCase(SchoolSubmissionRepository submissionRepository,
-                                   AdminLogRepository adminLogRepository,
-                                   AdminGuard adminGuard,
-                                   ApplicationEventPublisher events) {
-        this.submissionRepository = submissionRepository;
-        this.adminLogRepository = adminLogRepository;
-        this.adminGuard = adminGuard;
-        this.events = events;
-    }
 
     @Transactional
     public SubmissionDto execute(String adminUid, String submissionId, String reason) {

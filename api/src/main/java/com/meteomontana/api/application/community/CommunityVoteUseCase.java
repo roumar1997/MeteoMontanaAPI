@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Votación comunitaria SIN admin (decisiones de Rodrigo 2026-07-29):
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
  *    referencia en setter_grade.
  */
 @Service
+@RequiredArgsConstructor
 public class CommunityVoteUseCase {
 
     private static final Set<String> ASPECTS = Set.of("N", "NE", "E", "SE", "S", "SO", "O", "NO");
@@ -51,14 +53,6 @@ public class CommunityVoteUseCase {
     private final SchoolBlockRepository blocks;
     private final SchoolRepository schools;
     private final JournalRepository journal;
-
-    public CommunityVoteUseCase(CommunityVoteRepository votes, SchoolBlockRepository blocks,
-                                SchoolRepository schools, JournalRepository journal) {
-        this.votes = votes;
-        this.blocks = blocks;
-        this.schools = schools;
-        this.journal = journal;
-    }
 
     // ── Orientación ─────────────────────────────────────────────────────────
 

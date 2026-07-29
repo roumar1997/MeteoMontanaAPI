@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Comentarios de la comunidad en piedras/muros y vías, con votos de utilidad.
@@ -24,6 +25,7 @@ import java.util.UUID;
  * usuario, repetir voto lo retira, orden por (up-down) desc y luego recientes.
  */
 @Service
+@RequiredArgsConstructor
 public class LineCommentService {
 
     public record CommentView(String id, String blockId, String lineId, String author,
@@ -35,18 +37,6 @@ public class LineCommentService {
     private final UserRepository users;
     private final UserBlockRepository blocks;
     private final com.meteomontana.api.application.moderation.UserModerationService moderation;
-
-    public LineCommentService(LineCommentRepository comments,
-                              LineCommentVoteRepository votes,
-                              UserRepository users,
-                              UserBlockRepository blocks,
-                              com.meteomontana.api.application.moderation.UserModerationService moderation) {
-        this.comments = comments;
-        this.votes = votes;
-        this.users = users;
-        this.blocks = blocks;
-        this.moderation = moderation;
-    }
 
     /** Comentarios del bloque (y opcionalmente de UNA vía), ordenados por utilidad. */
     @Transactional(readOnly = true)

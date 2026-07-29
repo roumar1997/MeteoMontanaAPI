@@ -26,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class UserController {
 
     private final GetOrCreateMyProfileUseCase getOrCreateMyProfile;
@@ -38,22 +40,6 @@ public class UserController {
     private final UpdateProfilePhotoUseCase   updateProfilePhoto;
     private final DeleteMyAccountUseCase      deleteMyAccount;
     private final UserDtoMapper               userDtoMapper;
-
-    public UserController(GetOrCreateMyProfileUseCase getOrCreateMyProfile,
-                          GetPublicProfileUseCase getPublicProfile,
-                          UpdateMyProfileUseCase updateMyProfile,
-                          UpdateFcmTokenUseCase updateFcmToken,
-                          UpdateProfilePhotoUseCase updateProfilePhoto,
-                          DeleteMyAccountUseCase deleteMyAccount,
-                          UserDtoMapper userDtoMapper) {
-        this.getOrCreateMyProfile = getOrCreateMyProfile;
-        this.getPublicProfile     = getPublicProfile;
-        this.updateMyProfile      = updateMyProfile;
-        this.updateFcmToken       = updateFcmToken;
-        this.updateProfilePhoto   = updateProfilePhoto;
-        this.deleteMyAccount      = deleteMyAccount;
-        this.userDtoMapper        = userDtoMapper;
-    }
 
     @GetMapping("/me")
     public PrivateProfileDto getMe(@AuthenticationPrincipal FirebaseUser user) {

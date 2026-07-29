@@ -21,8 +21,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class CreateMeetupUseCase {
 
     private final MeetupRepository meetupRepository;
@@ -35,28 +37,6 @@ public class CreateMeetupUseCase {
     private final PushSender pushSender;
     private final MeetupDtoMapper mapper;
     private final com.meteomontana.api.application.moderation.UserModerationService moderation;
-
-    public CreateMeetupUseCase(MeetupRepository meetupRepository,
-                               ChatRepository chatRepository,
-                               SchoolRepository schoolRepository,
-                               UserRepository userRepository,
-                               MeetupAlertRepository alertRepository,
-                               FollowRepository followRepository,
-                               NotificationService notificationService,
-                               PushSender pushSender,
-                               MeetupDtoMapper mapper,
-                               com.meteomontana.api.application.moderation.UserModerationService moderation) {
-        this.meetupRepository = meetupRepository;
-        this.chatRepository = chatRepository;
-        this.schoolRepository = schoolRepository;
-        this.userRepository = userRepository;
-        this.alertRepository = alertRepository;
-        this.followRepository = followRepository;
-        this.notificationService = notificationService;
-        this.pushSender = pushSender;
-        this.mapper = mapper;
-        this.moderation = moderation;
-    }
 
     @Transactional
     public MeetupDto execute(String creatorUid, CreateMeetupRequest req) {

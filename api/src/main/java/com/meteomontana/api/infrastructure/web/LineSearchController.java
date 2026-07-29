@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Búsqueda GLOBAL de vías y bloques (buscador de la pantalla de Escuelas).
@@ -17,6 +18,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/search")
+@RequiredArgsConstructor
 public class LineSearchController {
 
     public record LineHit(String schoolId, String schoolName,
@@ -26,10 +28,6 @@ public class LineSearchController {
                           String photoPath, String linePath, String startType) {}
 
     private final SearchLinesService service;
-
-    public LineSearchController(SearchLinesService service) {
-        this.service = service;
-    }
 
     @GetMapping("/lines")
     public List<LineHit> search(@RequestParam String q) {

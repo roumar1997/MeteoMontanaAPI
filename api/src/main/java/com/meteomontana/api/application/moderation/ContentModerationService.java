@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Moderación de contenido de usuarios (requisito App Store para apps con UGC):
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
  * no puede iniciarle chat).
  */
 @Service
+@RequiredArgsConstructor
 public class ContentModerationService {
 
     public record ReportView(String id, String targetType, String targetId, String reason,
@@ -55,28 +57,6 @@ public class ContentModerationService {
     private final StorageService storage;
 
     private static final Logger log = LoggerFactory.getLogger(ContentModerationService.class);
-
-    public ContentModerationService(ContentReportRepository reports,
-                                    UserBlockRepository blocks,
-                                    LineCommentRepository comments,
-                                    NoteRepository notes,
-                                    UserRepository users,
-                                    PushSender push,
-                                    UserModerationService userModeration,
-                                    FeedPostRepository feedPosts,
-                                    FeedCommentRepository feedComments,
-                                    StorageService storage) {
-        this.reports = reports;
-        this.blocks = blocks;
-        this.comments = comments;
-        this.notes = notes;
-        this.users = users;
-        this.push = push;
-        this.userModeration = userModeration;
-        this.feedPosts = feedPosts;
-        this.feedComments = feedComments;
-        this.storage = storage;
-    }
 
     /** Crea la denuncia (con snapshot del contenido) y avisa a los admins. */
     @Transactional

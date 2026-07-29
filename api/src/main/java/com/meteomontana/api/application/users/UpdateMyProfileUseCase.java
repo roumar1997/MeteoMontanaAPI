@@ -9,19 +9,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.regex.Pattern;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class UpdateMyProfileUseCase {
 
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9_]{3,20}$");
 
     private final UserRepository userRepository;
     private final UserDtoMapper mapper;
-
-    public UpdateMyProfileUseCase(UserRepository userRepository, UserDtoMapper mapper) {
-        this.userRepository = userRepository;
-        this.mapper = mapper;
-    }
 
     @Transactional
     public PrivateProfileDto execute(String uid, UpdateProfileRequest req) {

@@ -13,8 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SchoolBlockUseCase {
 
     public record CreateBlockLineRequest(
@@ -78,16 +80,6 @@ public class SchoolBlockUseCase {
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
     private final com.meteomontana.api.domain.port.LineRatingRepository ratingRepo;
-
-    public SchoolBlockUseCase(SchoolBlockRepository blockRepository,
-                              SchoolRepository schoolRepository,
-                              UserRepository userRepository,
-                              com.meteomontana.api.domain.port.LineRatingRepository ratingRepo) {
-        this.blockRepository = blockRepository;
-        this.schoolRepository = schoolRepository;
-        this.userRepository = userRepository;
-        this.ratingRepo = ratingRepo;
-    }
 
     public List<BlockDto> listBySchool(String schoolId) {
         return listBySchool(schoolId, null);

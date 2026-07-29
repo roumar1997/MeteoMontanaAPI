@@ -17,18 +17,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class GetForecastUseCase {
 
     private final SchoolRepository schoolRepository;
     private final OpenMeteoClient openMeteoClient;
-
-    public GetForecastUseCase(SchoolRepository schoolRepository,
-                              OpenMeteoClient openMeteoClient) {
-        this.schoolRepository = schoolRepository;
-        this.openMeteoClient = openMeteoClient;
-    }
 
     public ForecastResponse execute(String schoolId) {
         School school = schoolRepository.findById(schoolId)

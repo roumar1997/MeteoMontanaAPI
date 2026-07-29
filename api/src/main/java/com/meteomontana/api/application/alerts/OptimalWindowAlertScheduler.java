@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Evalúa la alerta "ventana óptima hoy" cada hora entre las 7:00 y las 11:00
@@ -13,18 +14,13 @@ import org.springframework.stereotype.Component;
  * Acotamos la franja para no machacar Open-Meteo el resto del día.
  */
 @Component
+@RequiredArgsConstructor
 public class OptimalWindowAlertScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(OptimalWindowAlertScheduler.class);
 
     private final AlertPreferenceRepository repository;
     private final OptimalWindowAlertUseCase useCase;
-
-    public OptimalWindowAlertScheduler(AlertPreferenceRepository repository,
-                                       OptimalWindowAlertUseCase useCase) {
-        this.repository = repository;
-        this.useCase = useCase;
-    }
 
     @Scheduled(cron = "0 0 7-11 * * *", zone = "Europe/Madrid")
     public void run() {

@@ -16,12 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Aprueba una submission: crea la School en la tabla schools y marca la
  * submission como APPROVED. Todo en una transacción.
  */
 @Service
+@RequiredArgsConstructor
 public class ApproveSubmissionUseCase {
 
     private final SchoolSubmissionRepository submissionRepository;
@@ -29,18 +31,6 @@ public class ApproveSubmissionUseCase {
     private final AdminLogRepository adminLogRepository;
     private final AdminGuard adminGuard;
     private final ApplicationEventPublisher events;
-
-    public ApproveSubmissionUseCase(SchoolSubmissionRepository submissionRepository,
-                                    SchoolRepository schoolRepository,
-                                    AdminLogRepository adminLogRepository,
-                                    AdminGuard adminGuard,
-                                    ApplicationEventPublisher events) {
-        this.submissionRepository = submissionRepository;
-        this.schoolRepository = schoolRepository;
-        this.adminLogRepository = adminLogRepository;
-        this.adminGuard = adminGuard;
-        this.events = events;
-    }
 
     @Transactional
     public SubmissionDto execute(String adminUid, String submissionId, String overrideSchoolId) {

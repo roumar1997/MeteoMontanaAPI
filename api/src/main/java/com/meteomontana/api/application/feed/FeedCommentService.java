@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 /**
  * COMENTARIOS del feed: listar (con filtro de bloqueados y likes), crear
@@ -24,6 +25,7 @@ import java.util.UUID;
  * (dueño + comentaristas previos + menciones) las dispara {@link FeedNotifier}.
  */
 @Service
+@RequiredArgsConstructor
 public class FeedCommentService {
 
     private final FeedPostRepository posts;
@@ -33,22 +35,6 @@ public class FeedCommentService {
     private final FeedAccessGuard guard;
     private final FeedViewMapper viewMapper;
     private final FeedNotifier notifier;
-
-    public FeedCommentService(FeedPostRepository posts,
-                              FeedCommentRepository comments,
-                              FeedCommentLikeRepository commentLikes,
-                              UserModerationService moderation,
-                              FeedAccessGuard guard,
-                              FeedViewMapper viewMapper,
-                              FeedNotifier notifier) {
-        this.posts = posts;
-        this.comments = comments;
-        this.commentLikes = commentLikes;
-        this.moderation = moderation;
-        this.guard = guard;
-        this.viewMapper = viewMapper;
-        this.notifier = notifier;
-    }
 
     @Transactional(readOnly = true)
     public List<FeedCommentView> listComments(String uid, long postId) {

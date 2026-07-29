@@ -10,22 +10,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class ForecastController {
 
     private final GetForecastByLocationUseCase useCase;
     private final GetTodayScoresUseCase todayScoresUseCase;
     private final GetRangeScoresUseCase rangeScoresUseCase;
-
-    public ForecastController(GetForecastByLocationUseCase useCase,
-                              GetTodayScoresUseCase todayScoresUseCase,
-                              GetRangeScoresUseCase rangeScoresUseCase) {
-        this.useCase = useCase;
-        this.todayScoresUseCase = todayScoresUseCase;
-        this.rangeScoresUseCase = rangeScoresUseCase;
-    }
 
     @GetMapping("/forecast/today-scores")
     public List<GetTodayScoresUseCase.SchoolScoreDto> todayScores(

@@ -7,24 +7,20 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.ZonedDateTime;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Cada hora en punto busca los usuarios cuya alerta del finde toca ahora
  * (día de la semana + hora, en hora de Madrid) y dispara la evaluación.
  */
 @Component
+@RequiredArgsConstructor
 public class WeekendAlertScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(WeekendAlertScheduler.class);
 
     private final AlertPreferenceRepository repository;
     private final WeekendAlertUseCase useCase;
-
-    public WeekendAlertScheduler(AlertPreferenceRepository repository,
-                                 WeekendAlertUseCase useCase) {
-        this.repository = repository;
-        this.useCase = useCase;
-    }
 
     @Scheduled(cron = "0 0 * * * *", zone = "Europe/Madrid")
     public void run() {

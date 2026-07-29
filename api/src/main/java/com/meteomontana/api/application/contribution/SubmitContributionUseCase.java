@@ -13,8 +13,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class SubmitContributionUseCase {
 
     private final PendingContributionRepository repo;
@@ -23,20 +25,6 @@ public class SubmitContributionUseCase {
     private final ReviewContributionUseCase reviewUseCase;
     private final com.meteomontana.api.domain.port.UserRepository userRepository;
     private final PushSender push;
-
-    public SubmitContributionUseCase(PendingContributionRepository repo,
-                                     SchoolRepository schoolRepository,
-                                     com.meteomontana.api.application.admin.AdminGuard adminGuard,
-                                     ReviewContributionUseCase reviewUseCase,
-                                     com.meteomontana.api.domain.port.UserRepository userRepository,
-                                     PushSender push) {
-        this.repo = repo;
-        this.schoolRepository = schoolRepository;
-        this.adminGuard = adminGuard;
-        this.reviewUseCase = reviewUseCase;
-        this.userRepository = userRepository;
-        this.push = push;
-    }
 
     public ContributionResponse execute(String schoolId, ContributionRequest req,
                                         FirebaseUser user) {

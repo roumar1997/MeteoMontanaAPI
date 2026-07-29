@@ -20,6 +20,7 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import java.net.URI;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Enlaces compartidos (WhatsApp etc.): páginas de aterrizaje con metadatos
@@ -34,6 +35,7 @@ import java.util.Optional;
  * los botones de descarga (Play / App Store según dispositivo).
  */
 @RestController
+@RequiredArgsConstructor
 public class ShareController {
 
     private static final String PLAY_URL =
@@ -50,24 +52,6 @@ public class ShareController {
     // antes estaba duplicada a mano aquí y podia divergir de la del feed.
     private final com.meteomontana.api.application.feed.FeedAccessGuard feedGuard;
     private final com.meteomontana.api.application.community.CommunityVoteUseCase community;
-
-    public ShareController(SchoolBlockRepository blocks,
-                           SchoolRepository schools,
-                           StorageService storage,
-                           com.meteomontana.api.domain.port.MeetupRepository meetups,
-                           UserRepository users,
-                           FeedPostRepository feedPosts,
-                           com.meteomontana.api.application.feed.FeedAccessGuard feedGuard,
-                           com.meteomontana.api.application.community.CommunityVoteUseCase community) {
-        this.blocks = blocks;
-        this.schools = schools;
-        this.storage = storage;
-        this.meetups = meetups;
-        this.users = users;
-        this.feedPosts = feedPosts;
-        this.feedGuard = feedGuard;
-        this.community = community;
-    }
 
     /**
      * Landing de una publicación del feed: /s/p/{postId}. Si el receptor tiene
