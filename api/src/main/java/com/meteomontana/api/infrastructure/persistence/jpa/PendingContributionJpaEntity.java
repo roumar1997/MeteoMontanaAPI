@@ -4,12 +4,15 @@ import com.meteomontana.api.domain.model.PendingContribution;
 import com.meteomontana.api.domain.model.SubmissionStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "pending_contributions")
 public class PendingContributionJpaEntity {
 
     @Id
+    @Getter
     private String id;
 
     @Enumerated(EnumType.STRING)
@@ -18,6 +21,8 @@ public class PendingContributionJpaEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Getter
+    @Setter
     private SubmissionStatus status;
 
     @Column(name = "school_id", nullable = false)
@@ -50,23 +55,26 @@ public class PendingContributionJpaEntity {
     private String correctionReason;
 
     @Column(name = "target_block_id")
+    @Getter
     private String targetBlockId;
 
     @Column(name = "target_line_id")
+    @Getter
     private String targetLineId;
 
     @Column(name = "sector_block_id")
+    @Getter
     private String sectorBlockId;
 
     @Column(name = "photo_url", columnDefinition = "TEXT")
+    @Getter
     private String photoUrl;
-
-    @Column(name = "bloques_json", columnDefinition = "TEXT")
-    private String bloquesJson;
 
     /** "EDITAR Y APROBAR": el admin puede sustituir el payload por su versión
      *  retocada justo antes de materializar (queda persistido = auditoría). */
-    public void setBloquesJson(String bloquesJson) { this.bloquesJson = bloquesJson; }
+    @Column(name = "bloques_json", columnDefinition = "TEXT")
+    @Setter
+    private String bloquesJson;
 
     @Column(name = "topo_lines_json", columnDefinition = "TEXT")
     private String topoLinesJson;
@@ -90,9 +98,11 @@ public class PendingContributionJpaEntity {
     private String submittedByName;
 
     @Column(name = "reviewed_by_uid")
+    @Setter
     private String reviewedByUid;
 
     @Column(name = "review_reason")
+    @Setter
     private String reviewReason;
 
     @Column(name = "created_at", nullable = false)
@@ -102,6 +112,7 @@ public class PendingContributionJpaEntity {
     private String orientationsJson;
 
     @Column(name = "reviewed_at")
+    @Setter
     private LocalDateTime reviewedAt;
 
     protected PendingContributionJpaEntity() {}
@@ -157,19 +168,4 @@ public class PendingContributionJpaEntity {
                 createdAt, reviewedAt);
     }
 
-
-
-    public String getTargetBlockId() { return targetBlockId; }
-    public String getTargetLineId()  { return targetLineId; }
-    public String getSectorBlockId() { return sectorBlockId; }
-    public String getPhotoUrl()      { return photoUrl; }
-
-    // Setters para JPA
-    public void setStatus(SubmissionStatus status)       { this.status = status; }
-    public void setReviewedByUid(String reviewedByUid)   { this.reviewedByUid = reviewedByUid; }
-    public void setReviewReason(String reviewReason)     { this.reviewReason = reviewReason; }
-    public void setReviewedAt(LocalDateTime reviewedAt)  { this.reviewedAt = reviewedAt; }
-
-    public String getId()           { return id; }
-    public SubmissionStatus getStatus() { return status; }
 }
