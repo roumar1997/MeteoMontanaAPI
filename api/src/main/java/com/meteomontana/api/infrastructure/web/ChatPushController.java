@@ -1,5 +1,6 @@
 package com.meteomontana.api.infrastructure.web;
 
+import com.meteomontana.api.application.users.UserIdentifierResolver;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.ChatRepository;
 import com.meteomontana.api.domain.port.FollowRepository;
@@ -31,6 +32,8 @@ import lombok.RequiredArgsConstructor;
 public class ChatPushController {
 
     private final UserRepository userRepository;
+    /** El destinatario puede llegar como uid o como username. */
+    private final UserIdentifierResolver resolver;
     private final FollowRepository followRepository;
     private final ChatRepository chatRepository;
     // Puerto (no la clase concreta): al llevar FcmService métodos @Async, Spring
@@ -137,20 +140,24 @@ public class ChatPushController {
         }
         if (me.uid().equals(req.toUid())) return ResponseEntity.badRequest().build();
 
-        User to = userRepository.findByUid(req.toUid()).orElse(null);
+        // El destinatario puede venir como uid o como username (perfil abierto
+        // desde una mención @usuario): se resuelve antes de nada.
+        User to = resolver.find(req.toUid()).orElse(null);
         if (to == null) return ResponseEntity.notFound().build();
+        String toUid = to.getUid();
+        if (me.uid().equals(toUid)) return ResponseEntity.badRequest().build();
 
         // Bloqueo en cualquier sentido → no se puede abrir chat.
-        if (moderationService.eitherBlocked(me.uid(), req.toUid())) {
+        if (moderationService.eitherBlocked(me.uid(), toUid)) {
             return ResponseEntity.status(403).build();
         }
         boolean allowed = to.isPublic()
-                || followRepository.isFollowing(me.uid(), req.toUid())
-                || followRepository.isFollowing(req.toUid(), me.uid())
-                || chatRepository.conversationExists(me.uid(), req.toUid());
+                || followRepository.isFollowing(me.uid(), toUid)
+                || followRepository.isFollowing(toUid, me.uid())
+                || chatRepository.conversationExists(me.uid(), toUid);
         if (!allowed) return ResponseEntity.status(403).build();
 
-        chatRepository.ensureConversation(me.uid(), req.toUid());
+        chatRepository.ensureConversation(me.uid(), toUid);
         return ResponseEntity.ok().build();
     }
 
@@ -164,10 +171,13 @@ public class ChatPushController {
         // No mandes push a ti mismo
         if (sender.uid().equals(req.toUid())) return ResponseEntity.ok().build();
 
-        User to = userRepository.findByUid(req.toUid()).orElse(null);
+        // Igual que en /start: el destinatario puede llegar como username.
+        User to = resolver.find(req.toUid()).orElse(null);
         if (to == null) {
             return ResponseEntity.ok().build();   // no se filtra si el usuario existe
         }
+        String toUid = to.getUid();
+        if (sender.uid().equals(toUid)) return ResponseEntity.ok().build();
 
         // Modelo de privacidad del chat: se permite avisar al receptor si
         //  - el receptor es PÚBLICO (cualquiera puede escribirle), o
@@ -177,13 +187,13 @@ public class ChatPushController {
         //    seguir hablando aunque no haya follow y el receptor sea privado).
         // Si no se cumple ninguna, se ignora silenciosamente (no se filtra si el
         // otro existe o tiene token). El mensaje en sí vive en Firestore aparte.
-        if (moderationService.eitherBlocked(sender.uid(), req.toUid())) {
+        if (moderationService.eitherBlocked(sender.uid(), toUid)) {
             return ResponseEntity.ok().build();   // bloqueado: se ignora en silencio
         }
         boolean allowed = to.isPublic()
-                || followRepository.isFollowing(sender.uid(), req.toUid())
-                || followRepository.isFollowing(req.toUid(), sender.uid())
-                || chatRepository.conversationExists(sender.uid(), req.toUid());
+                || followRepository.isFollowing(sender.uid(), toUid)
+                || followRepository.isFollowing(toUid, sender.uid())
+                || chatRepository.conversationExists(sender.uid(), toUid);
         if (!allowed) return ResponseEntity.ok().build();
         User from = userRepository.findByUid(sender.uid()).orElse(null);
         String fromName = (from != null && from.getDisplayName() != null)
@@ -204,7 +214,7 @@ public class ChatPushController {
 
         // Envío en segundo plano: el emisor recibe 200 al instante, el push del
         // receptor no bloquea el hilo de la request.
-        fcmService.sendDataToUserAsync(req.toUid(), data);
+        fcmService.sendDataToUserAsync(toUid, data);
         return ResponseEntity.ok().build();
     }
 }
