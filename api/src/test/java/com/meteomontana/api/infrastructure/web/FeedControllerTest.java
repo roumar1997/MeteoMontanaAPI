@@ -58,7 +58,8 @@ class FeedControllerTest {
         UserRepository users = mock(UserRepository.class);
         var validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
-        mvc = MockMvcBuilders.standaloneSetup(new FeedController(query, publisher, likes, commentsService, photos, users))
+        mvc = MockMvcBuilders.standaloneSetup(new FeedController(query, publisher, likes, commentsService, photos, users,
+                        new com.meteomontana.api.application.users.UserIdentifierResolver(users)))
                 .setCustomArgumentResolvers(new FakePrincipal())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)

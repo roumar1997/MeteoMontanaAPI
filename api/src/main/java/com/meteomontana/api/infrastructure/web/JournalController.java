@@ -2,10 +2,10 @@ package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.application.journal.JournalDtos;
 import com.meteomontana.api.application.journal.JournalUseCase;
+import com.meteomontana.api.application.users.UserIdentifierResolver;
 import com.meteomontana.api.domain.exception.UserNotFoundException;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.FollowRepository;
-import com.meteomontana.api.domain.port.UserRepository;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,7 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class JournalController {
 
     private final JournalUseCase useCase;
-    private final UserRepository userRepository;
+    private final UserIdentifierResolver resolver;
     private final FollowRepository followRepository;
 
     @PostMapping("/journal")
@@ -88,9 +88,7 @@ public class JournalController {
     }
 
     private User resolveAndCheckAccess(String identifier, FirebaseUser caller) {
-        User user = userRepository.findByUid(identifier)
-                .or(() -> userRepository.findByUsername(identifier))
-                .orElseThrow(() -> new UserNotFoundException(identifier));
+        User user = resolver.require(identifier);
         String callerUid = (caller != null) ? caller.uid() : null;
         boolean isSelf = callerUid != null && callerUid.equals(user.getUid());
         boolean isAcceptedFollower = callerUid != null

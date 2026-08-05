@@ -2,6 +2,7 @@ package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.application.admin.AdminGuard;
 import com.meteomontana.api.application.moderation.ContentModerationService;
+import com.meteomontana.api.application.users.UserIdentifierResolver;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,6 +30,8 @@ public class ModerationController {
 
     private final ContentModerationService service;
     private final AdminGuard adminGuard;
+    /** El perfil abierto desde una mención pasa el username, no el uid. */
+    private final UserIdentifierResolver resolver;
 
     @PostMapping("/reports")
     public ContentModerationService.ReportView report(
@@ -42,13 +45,13 @@ public class ModerationController {
     @PostMapping("/users/{uid}/block")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void block(@AuthenticationPrincipal FirebaseUser user, @PathVariable String uid) {
-        service.block(user.uid(), uid);
+        service.block(user.uid(), resolver.requireUid(uid));
     }
 
     @DeleteMapping("/users/{uid}/block")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unblock(@AuthenticationPrincipal FirebaseUser user, @PathVariable String uid) {
-        service.unblock(user.uid(), uid);
+        service.unblock(user.uid(), resolver.requireUid(uid));
     }
 
     @GetMapping("/me/blocked")

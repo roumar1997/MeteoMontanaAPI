@@ -1,5 +1,6 @@
 package com.meteomontana.api.infrastructure.web;
 
+import com.meteomontana.api.application.users.UserIdentifierResolver;
 import com.meteomontana.api.application.feed.FeedCommentService;
 import com.meteomontana.api.application.feed.FeedLikeService;
 import com.meteomontana.api.application.feed.FeedPhotoService;
@@ -60,6 +61,8 @@ public class FeedController {
     private final FeedCommentService commentsService;
     private final FeedPhotoService photos;
     private final UserRepository users;
+    /** El perfil abierto desde una mención pasa el username, no el uid. */
+    private final UserIdentifierResolver resolver;
 
     /**
      * Página del feed. scope=following|all|mine|user; before = id del último
@@ -74,7 +77,7 @@ public class FeedController {
             @RequestParam(defaultValue = "20") int limit,
             @AuthenticationPrincipal FirebaseUser user) {
         if ("user".equalsIgnoreCase(scope)) {
-            return query.pageOfUser(user.uid(), uid, before, limit);
+            return query.pageOfUser(user.uid(), resolver.uidOrSame(uid), before, limit);
         }
         return query.page(user.uid(), scope, before, limit);
     }

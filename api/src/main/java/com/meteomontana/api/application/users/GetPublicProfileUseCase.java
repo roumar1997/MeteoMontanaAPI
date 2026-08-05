@@ -1,10 +1,8 @@
 package com.meteomontana.api.application.users;
 
 import com.meteomontana.api.application.journal.JournalUseCase;
-import com.meteomontana.api.domain.exception.UserNotFoundException;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.FollowRepository;
-import com.meteomontana.api.domain.port.UserRepository;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
@@ -12,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class GetPublicProfileUseCase {
 
-    private final UserRepository userRepository;
+    private final UserIdentifierResolver resolver;
     private final FollowRepository followRepository;
     private final UserDtoMapper mapper;
     private final JournalUseCase journalUseCase;
@@ -24,9 +22,7 @@ public class GetPublicProfileUseCase {
      * cliente muestre la pantalla de "Sigue para ver".
      */
     public PublicProfileDto execute(String identifier, String currentUid) {
-        User user = userRepository.findByUid(identifier)
-                .or(() -> userRepository.findByUsername(identifier))
-                .orElseThrow(() -> new UserNotFoundException(identifier));
+        User user = resolver.require(identifier);
 
         // Grado calculado del diario (mismo que muestra la app), no el campo viejo.
         String grade = journalUseCase.maxGradeFor(user.getUid());

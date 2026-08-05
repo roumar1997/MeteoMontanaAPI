@@ -2,6 +2,7 @@ package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.application.social.FollowUseCase;
 import com.meteomontana.api.application.users.PublicProfileDto;
+import com.meteomontana.api.application.users.UserIdentifierResolver;
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,33 +23,35 @@ import lombok.RequiredArgsConstructor;
 public class FollowController {
 
     private final FollowUseCase useCase;
+    /** Las apps abren perfiles desde menciones @usuario: aquí llega username. */
+    private final UserIdentifierResolver resolver;
 
     @PostMapping("/users/{uid}/follow")
     @ResponseStatus(HttpStatus.CREATED)
     public void follow(@AuthenticationPrincipal FirebaseUser me, @PathVariable String uid) {
-        useCase.follow(me.uid(), uid);
+        useCase.follow(me.uid(), resolver.requireUid(uid));
     }
 
     @DeleteMapping("/users/{uid}/follow")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unfollow(@AuthenticationPrincipal FirebaseUser me, @PathVariable String uid) {
-        useCase.unfollow(me.uid(), uid);
+        useCase.unfollow(me.uid(), resolver.requireUid(uid));
     }
 
     @GetMapping("/users/{uid}/follow-status")
     public FollowUseCase.FollowStatusDto status(@AuthenticationPrincipal FirebaseUser me,
                                                 @PathVariable String uid) {
-        return useCase.statusFor(me.uid(), uid);
+        return useCase.statusFor(me.uid(), resolver.requireUid(uid));
     }
 
     @GetMapping("/users/{uid}/followers")
     public List<PublicProfileDto> followers(@PathVariable String uid) {
-        return useCase.listFollowers(uid);
+        return useCase.listFollowers(resolver.requireUid(uid));
     }
 
     @GetMapping("/users/{uid}/following")
     public List<PublicProfileDto> following(@PathVariable String uid) {
-        return useCase.listFollowing(uid);
+        return useCase.listFollowing(resolver.requireUid(uid));
     }
 
     @DeleteMapping("/me/followers/{followerUid}")
