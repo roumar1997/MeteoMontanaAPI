@@ -210,22 +210,41 @@ public class SchoolBlockUseCase {
         }
 
         SchoolBlock.Type type = req.type() != null ? SchoolBlock.Type.valueOf(req.type()) : current.getType();
-        List<BlockLine> lines = req.lines() == null ? current.getLines() :
-                req.lines().stream().map(l -> {
-                    BlockLine bl = new BlockLine(
-                            UUID.randomUUID().toString(),
-                            blockId,
-                            l.name(),
-                            l.grade(),
-                            l.startType() != null ? BlockLine.StartType.valueOf(l.startType()) : null,
-                            l.linePath(),
-                            req.lines().indexOf(l),
-                            l.photoPath() != null ? l.photoPath() : req.photoPath(),
-                            l.faceOrder() != null ? l.faceOrder() : 0);
-                    bl.setDescription(trimDesc(l.description()));
-                    bl.setVariant(trimVariant(l.variant()));
-                    return bl;
-                }).toList();
+        // Cada vía conserva SU id: del id cuelgan el ✓ del diario de cada
+        // usuario, las estrellas, los votos de grado, los comentarios, los
+        // posts del feed y los enlaces compartidos. El editor manda la lista
+        // entera sin decir cuál era cuál, así que hay que emparejarlas.
+        List<String> ids = req.lines() == null ? List.of()
+                : BlockLineIdReconciler.assignIds(current.getLines(),
+                        req.lines().stream()
+                                .map(l -> new BlockLineIdReconciler.Incoming(l.name(), l.faceOrder()))
+                                .toList());
+        // Por ÍNDICE, no por indexOf: dos vías con los mismos datos son
+        // registros iguales y indexOf devolvía siempre la primera, así que
+        // compartían id y orden.
+        List<BlockLine> lines;
+        if (req.lines() == null) {
+            lines = current.getLines();
+        } else {
+            List<BlockLine> nuevas = new java.util.ArrayList<>(req.lines().size());
+            for (int i = 0; i < req.lines().size(); i++) {
+                var l = req.lines().get(i);
+                BlockLine bl = new BlockLine(
+                        ids.get(i),
+                        blockId,
+                        l.name(),
+                        l.grade(),
+                        l.startType() != null ? BlockLine.StartType.valueOf(l.startType()) : null,
+                        l.linePath(),
+                        i,
+                        l.photoPath() != null ? l.photoPath() : req.photoPath(),
+                        l.faceOrder() != null ? l.faceOrder() : 0);
+                bl.setDescription(trimDesc(l.description()));
+                bl.setVariant(trimVariant(l.variant()));
+                nuevas.add(bl);
+            }
+            lines = List.copyOf(nuevas);
+        }
 
         SchoolBlock.Discipline discipline = req.discipline() != null
                 ? com.meteomontana.api.application.contribution.ContributionLineParser.parseDiscipline(req.discipline()) : current.getDiscipline();
@@ -246,17 +265,14 @@ public class SchoolBlockUseCase {
                 req.sectorBlockId() != null ? req.sectorBlockId() : current.getSectorBlockId(),
                 geometry, path, direction
         );
-        // Solo se reescribe lo que tiene vías. Borrar y reinsertar es la forma
-        // de limpiar las líneas viejas (cascade), y eso únicamente hace falta en
-        // las piedras y muros. Un SECTOR o un PARKING se guarda encima:
-        // borrarlos dispararía el ON DELETE SET NULL de school_blocks.
-        // sector_block_id y sus piedras se quedarían sueltas, sin sector,
-        // porque reinsertar la fila con el mismo id no restaura esos vínculos.
-        // Las piedras y muros nunca son padres de nadie, así que borrarlas no
-        // puede dejar nada huérfano.
-        if (type == SchoolBlock.Type.BLOCK) {
-            blockRepository.deleteById(blockId);
-        }
+        // NUNCA se borra la fila para editar: guardar encima ya reconcilia las
+        // vías (orphanRemoval quita las que el editor omitió). Borrar tenía dos
+        // efectos colaterales graves, los dos cazados el 2026-08-05:
+        //  · en un SECTOR disparaba el ON DELETE SET NULL de sector_block_id y
+        //    sus piedras se quedaban sueltas, y reinsertar la fila con el mismo
+        //    id no las recupera;
+        //  · en una PIEDRA borraba las filas de sus vías, y con ellas —por
+        //    cascade— las estrellas y los votos de grado de todo el mundo.
         return toDto(blockRepository.save(updated));
     }
 

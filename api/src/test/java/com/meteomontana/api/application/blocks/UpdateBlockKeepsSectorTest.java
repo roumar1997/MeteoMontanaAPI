@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.blocks;
 
+import com.meteomontana.api.domain.model.BlockLine;
 import com.meteomontana.api.domain.model.SchoolBlock;
 import com.meteomontana.api.domain.model.User;
 import com.meteomontana.api.domain.port.LineRatingRepository;
@@ -74,14 +75,36 @@ class UpdateBlockKeepsSectorTest {
         verify(blocks, never()).deleteById(anyString());
     }
 
-    @Test void editarUnaPiedraSiBorraYReinserta() {
+    @Test void editarUnaPiedraTampocoBorraLaFila() {
         when(blocks.findById("piedra-1")).thenReturn(
                 Optional.of(bloque("piedra-1", SchoolBlock.Type.BLOCK, "Piedra 7")));
 
         useCase.update("uid-admin", "piedra-1", renombrar("Piedra siete"));
 
-        // Aquí sí hace falta: es como se limpian las vías viejas, y una piedra
-        // nunca es el sector de nadie.
-        verify(blocks).deleteById("piedra-1");
+        // Borrar la fila arrastraba las vías, y con ellas —por cascade— las
+        // estrellas y los votos de grado de todo el mundo. Guardar encima ya
+        // reconcilia (orphanRemoval quita las vías que el editor omitió).
+        verify(blocks, never()).deleteById(anyString());
+    }
+
+    @Test void editarUnaPiedraConservaElIdDeSusVias() {
+        var piedra = new SchoolBlock("piedra-1", "la-pedriza", SchoolBlock.Type.BLOCK,
+                "Piedra 7", 40.0, -3.0, null, null, "uid-otro", LocalDateTime.now(),
+                List.of(new BlockLine("via-vieja", "piedra-1", "Los perros", "7a",
+                        null, null, 0, null, 0)), null);
+        when(blocks.findById("piedra-1")).thenReturn(Optional.of(piedra));
+
+        var req = new SchoolBlockUseCase.CreateBlockRequest(
+                null, "Piedra 7", null, null, null, null,
+                List.of(new SchoolBlockUseCase.CreateBlockLineRequest(
+                        "Los perros", "7b", null, null, null, 0, null, null)),
+                null, null, null, null, null);
+        var dto = useCase.update("uid-admin", "piedra-1", req);
+
+        // El grado cambia; el id NO. Si cambiase, el ✓ del diario de quien la
+        // tenga hecha, sus estrellas y sus votos se quedarían huérfanos.
+        assertThat(dto.lines()).hasSize(1);
+        assertThat(dto.lines().get(0).id()).isEqualTo("via-vieja");
+        assertThat(dto.lines().get(0).grade()).isEqualTo("7b");
     }
 }
