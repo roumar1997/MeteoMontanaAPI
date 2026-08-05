@@ -246,8 +246,17 @@ public class SchoolBlockUseCase {
                 req.sectorBlockId() != null ? req.sectorBlockId() : current.getSectorBlockId(),
                 geometry, path, direction
         );
-        // Borramos el viejo y guardamos nuevo (cascade eliminará líneas viejas)
-        blockRepository.deleteById(blockId);
+        // Solo se reescribe lo que tiene vías. Borrar y reinsertar es la forma
+        // de limpiar las líneas viejas (cascade), y eso únicamente hace falta en
+        // las piedras y muros. Un SECTOR o un PARKING se guarda encima:
+        // borrarlos dispararía el ON DELETE SET NULL de school_blocks.
+        // sector_block_id y sus piedras se quedarían sueltas, sin sector,
+        // porque reinsertar la fila con el mismo id no restaura esos vínculos.
+        // Las piedras y muros nunca son padres de nadie, así que borrarlas no
+        // puede dejar nada huérfano.
+        if (type == SchoolBlock.Type.BLOCK) {
+            blockRepository.deleteById(blockId);
+        }
         return toDto(blockRepository.save(updated));
     }
 
