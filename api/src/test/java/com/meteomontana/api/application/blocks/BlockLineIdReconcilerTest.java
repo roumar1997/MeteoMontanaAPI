@@ -94,6 +94,56 @@ class BlockLineIdReconcilerTest {
         assertThat(ids).containsExactly("id-B", "id-A");
     }
 
+    // ── Cuando el editor manda el id (apps 2.21.3+) ─────────────────────
+
+    @Test void elIdQueMandaElEditorManda() {
+        // Dos vias homonimas en la misma cara: por nombre no hay forma de
+        // saber cual es cual, y ese era justo el caso que podia mover el ✓ del
+        // diario de alguien a otra via.
+        var existentes = List.of(via("id-A", "La ola", 0), via("id-B", "La ola", 0));
+        var ids = BlockLineIdReconciler.assignIds(existentes,
+                List.of(new Incoming("id-B", "La ola", 0), new Incoming("id-A", "La ola", 0)));
+        assertThat(ids).containsExactly("id-B", "id-A");
+    }
+
+    @Test void conIdSePuedeRenombrarSinPerderLaVia() {
+        var existentes = List.of(via("id-A", "La ola", 0));
+        var ids = BlockLineIdReconciler.assignIds(existentes,
+                List.of(new Incoming("id-A", "Nombre nuevo del todo", 0)));
+        assertThat(ids).containsExactly("id-A");
+    }
+
+    @Test void borrarUnaYAnadirOtraALaVezYaNoConfunde() {
+        // El caso que el emparejamiento por posicion podia fallar: se borra la
+        // primera y se anade una nueva en el mismo guardado.
+        var existentes = List.of(via("id-A", "La ola", 0), via("id-B", "Los perros", 0));
+        var ids = BlockLineIdReconciler.assignIds(existentes,
+                List.of(new Incoming("id-B", "Los perros", 0), new Incoming(null, "Via nueva", 0)));
+        assertThat(ids.get(0)).isEqualTo("id-B");
+        assertThat(ids.get(1)).isNotIn("id-A", "id-B");
+    }
+
+    @Test void unIdDesconocidoNoRompeNada() {
+        // Una via que ya no existe (la borro otro mientras editabas): se trata
+        // como nueva en vez de reventar.
+        var existentes = List.of(via("id-A", "La ola", 0));
+        var ids = BlockLineIdReconciler.assignIds(existentes,
+                List.of(new Incoming("id-fantasma", "Otra cosa", 0)));
+        assertThat(ids).hasSize(1);
+        assertThat(ids.get(0)).isNotEqualTo("id-A");
+    }
+
+    @Test void siElPayloadTraeIdsUnaFilaSinIdEsUnaViaNueva() {
+        // Un payload viene de UNA app: si trae ids, la fila que no lo trae es
+        // nueva de verdad. Adivinarle un id le colgaria el ✓ del diario de
+        // alguien a una via recien nacida.
+        var existentes = List.of(via("id-A", "La ola", 0), via("id-B", "Los perros", 0));
+        var ids = BlockLineIdReconciler.assignIds(existentes,
+                List.of(new Incoming("id-B", "Los perros", 0), new Incoming("La ola", 0)));
+        assertThat(ids.get(0)).isEqualTo("id-B");
+        assertThat(ids.get(1)).isNotIn("id-A", "id-B");
+    }
+
     @Test void sinViasPreviasTodoEsNuevo() {
         var ids = BlockLineIdReconciler.assignIds(List.of(), List.of(new Incoming("La ola", 0)));
         assertThat(ids).hasSize(1);

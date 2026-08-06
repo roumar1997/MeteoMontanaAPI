@@ -97,7 +97,7 @@ class UpdateBlockKeepsSectorTest {
         var req = new SchoolBlockUseCase.CreateBlockRequest(
                 null, "Piedra 7", null, null, null, null,
                 List.of(new SchoolBlockUseCase.CreateBlockLineRequest(
-                        "Los perros", "7b", null, null, null, 0, null, null)),
+                        "via-vieja", "Los perros", "7b", null, null, null, 0, null, null)),
                 null, null, null, null, null);
         var dto = useCase.update("uid-admin", "piedra-1", req);
 

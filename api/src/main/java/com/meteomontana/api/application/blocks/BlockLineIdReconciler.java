@@ -35,9 +35,15 @@ public final class BlockLineIdReconciler {
     private BlockLineIdReconciler() {}
 
     /** Una vía tal y como llega del editor: solo lo que sirve para identificarla. */
-    public record Incoming(String name, Integer faceOrder) {
+    public record Incoming(String id, String name, Integer faceOrder) {
+
+        /** Compatibilidad: una via sin id declarado (apps viejas y tests). */
+        public Incoming(String name, Integer faceOrder) { this(null, name, faceOrder); }
+
         int face() { return faceOrder == null ? 0 : faceOrder; }
         Clave clave() { return new Clave(face(), normaliza(name)); }
+        /** El id es la unica pista que no puede equivocarse. */
+        boolean tieneId() { return id != null && !id.isBlank(); }
     }
 
     /**
@@ -65,14 +71,38 @@ public final class BlockLineIdReconciler {
             libresPorCara.computeIfAbsent(l.getFaceOrder(), k -> new ArrayList<>()).add(l);
         }
 
+        // Si el editor manda ids, es una app moderna: entonces una fila SIN id
+        // es una via NUEVA de verdad, y no puede heredar el hueco que dejo otra.
+        // Adivinar ahi seria peor que no hacer nada, porque le colgaria el ✓ del
+        // diario de alguien a una via que acaba de nacer.
+        boolean editorConIds = incoming.stream().anyMatch(Incoming::tieneId);
+
+        // 0a pasada: el id que manda el editor desde 2.21.3. Es la unica pista
+        // que no puede equivocarse, asi que va primero y retira la via de las
+        // libres para que ninguna otra fila la reclame.
+        for (int i = 0; i < incoming.size(); i++) {
+            Incoming in = incoming.get(i);
+            if (!in.tieneId()) continue;
+            for (BlockLine l : existing) {
+                if (l.getId().equals(in.id())) {
+                    result.set(i, l.getId());
+                    libresPorCara.getOrDefault(l.getFaceOrder(), List.of()).remove(l);
+                    break;
+                }
+            }
+        }
+
         // 1ª pasada: cara + nombre. Un nombre repetido dentro de la misma cara
         // se asigna por orden de aparición, que es lo único razonable.
         Map<Clave, List<BlockLine>> porNombre = new LinkedHashMap<>();
+        java.util.Set<String> yaAsignados = new java.util.HashSet<>(result);
         for (BlockLine l : existing) {
+            if (yaAsignados.contains(l.getId())) continue;   // reclamada por su id
             porNombre.computeIfAbsent(new Clave(l.getFaceOrder(), normaliza(l.getName())),
                     x -> new ArrayList<>()).add(l);
         }
-        for (int i = 0; i < incoming.size(); i++) {
+        for (int i = 0; i < incoming.size() && !editorConIds; i++) {
+            if (result.get(i) != null) continue;                      // ya resuelta por id
             Incoming in = incoming.get(i);
             if (in.name() == null || in.name().isBlank()) continue;   // sin nombre no hay pista
             List<BlockLine> candidatas = porNombre.get(in.clave());
@@ -85,7 +115,7 @@ public final class BlockLineIdReconciler {
 
         // 2ª pasada: posición dentro de la cara, para las que siguen sin id
         // (típico de haber renombrado una vía sin cambiarla de sitio).
-        for (int i = 0; i < incoming.size(); i++) {
+        for (int i = 0; i < incoming.size() && !editorConIds; i++) {
             if (result.get(i) != null) continue;
             List<BlockLine> libres = libresPorCara.get(incoming.get(i).face());
             if (libres != null && !libres.isEmpty()) {

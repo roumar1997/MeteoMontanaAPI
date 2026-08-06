@@ -20,6 +20,12 @@ import lombok.RequiredArgsConstructor;
 public class SchoolBlockUseCase {
 
     public record CreateBlockLineRequest(
+            /**
+             * Id de la via EXISTENTE que representa esta fila; null si es nueva.
+             * Las apps desde 2.21.3 lo mandan y entonces no hay nada que
+             * emparejar. Las apps viejas no lo mandan y se sigue adivinando.
+             */
+            String id,
             String name, String grade, String startType, String linePath,
             String photoPath,   // cara (foto) sobre la que está dibujada esta vía (opcional)
             Integer faceOrder,  // orden de la cara (opcional, default 0)
@@ -217,7 +223,8 @@ public class SchoolBlockUseCase {
         List<String> ids = req.lines() == null ? List.of()
                 : BlockLineIdReconciler.assignIds(current.getLines(),
                         req.lines().stream()
-                                .map(l -> new BlockLineIdReconciler.Incoming(l.name(), l.faceOrder()))
+                                .map(l -> new BlockLineIdReconciler.Incoming(
+                                        l.id(), l.name(), l.faceOrder()))
                                 .toList());
         // Por ÍNDICE, no por indexOf: dos vías con los mismos datos son
         // registros iguales y indexOf devolvía siempre la primera, así que
