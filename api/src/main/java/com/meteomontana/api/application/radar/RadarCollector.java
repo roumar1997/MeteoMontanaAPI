@@ -5,6 +5,7 @@ import com.meteomontana.api.infrastructure.radar.RadarFrameEntity;
 import com.meteomontana.api.infrastructure.radar.SpringDataRadarFrameRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +32,7 @@ import lombok.RequiredArgsConstructor;
  * - captured_at se redondea al múltiplo de 10 min del ciclo, así todos los
  *   radares de una misma vuelta comparten timestamp y las apps pueden pedir
  *   "el frame de las 18:40" de España entera.
- * - Retención: 6h (la UI enseña 2h por defecto con opción de 6h).
+ * - Retención: ver retentionHours (configurable por entorno).
  */
 @Component
 @RequiredArgsConstructor
@@ -45,9 +46,18 @@ public class RadarCollector {
             "mu", "vd", "ca", "se", "va", "ss", "za");
 
     private static final long PAUSE_BETWEEN_RADARS_MS = 2_500;
-    // 48h: alimenta los chips HOY/AYER de la app. Peso: ~15 radares x 288
-    // ciclos x ~12KB ≈ 50 MB en Postgres. Asumible.
-    private static final int RETENTION_HOURS = 48;
+    /**
+     * Horas de histórico que se conservan. Alimenta los chips HOY/AYER de la app.
+     *
+     * Es CONFIGURABLE por entorno (`RADAR_RETENTION_HOURS`) y el default bajó de
+     * 48 a 24 el 2026-08-05: los GIF viven dentro de Postgres y con 48h la tabla
+     * llegó a 341 MB de un volumen de 500 MB — al 97%, a un paso de que la base
+     * de datos dejara de aceptar escrituras. Con 24h el techo queda en ~170 MB.
+     * Cuando las imágenes se muden a R2 el espacio deja de importar y esto se
+     * puede subir sin tocar código: basta con cambiar la variable.
+     */
+    @Value("${radar.retention-hours:24}")
+    private int retentionHours;
 
     private final AemetRadarClient client;
     private final SpringDataRadarFrameRepository repo;
@@ -101,7 +111,7 @@ public class RadarCollector {
     @Transactional
     protected int prune() {
         return repo.deleteOlderThan(LocalDateTime.now(java.time.ZoneId.of("Europe/Madrid"))
-                .minusHours(RETENTION_HOURS));
+                .minusHours(retentionHours));
     }
 
     private static String sha256(byte[] data) {
