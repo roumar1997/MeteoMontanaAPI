@@ -84,6 +84,16 @@ class BlockLineIdReconcilerTest {
         assertThat(ids).containsExactly("id-A", "id-B");
     }
 
+    @Test void unNombreConBarraNoSeConfundeConOtraCara() {
+        // La clave de emparejamiento es cara+nombre. Si se compusiera
+        // concatenando con un separador, "2|La ola" de la cara 1 chocaría con
+        // "La ola" de la cara 12 y se intercambiarían los ids.
+        var existentes = List.of(via("id-A", "2|La ola", 1), via("id-B", "La ola", 12));
+        var ids = BlockLineIdReconciler.assignIds(existentes,
+                List.of(new Incoming("La ola", 12), new Incoming("2|La ola", 1)));
+        assertThat(ids).containsExactly("id-B", "id-A");
+    }
+
     @Test void sinViasPreviasTodoEsNuevo() {
         var ids = BlockLineIdReconciler.assignIds(List.of(), List.of(new Incoming("La ola", 0)));
         assertThat(ids).hasSize(1);
