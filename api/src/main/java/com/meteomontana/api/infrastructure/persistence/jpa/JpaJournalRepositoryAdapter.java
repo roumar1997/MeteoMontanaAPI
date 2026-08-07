@@ -59,4 +59,9 @@ public class JpaJournalRepositoryAdapter implements JournalRepository {
                 e.getDiscipline(), e.getLineId(), e.getStatus(), e.getSessionDate(), e.getCreatedAt()
         );
     }
+
+    @Override
+    public int updateNameByLineId(String lineId, String name) {
+        return jpaRepo.updateNameByLineId(lineId, name);
+    }
 }

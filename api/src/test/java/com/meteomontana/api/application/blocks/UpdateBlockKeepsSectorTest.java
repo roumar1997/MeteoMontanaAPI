@@ -32,6 +32,7 @@ class UpdateBlockKeepsSectorTest {
 
     private SchoolBlockRepository blocks;
     private SchoolBlockUseCase useCase;
+    private com.meteomontana.api.domain.port.JournalRepository journal;
 
     private static SchoolBlock bloque(String id, SchoolBlock.Type type, String name) {
         return new SchoolBlock(id, "la-pedriza", type, name, 40.0, -3.0, null, null,
@@ -45,8 +46,9 @@ class UpdateBlockKeepsSectorTest {
         when(users.findByUid("uid-admin")).thenReturn(Optional.of(
                 new User("uid-admin", "a@x.com", "admin", "Admin", null, null, true, null,
                         true, false, null, null, null, null)));
+        journal = mock(com.meteomontana.api.domain.port.JournalRepository.class);
         useCase = new SchoolBlockUseCase(blocks, mock(SchoolRepository.class), users,
-                mock(LineRatingRepository.class));
+                mock(LineRatingRepository.class), journal);
     }
 
     private SchoolBlockUseCase.CreateBlockRequest renombrar(String nombre) {
@@ -85,6 +87,44 @@ class UpdateBlockKeepsSectorTest {
         // estrellas y los votos de grado de todo el mundo. Guardar encima ya
         // reconcilia (orphanRemoval quita las vías que el editor omitió).
         verify(blocks, never()).deleteById(anyString());
+    }
+
+    @Test void renombrarUnaViaLlevaElNombreAlDiarioDeTodos() {
+        // El diario guarda el nombre COPIADO. Sin propagarlo, el perfil seguia
+        // enseniando el nombre viejo (reportado por Rodrigo: renombro "casiopea
+        // de pie" a "casiopea de pies" y su perfil no se entero) y ademas
+        // dejaba de llevar a la piedra al pulsarlo.
+        var piedra = new SchoolBlock("piedra-1", "zarzalejo", SchoolBlock.Type.BLOCK,
+                "Piedra 7", 40.0, -3.0, null, null, "uid-otro", LocalDateTime.now(),
+                List.of(new BlockLine("via-1", "piedra-1", "Casiopea de pie", "7a",
+                        null, null, 0, null, 0)), null);
+        when(blocks.findById("piedra-1")).thenReturn(Optional.of(piedra));
+
+        var req = new SchoolBlockUseCase.CreateBlockRequest(
+                null, "Piedra 7", null, null, null, null,
+                List.of(new SchoolBlockUseCase.CreateBlockLineRequest(
+                        "via-1", "Casiopea de pies", "7a", null, null, null, 0, null, null)),
+                null, null, null, null, null);
+        useCase.update("uid-admin", "piedra-1", req);
+
+        verify(journal).updateNameByLineId("via-1", "Casiopea de pies");
+    }
+
+    @Test void siElNombreNoCambiaNoSeTocaElDiario() {
+        var piedra = new SchoolBlock("piedra-1", "zarzalejo", SchoolBlock.Type.BLOCK,
+                "Piedra 7", 40.0, -3.0, null, null, "uid-otro", LocalDateTime.now(),
+                List.of(new BlockLine("via-1", "piedra-1", "Casiopea de pie", "7a",
+                        null, null, 0, null, 0)), null);
+        when(blocks.findById("piedra-1")).thenReturn(Optional.of(piedra));
+
+        var req = new SchoolBlockUseCase.CreateBlockRequest(
+                null, "Piedra 7", null, null, null, null,
+                List.of(new SchoolBlockUseCase.CreateBlockLineRequest(
+                        "via-1", "Casiopea de pie", "7b", null, null, null, 0, null, null)),
+                null, null, null, null, null);
+        useCase.update("uid-admin", "piedra-1", req);
+
+        verify(journal, never()).updateNameByLineId(anyString(), anyString());
     }
 
     @Test void editarUnaPiedraConservaElIdDeSusVias() {

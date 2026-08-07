@@ -86,6 +86,12 @@ public class SchoolBlockUseCase {
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
     private final com.meteomontana.api.domain.port.LineRatingRepository ratingRepo;
+    /**
+     * El diario guarda el nombre de la vía COPIADO, así que al renombrarla hay
+     * que propagarlo o el perfil de todo el mundo se queda con el viejo (y deja
+     * de llevar a la piedra al pulsarlo).
+     */
+    private final com.meteomontana.api.domain.port.JournalRepository journalRepo;
 
     public List<BlockDto> listBySchool(String schoolId) {
         return listBySchool(schoolId, null);
@@ -280,7 +286,26 @@ public class SchoolBlockUseCase {
         //    id no las recupera;
         //  · en una PIEDRA borraba las filas de sus vías, y con ellas —por
         //    cascade— las estrellas y los votos de grado de todo el mundo.
-        return toDto(blockRepository.save(updated));
+        SchoolBlock guardado = blockRepository.save(updated);
+        propagarNombresAlDiario(current.getLines(), lines);
+        return toDto(guardado);
+    }
+
+    /**
+     * Lleva al diario los nombres de las vías que se han renombrado. Solo las
+     * que conservan su id: una vía nueva no tiene entradas que actualizar.
+     */
+    private void propagarNombresAlDiario(List<BlockLine> antes, List<BlockLine> despues) {
+        if (antes == null || despues == null) return;
+        java.util.Map<String, String> nombreAntes = new java.util.HashMap<>();
+        for (BlockLine l : antes) nombreAntes.put(l.getId(), l.getName());
+        for (BlockLine l : despues) {
+            String viejo = nombreAntes.get(l.getId());
+            if (viejo != null && l.getName() != null && !l.getName().isBlank()
+                    && !viejo.equals(l.getName())) {
+                journalRepo.updateNameByLineId(l.getId(), l.getName());
+            }
+        }
     }
 
     /**
