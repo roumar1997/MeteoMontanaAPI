@@ -65,7 +65,8 @@ public class AdminController {
                 current.getId(), current.getName(), current.getLocation(), current.getRegion(),
                 current.getStyle(), current.getRockType(),
                 req.lat(), req.lon(),
-                current.getSource()
+                current.getSource(),
+                current.getCountry()
         );
         return schoolRepository.save(moved);
     }

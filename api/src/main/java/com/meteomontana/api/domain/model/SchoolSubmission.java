@@ -25,4 +25,6 @@ public class SchoolSubmission {
     private final LocalDateTime createdAt;
     private final LocalDateTime reviewedAt;
 
+    /** País propuesto (ISO alfa-2). Las apps viejas no lo mandan: cae a "ES". */
+    private final String proposedCountry;
 }

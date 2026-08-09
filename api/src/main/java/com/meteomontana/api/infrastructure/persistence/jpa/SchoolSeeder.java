@@ -52,7 +52,9 @@ public class SchoolSeeder {
                                 s.getRockType(),
                                 s.getLat(),
                                 s.getLon(),
-                                s.getSource()
+                                s.getSource(),
+                                // La semilla es el catalogo espanol historico.
+                                "ES"
                         ))
                         .toList();
 

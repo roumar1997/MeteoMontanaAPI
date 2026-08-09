@@ -1,5 +1,6 @@
 package com.meteomontana.api.infrastructure.persistence.jpa;
 
+import com.meteomontana.api.application.geo.CountryCatalog;
 import com.meteomontana.api.domain.model.School;
 import com.meteomontana.api.domain.port.SchoolRepository;
 import org.springframework.cache.annotation.CacheEvict;
@@ -46,7 +47,8 @@ public class JpaSchoolRepositoryAdapter implements SchoolRepository {
     public School save(School s) {
         SchoolJpaEntity e = new SchoolJpaEntity(
                 s.getId(), s.getName(), s.getLocation(), s.getRegion(),
-                s.getStyle(), s.getRockType(), s.getLat(), s.getLon(), s.getSource()
+                s.getStyle(), s.getRockType(), s.getLat(), s.getLon(), s.getSource(),
+                CountryCatalog.normalize(s.getCountry())
         );
         return toSchool(jpaRepo.save(e));
     }
@@ -61,7 +63,8 @@ public class JpaSchoolRepositoryAdapter implements SchoolRepository {
                 e.getRockType(),
                 e.getLat(),
                 e.getLon(),
-                e.getSource()
+                e.getSource(),
+                e.getCountry()
         );
     }
 }

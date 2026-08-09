@@ -391,7 +391,7 @@ class FeedServiceTest {
         when(schoolBlocks.findById("b1"))
                 .thenReturn(Optional.of(block("b1", SchoolBlock.Discipline.ROUTE, null, List.of())));
         when(schools.findById("s1")).thenReturn(Optional.of(
-                new School("s1", "Albarracín", null, null, null, "Arenisca", 0, 0, null)));
+                new School("s1", "Albarracín", null, null, null, "Arenisca", 0, 0, null, "ES")));
         when(posts.create(any())).thenAnswer(inv -> withId(inv.getArgument(0), 7L));
     }
 

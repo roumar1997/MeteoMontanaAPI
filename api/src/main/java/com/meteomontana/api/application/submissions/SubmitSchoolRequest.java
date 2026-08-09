@@ -13,5 +13,7 @@ public record SubmitSchoolRequest(
         Double lon,
         String location,
         String source,
-        String notes
+        String notes,
+        /** ISO alfa-2. Opcional: las apps anteriores al catálogo no lo mandan. */
+        String country
 ) {}

@@ -42,7 +42,7 @@ class CreateMeetupUseCaseTest {
                 moderation);
 
         when(schoolRepository.findById("school-1")).thenReturn(Optional.of(
-                new School("school-1", "La Muela", null, null, null, null, 0, 0, null)));
+                new School("school-1", "La Muela", null, null, null, null, 0, 0, null, "ES")));
         when(chatRepository.createGroup(any(), any(), any())).thenReturn("conv-123");
         when(meetupRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }

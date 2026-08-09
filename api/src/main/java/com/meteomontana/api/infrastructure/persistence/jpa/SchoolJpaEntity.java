@@ -38,4 +38,8 @@ public class SchoolJpaEntity {
 
     private String source;
 
+    /** País ISO 3166-1 alfa-2. Las escuelas anteriores al catálogo son 'ES'. */
+    @Column(nullable = false)
+    private String country = "ES";
+
 }
