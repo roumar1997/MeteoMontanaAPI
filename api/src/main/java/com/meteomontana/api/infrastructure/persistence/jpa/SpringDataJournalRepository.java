@@ -26,6 +26,20 @@ public interface SpringDataJournalRepository
     @Query("update JournalSessionJpaEntity j set j.grade = :grade where j.lineId = :lineId")
     int updateGradeByLineId(@Param("lineId") String lineId, @Param("grade") String grade);
 
+    /**
+     * Propaga el nombre nuevo de una vía a TODAS las entradas de diario que la
+     * tienen marcada.
+     *
+     * El diario guarda el nombre COPIADO (denormalizado, para listar sin JOIN),
+     * así que sin esto una vía renombrada seguía apareciendo con el nombre viejo
+     * en el perfil de todo el mundo — y, como el enganche antiguo cae al nombre,
+     * tampoco llevaba ya a su piedra al pulsarla.
+     */
+    @Modifying
+    @Transactional
+    @Query("update JournalSessionJpaEntity j set j.blockName = :name where j.lineId = :lineId")
+    int updateNameByLineId(@Param("lineId") String lineId, @Param("name") String name);
+
     /** Propaga la modalidad nueva (bloque/vía) a las entradas de un conjunto de vías. */
     @Modifying
     @Transactional

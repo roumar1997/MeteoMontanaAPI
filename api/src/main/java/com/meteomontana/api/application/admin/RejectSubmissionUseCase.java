@@ -46,7 +46,8 @@ public class RejectSubmissionUseCase {
                 SubmissionStatus.REJECTED,
                 submission.getSubmittedByUid(),
                 adminUid, reason, null,
-                submission.getCreatedAt(), LocalDateTime.now()
+                submission.getCreatedAt(), LocalDateTime.now(),
+                submission.getProposedCountry()
         );
         SchoolSubmission persisted = submissionRepository.save(updated);
 

@@ -30,10 +30,20 @@ public class LineReconciler {
         if (lineId != null && !lineId.isBlank()) journalRepo.updateGradeByLineId(lineId, grade);
     }
 
+    /** Igual con el nombre: el diario lo guarda copiado y se quedaba viejo. */
+    private void propagateName(String lineId, String name) {
+        if (lineId != null && !lineId.isBlank() && name != null && !name.isBlank()) {
+            journalRepo.updateNameByLineId(lineId, name);
+        }
+    }
+
     /** Campos comunes de una corrección sobre una vía existente. La foto la
      *  decide cada rama (el muro la fija siempre; las demás solo si viene). */
     private void applyCorrection(BlockLineJpaEntity line, ParsedLine p) {
-        if (!p.name().isEmpty()) line.setName(p.name());
+        if (!p.name().isEmpty()) {
+            line.setName(p.name());
+            propagateName(line.getId(), p.name());
+        }
         line.setGrade(p.grade());
         propagateGrade(line.getId(), p.grade());
         line.setStartType(p.startType());

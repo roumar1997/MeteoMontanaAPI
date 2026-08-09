@@ -63,6 +63,9 @@ public class SecurityConfig {
                 .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                 // Endpoints públicos de lectura — cualquiera puede llamarlos
                 .requestMatchers(HttpMethod.GET, "/api/app-version").permitAll()
+                // Catalogo de paises y regiones: hace falta al proponer una
+                // escuela, y esa pantalla se puede abrir sin sesion iniciada.
+                .requestMatchers(HttpMethod.GET, "/api/geo/countries").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/schools").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/schools/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/search").permitAll()

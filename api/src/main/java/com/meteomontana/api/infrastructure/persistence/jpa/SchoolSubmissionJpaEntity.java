@@ -73,4 +73,9 @@ public class SchoolSubmissionJpaEntity {
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
+
+    /** País propuesto (ISO alfa-2). Lo anterior al catálogo es España. */
+    @Column(nullable = false)
+    private String proposedCountry = "ES";
+
 }

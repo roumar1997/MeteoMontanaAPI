@@ -1,5 +1,6 @@
 package com.meteomontana.api.infrastructure.persistence.jpa;
 
+import com.meteomontana.api.application.geo.CountryCatalog;
 import com.meteomontana.api.domain.model.SchoolSubmission;
 import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.domain.port.SchoolSubmissionRepository;
@@ -26,7 +27,8 @@ public class JpaSchoolSubmissionRepositoryAdapter implements SchoolSubmissionRep
                 s.getProposedLocation(), s.getProposedSource(), s.getNotes(),
                 s.getStatus(), s.getSubmittedByUid(),
                 s.getReviewedByUid(), s.getReviewReason(), s.getCreatedSchoolId(),
-                s.getCreatedAt(), s.getReviewedAt()
+                s.getCreatedAt(), s.getReviewedAt(),
+                CountryCatalog.normalize(s.getProposedCountry())
         );
         return toDomain(jpaRepo.save(e));
     }
@@ -56,7 +58,8 @@ public class JpaSchoolSubmissionRepositoryAdapter implements SchoolSubmissionRep
                 e.getProposedLocation(), e.getProposedSource(), e.getNotes(),
                 e.getStatus(), e.getSubmittedByUid(),
                 e.getReviewedByUid(), e.getReviewReason(), e.getCreatedSchoolId(),
-                e.getCreatedAt(), e.getReviewedAt()
+                e.getCreatedAt(), e.getReviewedAt(),
+                e.getProposedCountry()
         );
     }
 }

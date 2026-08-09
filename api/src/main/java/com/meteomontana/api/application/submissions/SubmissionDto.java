@@ -22,7 +22,8 @@ public record SubmissionDto(
         String reviewReason,
         String createdSchoolId,
         LocalDateTime createdAt,
-        LocalDateTime reviewedAt
+        LocalDateTime reviewedAt,
+        String proposedCountry
 ) {
     public static SubmissionDto from(SchoolSubmission s) {
         return new SubmissionDto(
@@ -32,7 +33,8 @@ public record SubmissionDto(
                 s.getProposedLocation(), s.getProposedSource(), s.getNotes(),
                 s.getStatus(), s.getSubmittedByUid(),
                 s.getReviewedByUid(), s.getReviewReason(), s.getCreatedSchoolId(),
-                s.getCreatedAt(), s.getReviewedAt()
+                s.getCreatedAt(), s.getReviewedAt(),
+                s.getProposedCountry()
         );
     }
 }

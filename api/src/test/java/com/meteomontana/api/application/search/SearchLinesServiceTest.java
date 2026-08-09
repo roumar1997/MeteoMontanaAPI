@@ -45,7 +45,7 @@ class SearchLinesServiceTest {
         when(search.searchLinesByName(anyString(), anyInt())).thenReturn(List.of(line("La ola", "s1")));
         when(search.searchBlocksByName(anyString(), anyInt())).thenReturn(List.of(block("El barco")));
         when(schools.findById("s1")).thenReturn(Optional.of(
-                new School("s1", "Zarzalejo", null, null, null, null, 0, 0, null)));
+                new School("s1", "Zarzalejo", null, null, null, null, 0, 0, null, "ES")));
 
         var out = service.search("ola");
 

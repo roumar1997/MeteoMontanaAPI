@@ -1,5 +1,6 @@
 package com.meteomontana.api.application.submissions;
 
+import com.meteomontana.api.application.geo.CountryCatalog;
 import com.meteomontana.api.domain.model.SchoolSubmission;
 import com.meteomontana.api.domain.model.SubmissionStatus;
 import com.meteomontana.api.domain.port.PushSender;
@@ -45,7 +46,9 @@ public class SubmitSchoolUseCase {
                 submitterUid,
                 null, null, null,
                 LocalDateTime.now(),
-                null
+                null,
+                // Las apps anteriores al catalogo no mandan pais: son de Espana.
+                CountryCatalog.normalize(req.country())
         );
         SubmissionDto saved = SubmissionDto.from(repository.save(s));
         // Avisa a los admins: escuela nueva pendiente de revisar. El target

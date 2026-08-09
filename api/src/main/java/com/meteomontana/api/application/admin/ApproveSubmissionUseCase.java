@@ -4,6 +4,7 @@ import com.meteomontana.api.application.events.SubmissionReviewedEvent;
 import com.meteomontana.api.application.submissions.SubmissionDto;
 import com.meteomontana.api.domain.exception.SchoolNotFoundException;
 import com.meteomontana.api.domain.model.AdminLog;
+import com.meteomontana.api.application.geo.CountryCatalog;
 import com.meteomontana.api.domain.model.School;
 import com.meteomontana.api.domain.model.SchoolSubmission;
 import com.meteomontana.api.domain.model.SubmissionStatus;
@@ -57,7 +58,9 @@ public class ApproveSubmissionUseCase {
                 submission.getProposedRockType(),
                 submission.getProposedLat(),
                 submission.getProposedLon(),
-                submission.getProposedSource()
+                submission.getProposedSource(),
+                // La escuela hereda el pais de la propuesta.
+                CountryCatalog.normalize(submission.getProposedCountry())
         );
         School saved = schoolRepository.save(school);
 
@@ -72,7 +75,8 @@ public class ApproveSubmissionUseCase {
                 SubmissionStatus.APPROVED,
                 submission.getSubmittedByUid(),
                 adminUid, null, saved.getId(),
-                submission.getCreatedAt(), LocalDateTime.now()
+                submission.getCreatedAt(), LocalDateTime.now(),
+                submission.getProposedCountry()
         );
         SchoolSubmission persisted = submissionRepository.save(updated);
 
