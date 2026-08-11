@@ -55,7 +55,7 @@ public class UpdateProfilePhotoUseCase {
                 current.getDisplayName(), path, current.getBio(),
                 current.isPublic(), current.getTopGrade(),
                 current.isAdmin(), current.isPremium(),
-                current.getFcmToken(), current.getGender(),
+                current.getFcmToken(), current.getGender(), current.getGearJson(),
                 current.getCreatedAt(), LocalDateTime.now()
         );
         return mapper.toPrivate(userRepository.save(updated));

@@ -26,12 +26,13 @@ public class User {
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
-    public User(String uid, String email, String username, String displayName,
-                String photoPath, String bio, boolean isPublic, String topGrade,
-                boolean isAdmin, boolean isPremium, String fcmToken, String gender,
-                LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this(uid, email, username, displayName, photoPath, bio, isPublic, topGrade,
-                isAdmin, isPremium, fcmToken, gender, null, createdAt, updatedAt);
-    }
+    // AQUI HABIA un constructor "de conveniencia" sin gearJson que lo rellenaba
+    // con null. Parecia inofensivo y borraba el material de los usuarios: quien
+    // reconstruia el User para cambiar OTRA cosa (el token de notificaciones al
+    // arrancar la app, la foto de perfil) se dejaba el material a nulo sin
+    // enterarse. Resultado: guardabas tu material, se guardaba bien, y el
+    // siguiente arranque de la app lo borraba -- en iOS y en Android.
+    // NO volver a anadirlo: que el compilador obligue a decidir que pasa con
+    // cada campo.
 
 }
