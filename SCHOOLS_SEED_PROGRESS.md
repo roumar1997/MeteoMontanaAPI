@@ -58,14 +58,16 @@
 | santa-gadea | 1 parking + 7 sectores | 6 sectores sin coordenada en ninguna fuente |
 | resconorio | 1 parking + 4 sectores | completa |
 | rozas | 2 sectores (ya tenía parking) | completa |
-| recuevas | 1 parking + 14/22 sectores | 8 más: Columpio, Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
+| recuevas | 1 parking + 15/22 sectores (+ Columpio) | 7 más: Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
+| las-tuerces | **COMPLETA** — 1 parking + 1/13 sectores | 12 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura, Zona Del Juc — no volver a consultar). Coordenada de la escuela discrepa ~4km, ver Dudas |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
-| las-tuerces | 1 parking + 1/13 sectores | **Prácticamente cerrada**: 10 de los 13 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura — no volver a consultar). Solo queda "Zona Del Juc" sin comprobar (bloqueo justo ahí). Coordenada de la escuela en BD (42.792,-4.255) discrepa ~4km del punto de TheCrag (42.754,-4.255), sin resolver — ver Dudas |
 
 ## EN CURSO / bloqueadas por TheCrag ahora mismo
 
-Región TheCrag `toledo-salamanca-area` (cubre Ahedo, Recuevas, Las Tuerces) bloqueada
-desde el 2026-08-13. Reintentar aquí primero antes de abrir región nueva.
+Región TheCrag `toledo-salamanca-area` (cubre Ahedo, Recuevas — Las Tuerces ya
+COMPLETA) bloqueada desde el 2026-08-13, se destensa y vuelve a bloquear de forma
+errática (a veces aguanta 8-10 peticiones, a veces 2). Reintentar aquí primero.
+Recuevas: siguiente sector a comprobar es Balcón (id 5962139553).
 
 ## Pendientes con MUY POCO (1-3 elementos) — revisar antes que las vacías
 
@@ -76,7 +78,6 @@ desde el 2026-08-13. Reintentar aquí primero antes de abrir región nueva.
 | aguero | Agüero | Vía | Aragón | 2 |
 | cabo-negro | Cabo Negro | Bloque | Asturias | 2 |
 | el-burguillo | El Burguillo | Bloque | Castilla y León | 3 |
-| las-tuerces | Las Tuerces | Bloque | Castilla y León | 2 |
 | rozas | Rozas | Bloque | Castilla y León | 3 |
 | torrelodones | Torrelodones | Bloque | Comunidad de Madrid | 1 |
 | pena-pintada | Peña pintada | Vía | Comunidad de Madrid | 1 |
