@@ -90,6 +90,17 @@ Formato: ## [pág. libro] SECTOR BLOQUE N
 5. ¿? — 7a
 6. La fisura — 6c
 
+## [PDF p019] MORDOR BLOQUE 9
+1. El oasis — 7a (S.S.)
+2. ¿? — V
+3. La Duna — 6c
+4. La mano — 7b
+
+(Nota: estos 3 nombres coinciden EXACTOS con las entradas 106/108/109 de la
+tabla numerada global 71-119 de más arriba — confirma que esa tabla es una
+numeración GLOBAL de Mordor que se solapa con la numeración LOCAL de cada
+Bloque; no hace falta reconciliarla, con nombre+grado del Bloque basta.)
+
 ## [PDF p010] MORDOR BLOQUE 2
 1. Unos cardan la lana — 6c
 2. El defenestrador — ¿?
