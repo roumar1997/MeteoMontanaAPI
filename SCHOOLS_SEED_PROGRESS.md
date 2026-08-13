@@ -84,6 +84,9 @@ instante. Sin avance esta tanda, nada insertado.
 **2026-08-13 (otra tanda más)**: sigue bloqueado globalmente, reprobado
 `la-cabrera`/10389887367 → login wall al instante. Sin avance, nada insertado.
 
+**2026-08-13 (tanda siguiente)**: mismo resultado, `la-cabrera`/10389887367
+sigue en login wall al instante. Sin avance, nada insertado.
+
 ## Pendientes con MUY POCO (1-3 elementos) — revisar antes que las vacías
 
 | id | Nombre | Estilo | Región | Elementos |
