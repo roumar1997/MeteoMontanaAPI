@@ -60,7 +60,7 @@
 | rozas | 2 sectores (ya tenía parking) | completa |
 | recuevas | 1 parking + 14/22 sectores | 8 más: Columpio, Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
-| las-tuerces | 1 parking + 1/13 sectores | 11 más — coordenada de la escuela en BD (42.792,-4.255) discrepa ~4km del punto de TheCrag (42.754,-4.255), sin resolver |
+| las-tuerces | 1 parking + 1/13 sectores | 8 pendientes de verdad + 3 SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino — no consultar de nuevo). Coordenada de la escuela en BD (42.792,-4.255) discrepa ~4km del punto de TheCrag (42.754,-4.255), sin resolver |
 
 ## EN CURSO / bloqueadas por TheCrag ahora mismo
 
