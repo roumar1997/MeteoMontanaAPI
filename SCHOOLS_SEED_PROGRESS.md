@@ -103,6 +103,8 @@ instante. Sin avance, nada insertado.
 **2026-08-14 (otra tanda)**: mismo resultado de nuevo, `la-cabrera`/10389887367 en login wall al instante. Sin avance, nada insertado.
 **2026-08-14 (tanda siguiente)**: mismo resultado, `la-cabrera`/10389887367 en login wall al instante. Sin avance, nada insertado.
 
+**2026-08-14 (otra tanda más)**: mismo resultado, `la-cabrera`/10389887367 en login wall al instante. Sin avance, nada insertado.
+
 ## Pendientes con MUY POCO (1-3 elementos) — revisar antes que las vacías
 
 | id | Nombre | Estilo | Región | Elementos |
@@ -399,4 +401,3 @@ instante. Sin avance, nada insertado.
   el parking insertado). Puede ser que el punto de la BD sea el pueblo y el de
   TheCrag la zona de escalada real. Decidir si se corrige el punto de la escuela.
 
-**2026-08-14 (otra tanda más)**: mismo resultado, `la-cabrera`/10389887367 en login wall al instante. Sin avance, nada insertado.
