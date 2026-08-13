@@ -14,6 +14,35 @@
 > **Pendiente futuro** (no ahora): botón B/V en el mapa de una escuela mixta para
 > separar vista de bloque y de vía. No se toca el campo `style` de la escuela por
 > ahora — cada piedra ya lleva su `discipline` (BOULDER/ROUTE) real por separado.
+>
+> **Fuentes alternativas probadas y descartadas (2026-08-13)** — no repetir esta
+> búsqueda, ya está hecha:
+> - **API oficial de TheCrag**: cerrada para uso no comercial sin acuerdo legal.
+>   Las claves personales solo dan el propio libro de ascensos, no el catálogo.
+> - **OpenBeta** (api.openbeta.io, GraphQL, gratis y sin bloqueo): cobertura de
+>   España muy fina — solo tiene los sitios de referencia mundial (Siurana,
+>   Margalef, El Chorro). Comprobado contra las 200 escuelas de la BD: **0
+>   coincidencias**. Además tiene su propio límite (403 tras muchas peticiones
+>   seguidas). No usar como fuente principal.
+> - **Iniciar sesión en TheCrag con cuenta real**: descartado a propósito. El
+>   throttle menciona `utm_id=anonsession`, sugiriendo que es un límite de
+>   sesión anónima que subiría con cuenta — pero el patrón de navegación
+>   automatizada sería fácil de detectar y podría acabar en bloqueo de esa
+>   cuenta/IP. No arriesgar la cuenta personal de Rodrigo por esto.
+> - **Blogs locales** (bulderahedo.blogspot.com, ahedoboulder.blogspot.com):
+>   tienen fotocroquis y nombres de vías reales (útiles más adelante para
+>   descripciones), pero SIN coordenadas GPS estructuradas.
+> - **escaladaburgos.wordpress.com**: promociona una guía de papel de pago
+>   (20€), no una base de datos digital. No cubre Sedano ni Peña Amaya. Sí
+>   confirma que estas 12 escuelas existen y están en TheCrag (región
+>   `toledo-salamanca-area`, bloqueada ahora mismo): Villaverde de Peñahorada,
+>   Tobes, San Martín de Ubierna, La Selva, Huérmeces, La Piedra, Basconcillos
+>   del Tozo, Poza de la Sal, Trespaderne, Villarcayo (Escaño y Escanduso),
+>   Pancorbo, Garganchón. San Martín de Ubierna, Huérmeces y Pancorbo tienen
+>   regulación de acceso específica (nidificación) — usar en la descripción
+>   cuando se añadan.
+> - **Conclusión**: TheCrag + thetopo.com siguen siendo las únicas fuentes
+>   viables. Sin atajo. Ir despacio, región a región, sin cuenta.
 
 ## Resumen
 
