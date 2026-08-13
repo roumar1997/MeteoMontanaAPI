@@ -60,14 +60,21 @@
 | rozas | 2 sectores (ya tenía parking) | completa |
 | recuevas | 1 parking + 15/22 sectores (+ Columpio) | 7 más: Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
 | las-tuerces | **COMPLETA** — 1 parking + 1/13 sectores | 12 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura, Zona Del Juc — no volver a consultar). Coordenada de la escuela discrepa ~4km, ver Dudas |
+| la-cabrera | 1/29 sectores (+ Las agujas del convento) | 28 más, todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
 
 ## EN CURSO / bloqueadas por TheCrag ahora mismo
 
 Región TheCrag `toledo-salamanca-area` (cubre Ahedo, Recuevas — Las Tuerces ya
 COMPLETA) bloqueada desde el 2026-08-13, se destensa y vuelve a bloquear de forma
-errática (a veces aguanta 8-10 peticiones, a veces 2). Reintentar aquí primero.
-Recuevas: siguiente sector a comprobar es Balcón (id 5962139553).
+errática (a veces aguanta 8-10 peticiones, a veces 2). Recuevas: siguiente sector a
+comprobar es Balcón (id 5962139553).
+
+**3 tandas seguidas bloqueadas de primeras aquí (2026-08-13).** Estrategia
+confirmada y en marcha: si esta región bloquea al instante, saltar a otra (la
+región `madrid-area`/`la-cabrera` de TheCrag sí responde bien, en curso ahora en
+`la-cabrera`, siguiente sector "Risco del Fraile / Cancho de la Ladera" id
+10389887367).
 
 ## Pendientes con MUY POCO (1-3 elementos) — revisar antes que las vacías
 
@@ -82,7 +89,6 @@ Recuevas: siguiente sector a comprobar es Balcón (id 5962139553).
 | torrelodones | Torrelodones | Bloque | Comunidad de Madrid | 1 |
 | pena-pintada | Peña pintada | Vía | Comunidad de Madrid | 1 |
 | el-vellon | El Vellón | Vía | Comunidad de Madrid | 3 |
-| la-cabrera | La Cabrera | Vía | Comunidad de Madrid | 1 |
 | patones-pueblo | Patones Pueblo | Vía | Comunidad de Madrid | 1 |
 | ponton-de-la-oliva | Pontón de la Oliva | Vía | Comunidad de Madrid | 1 |
 | caldas-eirizgr | Caldas - Eirizgr | Bloque | Galicia | 3 |
