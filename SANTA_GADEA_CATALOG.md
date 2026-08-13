@@ -72,6 +72,24 @@ Formato: ## [pág. libro] SECTOR BLOQUE N
 4. Rampa a tierra — 6b+ (obligada sin coger el garbanzo, es "Camaleonia" 7a+)
 5. El primero — 6b
 
+## [PDF p017] MORDOR BLOQUE 8
+1. ¿? — V
+2. ¿? — 6b (S.S. sale por el 1)
+3. A ver aquí — 6a+ (con el filo izquierdo)
+4. Vete de aquí — 6b+ (sin filo)
+5. Rarezas — V+
+6. Cazador de Hombres — 6c+
+7. El pretor — 6b+ / El tío Joselito — 7a+ (paso 7 entrando sentado)
+8. Gilito — 6a (bastante sucio)
+
+## [PDF p018] MORDOR BLOQUE 8 (otra cara, mismo bloque que p017)
+1. Proyecto — ¿?
+2. ¿? — 6a+
+3. Placa del Bidedo — 7c+
+4. La romería — 7a+
+5. ¿? — 7a
+6. La fisura — 6c
+
 ## [PDF p010] MORDOR BLOQUE 2
 1. Unos cardan la lana — 6c
 2. El defenestrador — ¿?
