@@ -96,6 +96,9 @@ instante. Sin avance, nada insertado.
 **2026-08-13 (nueva tanda)**: sigue igual, `la-cabrera`/10389887367 en login
 wall al instante. Sin avance, nada insertado.
 
+**2026-08-14**: sigue igual, `la-cabrera`/10389887367 en login wall al
+instante. Sin avance, nada insertado.
+
 ## Pendientes con MUY POCO (1-3 elementos) — revisar antes que las vacías
 
 | id | Nombre | Estilo | Región | Elementos |
