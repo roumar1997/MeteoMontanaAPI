@@ -35,6 +35,43 @@ Formato: ## [pág. libro] SECTOR BLOQUE N
 ## Rutas 71-119 (PDF p007) — sector sin confirmar aún, probablemente Mordor u otro bloque
 71 ¿? 6b S.S. | 72 Travesía de mordor 7a+ S.S. | 73 Verde o + 6a+ | 74 El descojono V+ / Moda retro 7b (S.S. en 74 y travesía hasta salir por 71) | 75 La fisura III | 76 Juego de tríceps 6c | 77 La bregada 6b | 78 La regleta rota 6a+ | 79 Circunfricción V+ | 80 El bosu 7a | 81 Mari.com 7a+ (S.S. de pie 7a) | 82 El rodamiento 7a | 83 Proyecto | 84 Perico el del galgo 6b+ (S.S.) | 85 Utopía 6c | 86 ¿? IV | 87 El ángel 6c+ | 88 Grado real 8a+ | 89 La ponderosa 7a | 90 El volvoreto 7b+ | 91 El lance 7c+ | 92 La poza 6c+ | 93 Hi yo silver 6b | 94 La realidad supera la fricción 7c+/8a (S.S. sale por la ponderosa) | 95 ¿? IV | 96 Saber 6c | 97 Salud 6b | 98 Nociones básicas 7a+ | 99 Uno solo 7a | 100 Proyecto | 101 El mantel 6b+ | 102 El calvo 7b+ | 103 El furcionario 7c (entrada cogiendo romo con izq e invertido con dcha) | 104 La placa 6b | 105 ¿? V | 106 El oasis 7a | 107 La esquina IV | 108 La duna 6c | 109 La mano 7b | 110 Cocidito madrileño 6b+ | 111 Osso bucco 7b | 112 Tortas de san blas 6b | 113 Bacalao a la vizcaína 6b+/c | 114 Marmitako ¿? | 115 ¿? IV | 116 ¿? IV | 117 ¿? IV | 118 Totus trastornatus 7c+? | 119 Ponzoñismo en el alpinismo 6c
 
+## [pág.141, PDF p012] MORDOR BLOQUE 4
+1. El truco — V+
+2. Don pin pon — 6a+
+3. Doble Vira — 7a
+4. Super Bowl — 7c (S.S.)
+5. Triple vira — 6b
+
+## [pág.142, PDF p013] MORDOR BLOQUE 5 (foto lado A)
+1. ¿? — ¿? (salida por el 2)
+2. ¿? — 6b (alto y sucio)
+3. En verano olvídate — 6b+
+4. Canasta al bidedo — 6b
+5. ¿? — 6a
+6. ¿? — IV
+7. El guijarrillo — 6b
+8. ¿? — 6b
+
+## [pág.14x, PDF p014] MORDOR BLOQUE 5 (foto lado B, mismo bloque, otra cara)
+1. El guijarrillo — 6b (repetida, ya contada arriba)
+2. ¿? — 6b
+3. Proyecto — ¿?
+4. Proyecto — 8a+?
+5. Proyecto — ¿?
+6. La proa — 7c+/8a (empieza en los agujeros de "el petaculos")
+7. El petaculos — 7c/+ (cuidado con la caída, el bloque discurre por el otro lado de la foto)
+
+## [PDF p015] MORDOR BLOQUE 6
+1. El de todos — 7b+ (S.S. de pie 7a/+)
+2. Nostrabamus — 7a+ (S.S. de pie 6b/+)
+
+## [PDF p016] MORDOR BLOQUE 7
+1. La muerte loca — 7a
+2. La bañera — 6c
+3. Aguacero-Escaladores 1 — 7b+ (S.S.)
+4. Rampa a tierra — 6b+ (obligada sin coger el garbanzo, es "Camaleonia" 7a+)
+5. El primero — 6b
+
 ## [PDF p010] MORDOR BLOQUE 2
 1. Unos cardan la lana — 6c
 2. El defenestrador — ¿?
