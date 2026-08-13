@@ -6,6 +6,7 @@ import com.meteomontana.api.domain.port.ApproachRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Lee las aproximaciones (caminos) de una escuela con sus chinchetas. Fase 1
@@ -30,6 +31,7 @@ public class GetApproachesUseCase {
 
     private final ApproachRepository repository;
 
+    @Transactional(readOnly = true)
     public List<ApproachDto> listBySchool(String schoolId) {
         return repository.findBySchoolId(schoolId).stream().map(this::toDto).toList();
     }
