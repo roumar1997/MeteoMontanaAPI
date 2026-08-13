@@ -60,7 +60,7 @@
 | rozas | 2 sectores (ya tenía parking) | completa |
 | recuevas | 1 parking + 14/22 sectores | 8 más: Columpio, Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
-| las-tuerces | 1 parking + 1/13 sectores | 8 pendientes de verdad + 3 SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino — no consultar de nuevo). Coordenada de la escuela en BD (42.792,-4.255) discrepa ~4km del punto de TheCrag (42.754,-4.255), sin resolver |
+| las-tuerces | 1 parking + 1/13 sectores | **Prácticamente cerrada**: 10 de los 13 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura — no volver a consultar). Solo queda "Zona Del Juc" sin comprobar (bloqueo justo ahí). Coordenada de la escuela en BD (42.792,-4.255) discrepa ~4km del punto de TheCrag (42.754,-4.255), sin resolver — ver Dudas |
 
 ## EN CURSO / bloqueadas por TheCrag ahora mismo
 
@@ -357,3 +357,10 @@ desde el 2026-08-13. Reintentar aquí primero antes de abrir región nueva.
 | la-panocha | La Panocha | Vía | Murcia | 37.964,-1.125 |
 | almorchon-el-cieza | Almorchón, El (Cieza) | Vía | Cieza | 38.238,-1.421 |
 | buey-el-jumilla | Buey, El (Jumilla) | Vía | Jumilla | 38.477,-1.326 |
+
+## Dudas para Rodrigo
+
+- **las-tuerces**: la coordenada de la escuela en la BD (`42.792,-4.255`) discrepa
+  ~4 km de la que da TheCrag como punto de acceso (`42.754,-4.255`, ya usada para
+  el parking insertado). Puede ser que el punto de la BD sea el pueblo y el de
+  TheCrag la zona de escalada real. Decidir si se corrige el punto de la escuela.
