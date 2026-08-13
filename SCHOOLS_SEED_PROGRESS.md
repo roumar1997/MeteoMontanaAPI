@@ -76,6 +76,11 @@ región `madrid-area`/`la-cabrera` de TheCrag sí responde bien, en curso ahora 
 `la-cabrera`, siguiente sector "Risco del Fraile / Cancho de la Ladera" id
 10389887367).
 
+**2026-08-13 (tanda extra)**: bloqueo ahora es GLOBAL, no solo de una región —
+probado `toledo-salamanca-area`/Balcón, la home de thecrag.com y
+`la-cabrera`/10389887367, los tres a "Iniciar sesión para participar" al
+instante. Sin avance esta tanda, nada insertado.
+
 ## Pendientes con MUY POCO (1-3 elementos) — revisar antes que las vacías
 
 | id | Nombre | Estilo | Región | Elementos |
