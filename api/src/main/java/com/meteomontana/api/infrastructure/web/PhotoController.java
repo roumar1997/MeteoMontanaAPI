@@ -47,7 +47,8 @@ public class PhotoController {
 
     /** Prefijos servibles por redirect y categorías subibles. */
     private static final Set<String> ALLOWED_PREFIXES = Set.of(
-            "piedra-photos-pending/", "note-photos/", "meetup-photos/", "profile-photos/");
+            "piedra-photos-pending/", "note-photos/", "meetup-photos/", "profile-photos/",
+            "approach-pins/");
 
     private final StorageService storage;
 
@@ -97,6 +98,7 @@ public class PhotoController {
             case "note"    -> "note-photos/" + uid + "_" + safe(schoolId) + "_" + u + ".jpg";
             case "meetup"  -> "meetup-photos/" + safe(meetupId) + "_" + uid + "_" + u + ".jpg";
             case "profile" -> "profile-photos/" + uid + "." + ext;   // 1 por usuario (se sobrescribe)
+            case "approach-pin" -> "approach-pins/" + uid + "_" + u + ".jpg";
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "categoría no válida");
         };
 
