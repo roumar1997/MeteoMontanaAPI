@@ -60,7 +60,7 @@
 | rozas | 2 sectores (ya tenía parking) | completa |
 | recuevas | 1 parking + 15/22 sectores (+ Columpio) | 7 más: Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
 | las-tuerces | **COMPLETA** — 1 parking + 1/13 sectores | 12 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura, Zona Del Juc — no volver a consultar). Coordenada de la escuela discrepa ~4km, ver Dudas |
-| la-cabrera | 1/29 sectores (+ Las agujas del convento) | 28 más, todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
+| la-cabrera | 2/29 sectores (+ Las agujas del convento, + Risco del Fraile) | 27 más, todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
 
 ## EN CURSO / bloqueadas por TheCrag ahora mismo
@@ -73,8 +73,13 @@ comprobar es Balcón (id 5962139553).
 **3 tandas seguidas bloqueadas de primeras aquí (2026-08-13).** Estrategia
 confirmada y en marcha: si esta región bloquea al instante, saltar a otra (la
 región `madrid-area`/`la-cabrera` de TheCrag sí responde bien, en curso ahora en
-`la-cabrera`, siguiente sector "Risco del Fraile / Cancho de la Ladera" id
-10389887367).
+`la-cabrera`).
+
+**2026-08-14 (avance)**: `la-cabrera`/10389887367 (Risco del Fraile, aka Cancho
+de la Ladera) ya NO bloqueaba — insertado como ZONE en 40.872674,-3.638295
+(verificado en la API pública). Siguiente sector candidato: "Risco del
+Pajarito" (id aproximado 10389890034, sin confirmar — verificar entrando a la
+página de la-cabrera y comprobando el nombre real antes de tocar nada).
 
 **2026-08-13 (tanda extra)**: bloqueo ahora es GLOBAL, no solo de una región —
 probado `toledo-salamanca-area`/Balcón, la home de thecrag.com y
