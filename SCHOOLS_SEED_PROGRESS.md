@@ -241,6 +241,10 @@ Ya van varias tandas seguidas así — parece un bloqueo estable a nivel de
 entorno, no algo que se destense solo como el muro de login de TheCrag. Sin
 avance, nada insertado. Mismo siguiente objetivo: Recuevas → "Placas".
 
+**2026-08-14 (nueva tanda, bloqueo sigue igual)**: reprobado otra vez,
+`thecrag.com` sigue "blocked by policy". Sin avance, nada insertado. Mismo
+siguiente objetivo: Recuevas → "Placas".
+
 **2026-08-14 (tanda siguiente, bloqueo sin cambios)**: reprobado una vez
 más, `thecrag.com` sigue "blocked by policy". Sin avance, nada insertado.
 Mismo siguiente objetivo: Recuevas → "Placas".
