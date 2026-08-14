@@ -172,6 +172,15 @@ public class ReviewContributionUseCase {
                     });
                 }
             }
+
+            case SCHOOL_STYLE_CORRECTION -> {
+                if (c.getDiscipline() != null && !c.getDiscipline().isBlank()) {
+                    schoolRepo.findById(c.getSchoolId()).ifPresent(school -> {
+                        school.setStyle(c.getDiscipline());
+                        schoolRepo.save(school);
+                    });
+                }
+            }
         }
 
         // ── Marcar como aprobada ──────────────────────────────────────────────

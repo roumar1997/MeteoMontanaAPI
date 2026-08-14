@@ -79,6 +79,7 @@ public class SubmitContributionUseCase {
             case ASSIGN_SECTOR -> "cambio de sector";
             case POSITION_CORRECTION -> "corrección de posición";
             case SCHOOL_NAME_CORRECTION -> "corrección de nombre de escuela";
+            case SCHOOL_STYLE_CORRECTION -> "corrección de estilo de escuela";
             default -> "piedra/vía";
         };
         String title = "Propuesta nueva: " + what;

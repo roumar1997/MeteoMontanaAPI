@@ -24,6 +24,7 @@ public class SchoolJpaEntity {
     private String name;
     private String location;
     private String region;
+    @Setter
     private String style;
 
     @Column( name = "rock_type")

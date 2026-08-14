@@ -53,13 +53,19 @@ public class SchoolBlockUseCase {
             double lat, double lon, String photoPath, String description,
             String createdByUid, String createdAt, List<BlockLineDto> lines,
             String sectorBlockId,
-            String discipline,      // BOULDER (bloque) / ROUTE (vía)
+            String discipline,      // BOULDER (bloque) / ROUTE (vía) — solo tiene sentido real en piedras (type=BLOCK)
             String geometry,        // POINT / LINE
             String path,            // polilínea JSON si LINE
             String direction,       // "LTR"/"RTL"
             // Caras = la piedra agrupada por foto (cada cara: foto + sus vías).
             // `lines` y `photoPath` se mantienen (= primera cara) por compat.
-            List<BlockFaceDto> faces
+            List<BlockFaceDto> faces,
+            // SOLO para type=ZONE (sector): disciplinas de las piedras que
+            // tiene dentro (sectorBlockId == este id), calculado al vuelo — no
+            // hay campo que mantener a mano, un sector "es" lo que contiene.
+            // ["BOULDER"], ["ROUTE"], ambos si es mixto, o [] si está vacío
+            // todavía. null en BLOCK/PARKING (no aplica).
+            List<String> sectorDisciplines
     ) {}
 
     public record BlockLineDto(
@@ -113,12 +119,30 @@ public class SchoolBlockUseCase {
                 myByLine.putAll(ratingRepo.myStarsByLineIds(callerUid, lineIds));
             }
         }
-        return blocks.stream().map(b -> toDto(b, avgByLine, myByLine)).toList();
+        var disciplinesByZone = sectorDisciplinesOf(blocks);
+        return blocks.stream().map(b -> toDto(b, avgByLine, myByLine, disciplinesByZone)).toList();
     }
 
     public BlockDto findById(String id) {
-        return blockRepository.findById(id).map(this::toDto)
+        SchoolBlock b = blockRepository.findById(id)
                 .orElseThrow(() -> new SchoolNotFoundException(id));
+        var disciplinesByZone = b.getType() == SchoolBlock.Type.ZONE
+                ? sectorDisciplinesOf(blockRepository.findBySchoolId(b.getSchoolId()))
+                : java.util.Map.<String, java.util.Set<String>>of();
+        return toDto(b, disciplinesByZone);
+    }
+
+    /** Piedras (BLOCK) agrupadas por el sector (ZONE) al que pertenecen, con
+     *  las disciplinas distintas que hay dentro de cada uno. */
+    private static java.util.Map<String, java.util.Set<String>> sectorDisciplinesOf(List<SchoolBlock> blocks) {
+        java.util.Map<String, java.util.Set<String>> byZone = new java.util.HashMap<>();
+        for (SchoolBlock b : blocks) {
+            if (b.getType() == SchoolBlock.Type.BLOCK && b.getSectorBlockId() != null) {
+                byZone.computeIfAbsent(b.getSectorBlockId(), k -> new java.util.LinkedHashSet<>())
+                      .add(b.getDiscipline().name());
+            }
+        }
+        return byZone;
     }
 
     @Transactional
@@ -326,6 +350,13 @@ public class SchoolBlockUseCase {
     }
 
     private BlockDto toDto(SchoolBlock b) {
+        var disciplinesByZone = b.getType() == SchoolBlock.Type.ZONE
+                ? sectorDisciplinesOf(blockRepository.findBySchoolId(b.getSchoolId()))
+                : java.util.Map.<String, java.util.Set<String>>of();
+        return toDto(b, disciplinesByZone);
+    }
+
+    private BlockDto toDto(SchoolBlock b, java.util.Map<String, java.util.Set<String>> disciplinesByZone) {
         // Un solo bloque: el lote sigue mereciendo la pena (2 queries fijas).
         var lineIds = b.getLines().stream()
                 .map(com.meteomontana.api.domain.model.BlockLine::getId).toList();
@@ -333,12 +364,13 @@ public class SchoolBlockUseCase {
         if (!lineIds.isEmpty()) {
             avgByLine.putAll(ratingRepo.avgStarsByLineIds(lineIds));
         }
-        return toDto(b, avgByLine, java.util.Map.of());
+        return toDto(b, avgByLine, java.util.Map.of(), disciplinesByZone);
     }
 
     private BlockDto toDto(SchoolBlock b,
                            java.util.Map<String, Double> avgByLine,
-                           java.util.Map<String, Integer> myByLine) {
+                           java.util.Map<String, Integer> myByLine,
+                           java.util.Map<String, java.util.Set<String>> disciplinesByZone) {
         List<BlockLineDto> lines = b.getLines().stream().map(l -> {
             Double avg = avgByLine.get(l.getId());
             Integer my = myByLine.get(l.getId());
@@ -354,6 +386,9 @@ public class SchoolBlockUseCase {
                     l.getVariant()
             );
         }).toList();
+        List<String> sectorDisciplines = b.getType() == SchoolBlock.Type.ZONE
+                ? List.copyOf(disciplinesByZone.getOrDefault(b.getId(), java.util.Set.of()))
+                : null;
         return new BlockDto(
                 b.getId(), b.getSchoolId(), b.getType().name(), b.getName(),
                 b.getLat(), b.getLon(), b.getPhotoPath(), b.getDescription(),
@@ -361,7 +396,8 @@ public class SchoolBlockUseCase {
                 lines, b.getSectorBlockId(),
                 b.getDiscipline().name(),
                 b.getGeometry().name(), b.getPath(), b.getDirection(),
-                buildFaces(lines, b.getPhotoPath())
+                buildFaces(lines, b.getPhotoPath()),
+                sectorDisciplines
         );
     }
 

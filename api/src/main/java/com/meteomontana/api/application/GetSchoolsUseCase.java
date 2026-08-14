@@ -22,12 +22,24 @@ public class GetSchoolsUseCase {
         return repository.findAll().stream()
                 .filter(s -> region == null || region.isBlank()
                           || region.equalsIgnoreCase(s.getRegion()))
-                .filter(s -> style == null || style.isBlank()
-                          || style.equalsIgnoreCase(s.getStyle()))
+                .filter(s -> style == null || style.isBlank() || hasStyle(s.getStyle(), style))
                 .filter(s -> !rockFilterActive
                           || rockTypes.stream().anyMatch(r -> r.equalsIgnoreCase(s.getRockType())))
                 .filter(s -> !distanceFilterActive
                           || GeoDistance.haversineKM(lat, lon, s.getLat(), s.getLon()) <= radioKm)
                 .toList();
+    }
+
+    /**
+     * `style` puede llevar varios valores separados por coma ("Vía,Bloque") —
+     * una escuela como La Pedriza tiene piedras de ambos tipos. Compatible con
+     * el valor único de siempre: sin coma, es la misma comparación exacta.
+     */
+    private static boolean hasStyle(String schoolStyle, String wanted) {
+        if (schoolStyle == null) return false;
+        for (String s : schoolStyle.split(",")) {
+            if (s.trim().equalsIgnoreCase(wanted)) return true;
+        }
+        return false;
     }
 }
