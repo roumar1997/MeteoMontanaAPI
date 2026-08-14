@@ -230,6 +230,11 @@ insertado. Siguiente objetivo en cuanto se pueda navegar: Recuevas → sector
 Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino de la lista
 previa, recuento exacto por confirmar contra la página real).
 
+**2026-08-14 (nueva tanda, sigue el mismo bloqueo)**: reprobado
+`thecrag.com` — sigue "blocked by policy" en el Browser pane, no ha cambiado
+desde la tanda anterior. Sin avance, nada insertado. Mismo siguiente
+objetivo: Recuevas → "Placas".
+
 ## Pendientes con MUY POCO (1-3 elementos) — revisar antes que las vacías
 
 | id | Nombre | Estilo | Región | Elementos |
