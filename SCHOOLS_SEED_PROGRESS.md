@@ -65,17 +65,22 @@
 | santa-gadea | 1 parking + 7 sectores | 6 sectores sin coordenada en ninguna fuente |
 | resconorio | 1 parking + 4 sectores | completa |
 | rozas | 2 sectores (ya tenía parking) | completa |
-| recuevas | 1 parking + 15/22 sectores (+ Columpio) | 7 más: Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
+| recuevas | 1 parking + sectores (+ Columpio, Balcón, Sombra, Cuartos añadidos hoy) | Pendientes de la lista previa: Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino (recuento exacto /22 por confirmar, la nota anterior tenía "7 más" pero listaba 11 nombres — revisar con calma la próxima vez). Siguiente: Placas |
 | las-tuerces | **COMPLETA** — 1 parking + 1/13 sectores | 12 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura, Zona Del Juc — no volver a consultar). Coordenada de la escuela discrepa ~4km, ver Dudas |
-| la-cabrera | 25/29 sectores (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas, Cancho del Rayo y Cuerno de la Luna, Aguja Solano, Peña del Águila, Aguja del Pornoso, Agujas de los Campanarios, Pared de los Tubos, Aguja del Callejón, Aguja de los tres amigos y Trono, Aguja sin nombre, Risco del Murciélago, La Pirámide, El semicírculo, Cancho cuadrado, Cancho de los Tejos, Torre de los Casares, Cancho de las Yegüas) | 4 más, todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
+| la-cabrera | **COMPLETA** — 28/29 de la lista original de vía + 5/14 sub-sectores de bloque (El merendero norte, El merendero sur, El merendero este, Sector M-124, Peña del Buey) = 33 sectores en total (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas, Cancho del Rayo y Cuerno de la Luna, Aguja Solano, Peña del Águila, Aguja del Pornoso, Agujas de los Campanarios, Pared de los Tubos, Aguja del Callejón, Aguja de los tres amigos y Trono, Aguja sin nombre, Risco del Murciélago, La Pirámide, El semicírculo, Cancho cuadrado, Cancho de los Tejos, Torre de los Casares, Cancho de las Yegüas, Bloque Californiano, Pico de la Miel, Cancho Soyermo) | Los otros 9 sub-sectores del árbol "La Cabrera - Bouldering" (Sectores del Murillón, Sector PR-M-13, Falda sur del Pico de la Miel, El Puticlub, Sector A-1, La Ventana/Camping, Las Pilatas, Fuente Caldera, San Pedro) tienen **0 vías/bloques en TheCrag** — comprobados uno a uno, son placeholders vacíos sin contenido, no se insertan (no volver a consultar). No se añadió 2º parking de la escuela: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
 
 ## EN CURSO / bloqueadas por TheCrag ahora mismo
 
 Región TheCrag `toledo-salamanca-area` (cubre Ahedo, Recuevas — Las Tuerces ya
 COMPLETA) bloqueada desde el 2026-08-13, se destensa y vuelve a bloquear de forma
-errática (a veces aguanta 8-10 peticiones, a veces 2). Recuevas: siguiente sector a
-comprobar es Balcón (id 5962139553).
+errática (a veces aguanta 8-10 peticiones, a veces 2).
+
+**2026-08-14 (retomada, sin bloqueo)**: TheCrag respondió bien esta tanda.
+Insertados 3 sectores más en Recuevas (verificados en la API pública): Balcón
+(id 5962139553, 42.747802,-4.224513), Sombra (id 6541178814,
+42.747754,-4.225896), Cuartos (id 6541178880, 42.748113,-4.226164).
+Siguiente: "Placas".
 
 **3 tandas seguidas bloqueadas de primeras aquí (2026-08-13).** Estrategia
 confirmada y en marcha: si esta región bloquea al instante, saltar a otra (la
@@ -163,6 +168,28 @@ Torre de los Casares (id 11501034123, 40.879228,-3.614824), Cancho de las
 Yegüas (id 9123331083, 40.879178,-3.609907). La-cabrera pasa de 23/29 a
 25/29 sectores. Siguiente sector en la tabla: "Bloque Californiano" (área
 #26).
+
+**2026-08-14 (última tanda, sin bloqueo — pausa temporal)**: TheCrag siguió
+respondiendo bien. Insertados 2 sectores más (verificados en la API
+pública): Bloque Californiano (id 4287934290, 40.877168,-3.607981), Pico de
+la Miel (id 3514726056, 40.878836,-3.608330). La-cabrera pasa de 25/29 a
+27/29 sectores. Quedan solo 2: "Cancho Soyermo" (área #28) y "La Cabrera -
+Bouldering" (área #29, probablemente una zona de bulder aparte, revisar
+nombre/tipo con calma). Se pausa esta línea de trabajo para priorizar
+desarrollo de producto (features iOS/Android) — retomar cuando toque.
+
+**2026-08-14 (retomada, sin bloqueo)**: TheCrag siguió respondiendo bien.
+Insertado Cancho Soyermo (id 11500747170, 40.879778,-3.607104) — verificado
+en la API pública. La-cabrera pasa de 27/29 a **28/29 de la lista original**.
+El item #29 "La Cabrera - Bouldering" (id 6599966469) resultó ser un área
+CONTENEDORA con 14 sub-sectores propios sin insertar todavía: El merendero
+norte, El merendero sur, El merendero este, Sector M-124, Peña del Buey,
+Sectores del Murillón, Sector PR-M-13, Falda sur del Pico de la Miel, El
+Puticlub, Sector A-1, La Ventana / Camping, Las Pilatas, Fuente Caldera, San
+Pedro. Ninguno insertado esta tanda (había que abrir cada uno y sacar su
+propio enlace de Google Maps, y ya no daba tiempo en la tanda) — siguiente
+paso: entrar en https://www.thecrag.com/en/climbing/spain/la-cabrera/area/6599966469
+y comprobar/insertar uno a uno empezando por "El merendero norte".
 
 **2026-08-13 (tanda extra)**: bloqueo ahora es GLOBAL, no solo de una región —
 probado `toledo-salamanca-area`/Balcón, la home de thecrag.com y
