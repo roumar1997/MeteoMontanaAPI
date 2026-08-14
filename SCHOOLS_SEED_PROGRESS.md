@@ -60,7 +60,7 @@
 | rozas | 2 sectores (ya tenía parking) | completa |
 | recuevas | 1 parking + 15/22 sectores (+ Columpio) | 7 más: Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
 | las-tuerces | **COMPLETA** — 1 parking + 1/13 sectores | 12 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura, Zona Del Juc — no volver a consultar). Coordenada de la escuela discrepa ~4km, ver Dudas |
-| la-cabrera | 9/29 sectores (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas) | 20 más, todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
+| la-cabrera | 11/29 sectores (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas, Cancho del Rayo y Cuerno de la Luna, Aguja Solano) | 18 más, todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
 
 ## EN CURSO / bloqueadas por TheCrag ahora mismo
@@ -97,6 +97,14 @@ bien. Insertados 3 sectores más (verificados en la API pública): La Fortaleza
 40.876792,-3.631790). La-cabrera pasa de 6/29 a 9/29 sectores. Siguiente
 sector en la tabla: "Cancho del Rayo y Cuerno de la Luna / Cancho de la
 Ventana Alta y Baja" (área #10, id aproximado 11500743030, sin confirmar).
+
+**2026-08-14 (tanda siguiente, sin bloqueo)**: TheCrag siguió respondiendo
+bien. Insertados 2 sectores más (verificados en la API pública): Cancho del
+Rayo y Cuerno de la Luna (aka Cancho de la Ventana Alta y Baja, id
+11500743030, 40.876706,-3.631232), Aguja Solano (aka Punta Reventona, id
+11500819596, 40.877600,-3.630370). La-cabrera pasa de 9/29 a 11/29 sectores.
+Siguiente sector en la tabla: "Peña del Águila / Cancho del Águila" (área
+#12).
 
 **2026-08-13 (tanda extra)**: bloqueo ahora es GLOBAL, no solo de una región —
 probado `toledo-salamanca-area`/Balcón, la home de thecrag.com y
