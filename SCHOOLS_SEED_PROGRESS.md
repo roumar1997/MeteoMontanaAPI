@@ -65,7 +65,7 @@
 | santa-gadea | 1 parking + 7 sectores | 6 sectores sin coordenada en ninguna fuente |
 | resconorio | 1 parking + 4 sectores | completa |
 | rozas | 2 sectores (ya tenía parking) | completa |
-| recuevas | 1 parking + 15/22 sectores (+ Columpio) | 7 más: Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
+| recuevas | 1 parking + sectores (+ Columpio, Balcón, Sombra, Cuartos añadidos hoy) | Pendientes de la lista previa: Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino (recuento exacto /22 por confirmar, la nota anterior tenía "7 más" pero listaba 11 nombres — revisar con calma la próxima vez). Siguiente: Placas |
 | las-tuerces | **COMPLETA** — 1 parking + 1/13 sectores | 12 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura, Zona Del Juc — no volver a consultar). Coordenada de la escuela discrepa ~4km, ver Dudas |
 | la-cabrera | **COMPLETA** — 28/29 de la lista original de vía + 5/14 sub-sectores de bloque (El merendero norte, El merendero sur, El merendero este, Sector M-124, Peña del Buey) = 33 sectores en total (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas, Cancho del Rayo y Cuerno de la Luna, Aguja Solano, Peña del Águila, Aguja del Pornoso, Agujas de los Campanarios, Pared de los Tubos, Aguja del Callejón, Aguja de los tres amigos y Trono, Aguja sin nombre, Risco del Murciélago, La Pirámide, El semicírculo, Cancho cuadrado, Cancho de los Tejos, Torre de los Casares, Cancho de las Yegüas, Bloque Californiano, Pico de la Miel, Cancho Soyermo) | Los otros 9 sub-sectores del árbol "La Cabrera - Bouldering" (Sectores del Murillón, Sector PR-M-13, Falda sur del Pico de la Miel, El Puticlub, Sector A-1, La Ventana/Camping, Las Pilatas, Fuente Caldera, San Pedro) tienen **0 vías/bloques en TheCrag** — comprobados uno a uno, son placeholders vacíos sin contenido, no se insertan (no volver a consultar). No se añadió 2º parking de la escuela: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
@@ -74,8 +74,13 @@
 
 Región TheCrag `toledo-salamanca-area` (cubre Ahedo, Recuevas — Las Tuerces ya
 COMPLETA) bloqueada desde el 2026-08-13, se destensa y vuelve a bloquear de forma
-errática (a veces aguanta 8-10 peticiones, a veces 2). Recuevas: siguiente sector a
-comprobar es Balcón (id 5962139553).
+errática (a veces aguanta 8-10 peticiones, a veces 2).
+
+**2026-08-14 (retomada, sin bloqueo)**: TheCrag respondió bien esta tanda.
+Insertados 3 sectores más en Recuevas (verificados en la API pública): Balcón
+(id 5962139553, 42.747802,-4.224513), Sombra (id 6541178814,
+42.747754,-4.225896), Cuartos (id 6541178880, 42.748113,-4.226164).
+Siguiente: "Placas".
 
 **3 tandas seguidas bloqueadas de primeras aquí (2026-08-13).** Estrategia
 confirmada y en marcha: si esta región bloquea al instante, saltar a otra (la
