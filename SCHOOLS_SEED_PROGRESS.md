@@ -11,6 +11,13 @@
 > El bloqueo es por región de TheCrag, no global — otra región puede seguir
 > funcionando. Si una está bloqueada, saltar a otra y volver luego.
 >
+> **LECCIÓN encoding (2026-08-14)**: un nombre con tildes/ñ ("Peña del Águila")
+> enviado con `curl -d '...'` desde bash dio **500 Error interno** — no era un
+> bug real del backend, era el shell mandando los bytes mal. Fix: escribir el
+> JSON a un fichero con Python (`json.dump(..., ensure_ascii=False)`, UTF-8) y
+> mandarlo con `curl --data-binary @payload.json`. Si un POST con acentos da
+> 500, probar esto ANTES de sospechar del backend.
+>
 > **Pendiente futuro** (no ahora): botón B/V en el mapa de una escuela mixta para
 > separar vista de bloque y de vía. No se toca el campo `style` de la escuela por
 > ahora — cada piedra ya lleva su `discipline` (BOULDER/ROUTE) real por separado.
@@ -60,7 +67,7 @@
 | rozas | 2 sectores (ya tenía parking) | completa |
 | recuevas | 1 parking + 15/22 sectores (+ Columpio) | 7 más: Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
 | las-tuerces | **COMPLETA** — 1 parking + 1/13 sectores | 12 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura, Zona Del Juc — no volver a consultar). Coordenada de la escuela discrepa ~4km, ver Dudas |
-| la-cabrera | 11/29 sectores (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas, Cancho del Rayo y Cuerno de la Luna, Aguja Solano) | 18 más, todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
+| la-cabrera | 13/29 sectores (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas, Cancho del Rayo y Cuerno de la Luna, Aguja Solano, Peña del Águila, Aguja del Pornoso) | 16 más, todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
 
 ## EN CURSO / bloqueadas por TheCrag ahora mismo
@@ -105,6 +112,19 @@ Rayo y Cuerno de la Luna (aka Cancho de la Ventana Alta y Baja, id
 11500819596, 40.877600,-3.630370). La-cabrera pasa de 9/29 a 11/29 sectores.
 Siguiente sector en la tabla: "Peña del Águila / Cancho del Águila" (área
 #12).
+
+**2026-08-14 (otra tanda, sin bloqueo — encoding cazado)**: TheCrag siguió
+respondiendo bien. Insertados 2 sectores más (verificados en la API pública):
+Peña del Águila (aka Cancho del Águila, id 6599945841, 40.877547,-3.626116),
+Aguja del Pornoso (id 11500743114, 40.879203,-3.624299). La-cabrera pasa de
+11/29 a 13/29 sectores. **De paso se cazó y corrigió un fallo propio**: el
+primer intento de insertar "Peña del Águila" dio 500 por mandar el nombre con
+tildes vía `curl -d` desde bash (encoding roto, no era bug del backend) — creó
+sin querer un bloque mal escrito "Pena del Aguila" que se borró
+(`DELETE /api/blocks/{id}`, 204) antes de reinsertar bien con
+`--data-binary @payload.json` (ver nota de encoding al principio del
+fichero). Siguiente sector en la tabla: "Agujas de los Campanarios" (área
+#14).
 
 **2026-08-13 (tanda extra)**: bloqueo ahora es GLOBAL, no solo de una región —
 probado `toledo-salamanca-area`/Balcón, la home de thecrag.com y
