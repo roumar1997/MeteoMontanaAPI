@@ -249,6 +249,14 @@ siguiente objetivo: Recuevas → "Placas".
 "blocked by policy". Sin avance, nada insertado. Mismo siguiente objetivo:
 Recuevas → "Placas".
 
+**2026-08-14 (bloqueo distinto — vuelve el muro de login)**: el bloqueo de
+política del Browser pane se ha levantado (la home de thecrag.com cargó
+bien, sin login). Pero al navegar a la búsqueda de "Recuevas"
+(`/en/climbing/spain?q=Recuevas`) saltó directo el muro habitual
+"Iniciar sesión para participar" — se paró la tanda al instante, sin
+reintentar, según la regla de siempre. Sin avance, nada insertado. Mismo
+siguiente objetivo: Recuevas → "Placas".
+
 **2026-08-14 (tanda siguiente, bloqueo idéntico)**: reprobado de nuevo,
 `thecrag.com` sigue "blocked by policy". Sin avance, nada insertado. Mismo
 siguiente objetivo: Recuevas → "Placas".
