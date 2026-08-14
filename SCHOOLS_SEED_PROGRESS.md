@@ -67,7 +67,7 @@
 | rozas | 2 sectores (ya tenía parking) | completa |
 | recuevas | 1 parking + 15/22 sectores (+ Columpio) | 7 más: Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
 | las-tuerces | **COMPLETA** — 1 parking + 1/13 sectores | 12 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura, Zona Del Juc — no volver a consultar). Coordenada de la escuela discrepa ~4km, ver Dudas |
-| la-cabrera | 23/29 sectores (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas, Cancho del Rayo y Cuerno de la Luna, Aguja Solano, Peña del Águila, Aguja del Pornoso, Agujas de los Campanarios, Pared de los Tubos, Aguja del Callejón, Aguja de los tres amigos y Trono, Aguja sin nombre, Risco del Murciélago, La Pirámide, El semicírculo, Cancho cuadrado, Cancho de los Tejos) | 6 más, todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
+| la-cabrera | 25/29 sectores (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas, Cancho del Rayo y Cuerno de la Luna, Aguja Solano, Peña del Águila, Aguja del Pornoso, Agujas de los Campanarios, Pared de los Tubos, Aguja del Callejón, Aguja de los tres amigos y Trono, Aguja sin nombre, Risco del Murciélago, La Pirámide, El semicírculo, Cancho cuadrado, Cancho de los Tejos, Torre de los Casares, Cancho de las Yegüas) | 4 más, todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
 
 ## EN CURSO / bloqueadas por TheCrag ahora mismo
@@ -156,6 +156,13 @@ bien. Insertados 2 sectores más (verificados en la API pública): Cancho
 cuadrado (id 6599931159, 40.879134,-3.618760), Cancho de los Tejos (id
 11501183802, 40.878890,-3.616418). La-cabrera pasa de 21/29 a 23/29 sectores.
 Siguiente sector en la tabla: "Torre de los Casares" (área #24).
+
+**2026-08-14 (última tanda hasta ahora, sin bloqueo)**: TheCrag siguió
+respondiendo bien. Insertados 2 sectores más (verificados en la API pública):
+Torre de los Casares (id 11501034123, 40.879228,-3.614824), Cancho de las
+Yegüas (id 9123331083, 40.879178,-3.609907). La-cabrera pasa de 23/29 a
+25/29 sectores. Siguiente sector en la tabla: "Bloque Californiano" (área
+#26).
 
 **2026-08-13 (tanda extra)**: bloqueo ahora es GLOBAL, no solo de una región —
 probado `toledo-salamanca-area`/Balcón, la home de thecrag.com y
