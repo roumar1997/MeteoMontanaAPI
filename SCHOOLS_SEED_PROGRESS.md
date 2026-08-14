@@ -220,6 +220,16 @@ instante. Sin avance, nada insertado.
 
 **2026-08-14 (otra tanda más)**: mismo resultado, `la-cabrera`/10389887367 en login wall al instante. Sin avance, nada insertado.
 
+**2026-08-14 (nueva tanda, bloqueo distinto)**: esta vez `thecrag.com` está
+bloqueado por **política del propio Browser pane del entorno** ("blocked by
+policy"), no por el muro de login habitual de TheCrag — ni siquiera carga la
+home. No es el mismo tipo de bloqueo de otras tandas (ese se destensaba solo);
+este parece un bloqueo de dominio a nivel de entorno. Sin avance, nada
+insertado. Siguiente objetivo en cuanto se pueda navegar: Recuevas → sector
+"Placas" (17 sectores ya insertados y verificados en la API pública; quedan
+Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino de la lista
+previa, recuento exacto por confirmar contra la página real).
+
 ## Pendientes con MUY POCO (1-3 elementos) — revisar antes que las vacías
 
 | id | Nombre | Estilo | Región | Elementos |
