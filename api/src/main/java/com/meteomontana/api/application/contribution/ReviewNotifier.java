@@ -42,6 +42,7 @@ public class ReviewNotifier {
             case PARKING -> "parking"; case BOULDER -> "piedra";
             case SECTOR -> "sector"; case POSITION_CORRECTION -> "corrección de posición";
             case ASSIGN_SECTOR -> "asignación de sector";
+            case SCHOOL_NAME_CORRECTION -> "corrección de nombre de escuela";
         };
 
         // "parking de El Escorial · Parking principal"

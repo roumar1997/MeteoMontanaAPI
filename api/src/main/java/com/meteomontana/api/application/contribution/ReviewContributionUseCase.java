@@ -163,6 +163,15 @@ public class ReviewContributionUseCase {
                     });
                 }
             }
+
+            case SCHOOL_NAME_CORRECTION -> {
+                if (c.getName() != null && !c.getName().isBlank()) {
+                    schoolRepo.findById(c.getSchoolId()).ifPresent(school -> {
+                        school.setName(c.getName());
+                        schoolRepo.save(school);
+                    });
+                }
+            }
         }
 
         // ── Marcar como aprobada ──────────────────────────────────────────────

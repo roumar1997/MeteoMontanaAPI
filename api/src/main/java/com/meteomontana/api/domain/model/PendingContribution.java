@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 public class PendingContribution {
 
-    public enum Type { PARKING, BOULDER, SECTOR, POSITION_CORRECTION, ASSIGN_SECTOR }
+    public enum Type { PARKING, BOULDER, SECTOR, POSITION_CORRECTION, ASSIGN_SECTOR, SCHOOL_NAME_CORRECTION }
 
     private final String id;
     private final Type type;
