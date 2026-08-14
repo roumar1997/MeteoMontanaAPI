@@ -235,6 +235,12 @@ previa, recuento exacto por confirmar contra la página real).
 desde la tanda anterior. Sin avance, nada insertado. Mismo siguiente
 objetivo: Recuevas → "Placas".
 
+**2026-08-14 (otra tanda, mismo bloqueo persistente)**: reprobado de nuevo,
+`thecrag.com` sigue "blocked by policy" en el Browser pane de este entorno.
+Ya van varias tandas seguidas así — parece un bloqueo estable a nivel de
+entorno, no algo que se destense solo como el muro de login de TheCrag. Sin
+avance, nada insertado. Mismo siguiente objetivo: Recuevas → "Placas".
+
 ## Pendientes con MUY POCO (1-3 elementos) — revisar antes que las vacías
 
 | id | Nombre | Estilo | Región | Elementos |
