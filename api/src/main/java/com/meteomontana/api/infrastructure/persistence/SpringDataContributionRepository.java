@@ -30,4 +30,12 @@ public interface SpringDataContributionRepository
     List<Object[]> countBySubmitterWithStatusSince(
             @Param("status") SubmissionStatus status,
             @Param("since") LocalDateTime since, Pageable pageable);
+
+    /** Igual pero acotado a un rango [from, to) — ranking de UN mes concreto. */
+    @Query("select c.submittedByUid, count(c) from PendingContributionJpaEntity c "
+        + "where c.status = :status and c.reviewedAt >= :from and c.reviewedAt < :to "
+        + "group by c.submittedByUid order by count(c) desc")
+    List<Object[]> countBySubmitterWithStatusBetween(
+            @Param("status") SubmissionStatus status,
+            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to, Pageable pageable);
 }

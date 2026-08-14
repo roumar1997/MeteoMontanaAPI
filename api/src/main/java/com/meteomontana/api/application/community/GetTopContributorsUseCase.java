@@ -53,6 +53,15 @@ public class GetTopContributorsUseCase {
         return toDtos(statsRepo.topContributorsSince(SubmissionStatus.APPROVED, since, capped));
     }
 
+    /** Ranking de UN mes concreto (pasado o el actual en curso), por fecha de
+     *  aprobación — pestaña "por meses" del trofeo del feed. */
+    public List<TopContributorDto> topContributorsForMonth(int year, int month, int limit) {
+        int capped = Math.max(1, Math.min(limit, MAX_LIMIT));
+        var from = java.time.YearMonth.of(year, month).atDay(1).atStartOfDay();
+        var to = from.plusMonths(1);
+        return toDtos(statsRepo.topContributorsBetween(SubmissionStatus.APPROVED, from, to, capped));
+    }
+
     /** Mapea counts → DTOs con perfil (respeta privacidad), una query de perfiles. */
     private List<TopContributorDto> toDtos(
             List<com.meteomontana.api.domain.port.ContributionStatsRepository.ContributorCount> counts) {

@@ -19,10 +19,17 @@ public class CommunityController {
 
     private final GetTopContributorsUseCase topContributors;
 
-    /** Ranking de mayores contribuidores (contribuciones APROBADAS). */
+    /** Ranking de mayores contribuidores (contribuciones APROBADAS).
+     *  Si vienen year+month, es el ranking de ESE mes (pasado o en curso) en
+     *  vez del total histórico — pestaña "por meses" del trofeo del feed. */
     @GetMapping("/api/community/top-contributors")
     public List<TopContributorDto> topContributors(
-            @RequestParam(defaultValue = "20") int limit) {
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        if (year != null && month != null) {
+            return topContributors.topContributorsForMonth(year, month, limit);
+        }
         return topContributors.topContributors(limit);
     }
 }

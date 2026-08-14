@@ -31,4 +31,12 @@ public class JpaContributionStatsAdapter implements ContributionStatsRepository 
                 .map(row -> new ContributorCount((String) row[0], (Long) row[1]))
                 .toList();
     }
+
+    @Override
+    public List<ContributorCount> topContributorsBetween(
+            SubmissionStatus status, java.time.LocalDateTime from, java.time.LocalDateTime to, int limit) {
+        return repo.countBySubmitterWithStatusBetween(status, from, to, PageRequest.of(0, limit)).stream()
+                .map(row -> new ContributorCount((String) row[0], (Long) row[1]))
+                .toList();
+    }
 }
