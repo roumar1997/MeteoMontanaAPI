@@ -249,6 +249,10 @@ siguiente objetivo: Recuevas → "Placas".
 "blocked by policy". Sin avance, nada insertado. Mismo siguiente objetivo:
 Recuevas → "Placas".
 
+**2026-08-14 (tanda siguiente, bloqueo idéntico)**: reprobado de nuevo,
+`thecrag.com` sigue "blocked by policy". Sin avance, nada insertado. Mismo
+siguiente objetivo: Recuevas → "Placas".
+
 **2026-08-14 (tanda siguiente, bloqueo sin cambios)**: reprobado una vez
 más, `thecrag.com` sigue "blocked by policy". Sin avance, nada insertado.
 Mismo siguiente objetivo: Recuevas → "Placas".
