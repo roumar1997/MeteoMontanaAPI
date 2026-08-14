@@ -257,6 +257,18 @@ bien, sin login). Pero al navegar a la búsqueda de "Recuevas"
 reintentar, según la regla de siempre. Sin avance, nada insertado. Mismo
 siguiente objetivo: Recuevas → "Placas".
 
+**2026-08-14 (prueba "ir más despacio", descartada como causa)**: Rodrigo
+sugirió que quizás el ritmo de navegación (URLs directas, sin pausas) se
+detecta como bot. Probado con pasos MUY lentos y humanos: cargar home →
+esperar 4s → aceptar cookies → esperar 3s → CLIC en la caja de búsqueda de
+verdad (no URL adivinada) → esperar → escribir "Recuevas" letra a letra vía
+`type` → esperar 2s → CLIC en el botón "Vamos" → esperar 3s. Mismo
+resultado: muro de login instantáneo en cuanto se envía la búsqueda. **La
+home SIEMPRE carga bien sin login; es la acción de buscar/consultar
+contenido concreto la que dispara el muro**, no la velocidad de navegación.
+No merece la pena repetir la prueba de "ir despacio" — no es la causa. Sin
+avance, nada insertado. Mismo siguiente objetivo: Recuevas → "Placas".
+
 **2026-08-14 (tanda siguiente, bloqueo idéntico)**: reprobado de nuevo,
 `thecrag.com` sigue "blocked by policy". Sin avance, nada insertado. Mismo
 siguiente objetivo: Recuevas → "Placas".
