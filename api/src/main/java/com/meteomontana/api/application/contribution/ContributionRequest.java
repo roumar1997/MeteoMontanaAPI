@@ -15,9 +15,9 @@ import jakarta.validation.constraints.Size;
  */
 public record ContributionRequest(
         @NotBlank @Size(max = 32)
-        String type,            // PARKING | BOULDER | SECTOR | POSITION_CORRECTION | ASSIGN_SECTOR
+        String type,            // PARKING | BOULDER | SECTOR | POSITION_CORRECTION | ASSIGN_SECTOR | SCHOOL_NAME_CORRECTION
         @Size(max = 120)
-        String name,            // opcional
+        String name,            // opcional; SCHOOL_NAME_CORRECTION: nombre propuesto para la escuela
         @DecimalMin("-90") @DecimalMax("90")
         double lat,             // coordenada propuesta (o posición actual del elemento a corregir)
         @DecimalMin("-180") @DecimalMax("180")

@@ -19,4 +19,8 @@ public interface ContributionStatsRepository {
     /** Igual pero solo lo aprobado (reviewedAt) desde {@code since} — ranking semanal. */
     List<ContributorCount> topContributorsSince(
             SubmissionStatus status, java.time.LocalDateTime since, int limit);
+
+    /** Igual pero acotado a [from, to) — ranking de un mes concreto (pasado o actual). */
+    List<ContributorCount> topContributorsBetween(
+            SubmissionStatus status, java.time.LocalDateTime from, java.time.LocalDateTime to, int limit);
 }

@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 public class PendingContribution {
 
-    public enum Type { PARKING, BOULDER, SECTOR, POSITION_CORRECTION, ASSIGN_SECTOR }
+    public enum Type { PARKING, BOULDER, SECTOR, POSITION_CORRECTION, ASSIGN_SECTOR, SCHOOL_NAME_CORRECTION, SCHOOL_STYLE_CORRECTION }
 
     private final String id;
     private final Type type;
@@ -33,6 +33,7 @@ public class PendingContribution {
     private final String bloquesJson;    // BOULDER: JSON array [{name,grade,startType,linePath}]
     private final String topoLinesJson;  // BOULDER: líneas normalizadas (redundante para admin)
     private final String discipline;     // BOULDER (piedra nueva): BOULDER (bloque) / ROUTE (vía); null si no aplica
+                                         // SCHOOL_STYLE_CORRECTION: estilo(s) propuestos para la escuela ("Vía", "Bloque" o "Vía,Bloque")
     private final String geometry;       // BOULDER: POINT / LINE (muro); null si no aplica
     private final String path;           // BOULDER+LINE: polilínea JSON
     private final String direction;      // BOULDER+LINE: "LTR"/"RTL"

@@ -20,9 +20,11 @@ public class SchoolJpaEntity {
     @Id
     private  String id;
     @Column(nullable = false)
+    @Setter
     private String name;
     private String location;
     private String region;
+    @Setter
     private String style;
 
     @Column( name = "rock_type")
