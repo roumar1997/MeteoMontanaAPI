@@ -67,7 +67,7 @@
 | rozas | 2 sectores (ya tenía parking) | completa |
 | recuevas | 1 parking + 15/22 sectores (+ Columpio) | 7 más: Balcón, Sombra, Cuartos, Placas, Roble, Tochos, Halcones, Blanco, Verde, Negro, Pino |
 | las-tuerces | **COMPLETA** — 1 parking + 1/13 sectores | 12 sectores confirmados SIN ubicación en TheCrag (Verdugo, Cave Canem, Techo del Camino, Callejón del Traidor, El Virgen, Balcon, Escajos, Callejón del Viento, Vivac y Muro de las Lamentaciones, Calle de la Amargura, Zona Del Juc — no volver a consultar). Coordenada de la escuela discrepa ~4km, ver Dudas |
-| la-cabrera | 27/29 sectores (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas, Cancho del Rayo y Cuerno de la Luna, Aguja Solano, Peña del Águila, Aguja del Pornoso, Agujas de los Campanarios, Pared de los Tubos, Aguja del Callejón, Aguja de los tres amigos y Trono, Aguja sin nombre, Risco del Murciélago, La Pirámide, El semicírculo, Cancho cuadrado, Cancho de los Tejos, Torre de los Casares, Cancho de las Yegüas, Bloque Californiano, Pico de la Miel) | 2 más (Cancho Soyermo, La Cabrera - Bouldering), todos con nombre real en TheCrag (región `madrid-area`/`la-cabrera`, sí responde). No se añadió 2º parking: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
+| la-cabrera | **28/29 de la lista original** (+ Las agujas del convento, Risco del Fraile, Risco del Pajarito, Cancho Gordo, Atisbadero y Aguja de Venus, Perfil de Baco y El Castillo, La Fortaleza, Cancho de la Bola, Aguja de los Alquimistas, Cancho del Rayo y Cuerno de la Luna, Aguja Solano, Peña del Águila, Aguja del Pornoso, Agujas de los Campanarios, Pared de los Tubos, Aguja del Callejón, Aguja de los tres amigos y Trono, Aguja sin nombre, Risco del Murciélago, La Pirámide, El semicírculo, Cancho cuadrado, Cancho de los Tejos, Torre de los Casares, Cancho de las Yegüas, Bloque Californiano, Pico de la Miel, Cancho Soyermo) | **DESCUBIERTO**: el item #29 "La Cabrera - Bouldering" NO es un sector suelto — es un área contenedora con SUS PROPIOS 14 sub-sectores nuevos (El merendero norte, El merendero sur, El merendero este, Sector M-124, Peña del Buey, Sectores del Murillón, Sector PR-M-13, Falda sur del Pico de la Miel, El Puticlub, Sector A-1, La Ventana / Camping, Las Pilatas, Fuente Caldera, San Pedro). No insertado sin comprobar cada uno con su propio enlace de Google Maps — sigue pendiente, empezar por "El merendero norte" (id 6599966469 es el padre "La Cabrera - Bouldering", falta sacar el id de cada sub-sector). No se añadió 2º parking de la escuela: TheCrag da un punto a ~1,7km del "Parking Merendero Norte" ya existente, no está claro si es el mismo acceso u otro distinto — no decidido, no insertado |
 | ahedo | 1 parking + 1/12 sectores | 10 más: Ley de Ohm, Falanche Man, Rinconzuco, Vaguada, Ciervo, Caverna, Invernal, Jungle, Vascongadas, Cueva |
 
 ## EN CURSO / bloqueadas por TheCrag ahora mismo
@@ -172,6 +172,19 @@ la Miel (id 3514726056, 40.878836,-3.608330). La-cabrera pasa de 25/29 a
 Bouldering" (área #29, probablemente una zona de bulder aparte, revisar
 nombre/tipo con calma). Se pausa esta línea de trabajo para priorizar
 desarrollo de producto (features iOS/Android) — retomar cuando toque.
+
+**2026-08-14 (retomada, sin bloqueo)**: TheCrag siguió respondiendo bien.
+Insertado Cancho Soyermo (id 11500747170, 40.879778,-3.607104) — verificado
+en la API pública. La-cabrera pasa de 27/29 a **28/29 de la lista original**.
+El item #29 "La Cabrera - Bouldering" (id 6599966469) resultó ser un área
+CONTENEDORA con 14 sub-sectores propios sin insertar todavía: El merendero
+norte, El merendero sur, El merendero este, Sector M-124, Peña del Buey,
+Sectores del Murillón, Sector PR-M-13, Falda sur del Pico de la Miel, El
+Puticlub, Sector A-1, La Ventana / Camping, Las Pilatas, Fuente Caldera, San
+Pedro. Ninguno insertado esta tanda (había que abrir cada uno y sacar su
+propio enlace de Google Maps, y ya no daba tiempo en la tanda) — siguiente
+paso: entrar en https://www.thecrag.com/en/climbing/spain/la-cabrera/area/6599966469
+y comprobar/insertar uno a uno empezando por "El merendero norte".
 
 **2026-08-13 (tanda extra)**: bloqueo ahora es GLOBAL, no solo de una región —
 probado `toledo-salamanca-area`/Balcón, la home de thecrag.com y
