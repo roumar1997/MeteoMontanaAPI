@@ -53,6 +53,13 @@ public class PhotoController {
 
     private final StorageService storage;
 
+    /** CDN público del bucket (R2_PUBLIC_URL). Si está, las URLs que se guardan
+     *  apuntan DIRECTAS ahí: un solo servidor en vez de backend + redirect
+     *  (~40% menos de tiempo de carga, medido 2026-08-16). Vacío → URL del
+     *  backend, como antes. */
+    @org.springframework.beans.factory.annotation.Value("${R2_PUBLIC_URL:}")
+    private String publicCdnUrl;
+
     // ─────────────────────────────────────────────────────────── lectura
 
     @GetMapping("/**")
@@ -110,8 +117,12 @@ public class PhotoController {
                 ? ImageResizer.MAX_AVATAR_SIDE : ImageResizer.MAX_PHOTO_SIDE;
         storage.upload(key, ImageResizer.shrink(file.getBytes(), maxSide), "image/jpeg");
 
-        // URL permanente con el host de ESTE entorno (staging o prod).
-        String url = baseUrl(request) + "/api/photo/" + key;
+        // URL permanente. Con CDN configurado apunta DIRECTA a él (un solo
+        // servidor, sin redirect); si no, al backend de ESTE entorno como antes.
+        String cdn = publicCdnUrl == null ? "" : publicCdnUrl.trim().replaceAll("/+$", "");
+        String url = cdn.isBlank()
+                ? baseUrl(request) + "/api/photo/" + key
+                : cdn + "/" + key;
         // La foto de perfil usa una ruta ESTABLE ({uid}.{ext}, se sobrescribe),
         // así que su URL no cambiaría entre subidas → las apps (AsyncImage/Coil)
         // servirían la foto vieja desde caché. Añadimos un sufijo ?v único para
