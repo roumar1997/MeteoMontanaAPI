@@ -60,6 +60,12 @@ public class StorageService {
         return path;
     }
 
+    /** Sube bytes ya preparados (p.ej. reducidos por {@link ImageResizer}). */
+    public String upload(String path, byte[] bytes, String contentType) {
+        backend.upload(path, bytes, contentType);
+        return path;
+    }
+
     /** Borra un archivo. Invalida su URL cacheada. */
     public void delete(String path) {
         backend.delete(path);

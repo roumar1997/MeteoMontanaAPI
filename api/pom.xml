@@ -117,6 +117,16 @@
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
+
+		<!-- Lectura de EXIF (solo la etiqueta de ORIENTACIÓN). Al reducir una foto
+		     se re-codifica y el EXIF se pierde, así que hay que aplicar el giro a
+		     los píxeles o las fotos verticales saldrían tumbadas. Parsear EXIF a
+		     mano es propenso a fallos; esta librería es pequeña y estándar. -->
+		<dependency>
+			<groupId>com.drewnoakes</groupId>
+			<artifactId>metadata-extractor</artifactId>
+			<version>2.19.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
