@@ -48,6 +48,11 @@ public class AdminController {
     private final AdminGuard adminGuard;
     private final com.meteomontana.api.infrastructure.storage.StorageMigrationService storageMigration;
     private final com.meteomontana.api.infrastructure.storage.PhotoShrinkService photoShrink;
+    private final com.meteomontana.api.infrastructure.storage.PhotoDirectUrlService photoDirectUrl;
+
+    /** CDN público del bucket, destino de la reescritura a URL directa. */
+    @org.springframework.beans.factory.annotation.Value("${R2_PUBLIC_URL:}")
+    private String cdnBase;
 
     /** Mover una escuela directamente (admin). Body: {"lat": ..., "lon": ...}. */
     public record MoveSchoolRequest(double lat, double lon) {}
@@ -102,6 +107,19 @@ public class AdminController {
             @RequestParam(defaultValue = "true") boolean dryRun) {
         adminGuard.ensureAdmin(user.uid());
         return photoShrink.shrinkAll(dryRun);
+    }
+
+    /**
+     * Apunta las URLs guardadas DIRECTAS al CDN (quita el salto por el backend,
+     * ~40% menos de tiempo de carga). ?dryRun=true (por defecto) solo cuenta.
+     * Idempotente: lo ya directo se salta.
+     */
+    @PostMapping("/storage/direct-urls")
+    public com.meteomontana.api.infrastructure.storage.PhotoDirectUrlService.Result directUrls(
+            @AuthenticationPrincipal FirebaseUser user,
+            @RequestParam(defaultValue = "true") boolean dryRun) {
+        adminGuard.ensureAdmin(user.uid());
+        return photoDirectUrl.rewriteAll(cdnBase, dryRun);
     }
 
     @PostMapping("/push")
