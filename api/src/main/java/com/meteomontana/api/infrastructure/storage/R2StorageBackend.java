@@ -40,6 +40,7 @@ public class R2StorageBackend implements StorageBackend {
     private static final Region R2_REGION = Region.of("auto");
 
     private final String bucket;
+    private final String publicUrl;     // "" si no hay Public Development URL / dominio propio
     private final S3Client client;      // null si no está configurado
     private final S3Presigner presigner;
 
@@ -47,14 +48,18 @@ public class R2StorageBackend implements StorageBackend {
             @Value("${R2_ENDPOINT:}") String endpoint,
             @Value("${R2_ACCESS_KEY_ID:}") String accessKeyId,
             @Value("${R2_SECRET_ACCESS_KEY:}") String secretAccessKey,
-            @Value("${R2_BUCKET:}") String bucket) {
+            @Value("${R2_BUCKET:}") String bucket,
+            @Value("${R2_PUBLIC_URL:}") String publicUrl) {
         // trim(): un espacio/salto de línea accidental en la variable de Railway
         // rompía R2 con "bucket name is not valid" (400).
         endpoint = endpoint == null ? "" : endpoint.trim();
         accessKeyId = accessKeyId == null ? "" : accessKeyId.trim();
         secretAccessKey = secretAccessKey == null ? "" : secretAccessKey.trim();
         bucket = bucket == null ? "" : bucket.trim();
+        publicUrl = publicUrl == null ? "" : publicUrl.trim();
         this.bucket = bucket;
+        // Sin barra final, para poder concatenar "/" + key sin duplicarla.
+        this.publicUrl = publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
         if (endpoint.isBlank() || accessKeyId.isBlank() || secretAccessKey.isBlank() || bucket.isBlank()) {
             this.client = null;
             this.presigner = null;
@@ -105,6 +110,19 @@ public class R2StorageBackend implements StorageBackend {
 
     @Override
     public URL signedReadUrl(String path, int minutesValid) {
+        // Las fotos "Tipo A" son públicas de por sí (ver PhotoController):
+        // si hay un Public Development URL / dominio propio, se sirve por ahí
+        // (CDN normal de Cloudflare, fiable para tráfico público) en vez de
+        // por el endpoint S3 (pensado para llamadas servidor-a-servidor; los
+        // móviles de los usuarios no siempre pueden conectar con él, ver
+        // HISTORIAL 2026-08-15 — fotos que no cargaban pese a existir en R2).
+        if (!publicUrl.isBlank()) {
+            try {
+                return URI.create(publicUrl + "/" + path).toURL();
+            } catch (Exception e) {
+                throw new IllegalArgumentException("R2_PUBLIC_URL o path inválido: " + path, e);
+            }
+        }
         ensureReady();
         GetObjectRequest get = GetObjectRequest.builder().bucket(bucket).key(path).build();
         GetObjectPresignRequest presign = GetObjectPresignRequest.builder()
