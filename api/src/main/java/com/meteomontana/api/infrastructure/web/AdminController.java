@@ -47,6 +47,7 @@ public class AdminController {
     private final SchoolRepository schoolRepository;
     private final AdminGuard adminGuard;
     private final com.meteomontana.api.infrastructure.storage.StorageMigrationService storageMigration;
+    private final com.meteomontana.api.infrastructure.storage.PhotoShrinkService photoShrink;
 
     /** Mover una escuela directamente (admin). Body: {"lat": ..., "lon": ...}. */
     public record MoveSchoolRequest(double lat, double lon) {}
@@ -87,6 +88,20 @@ public class AdminController {
             @RequestParam(defaultValue = "true") boolean dryRun) {
         adminGuard.ensureAdmin(user.uid());
         return storageMigration.migrate(dryRun);
+    }
+
+    /**
+     * Re-comprime las fotos YA subidas (1600 px, calidad 82) para que carguen
+     * rápido con mala cobertura. ?dryRun=true (por defecto) calcula el ahorro
+     * sin escribir. Sobrescribe la misma clave → las URLs de la BD siguen
+     * valiendo. Repetible: lo ya reducido se salta.
+     */
+    @PostMapping("/storage/shrink")
+    public com.meteomontana.api.infrastructure.storage.PhotoShrinkService.Result shrinkPhotos(
+            @AuthenticationPrincipal FirebaseUser user,
+            @RequestParam(defaultValue = "true") boolean dryRun) {
+        adminGuard.ensureAdmin(user.uid());
+        return photoShrink.shrinkAll(dryRun);
     }
 
     @PostMapping("/push")

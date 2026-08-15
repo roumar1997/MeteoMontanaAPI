@@ -1,6 +1,7 @@
 package com.meteomontana.api.infrastructure.web;
 
 import com.meteomontana.api.infrastructure.security.FirebaseUser;
+import com.meteomontana.api.infrastructure.storage.ImageResizer;
 import com.meteomontana.api.infrastructure.storage.ImageValidation;
 import com.meteomontana.api.infrastructure.storage.StorageService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -102,7 +103,12 @@ public class PhotoController {
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "categoría no válida");
         };
 
-        storage.upload(key, file);
+        // Reducir ANTES de guardar: las cámaras suben 1-1,5 MB y eso es la
+        // diferencia entre 8 s y 1 s de espera con mala cobertura (que es donde
+        // se usa la app). Si no se puede reducir, se guarda el original.
+        int maxSide = "profile".equalsIgnoreCase(category)
+                ? ImageResizer.MAX_AVATAR_SIDE : ImageResizer.MAX_PHOTO_SIDE;
+        storage.upload(key, ImageResizer.shrink(file.getBytes(), maxSide), "image/jpeg");
 
         // URL permanente con el host de ESTE entorno (staging o prod).
         String url = baseUrl(request) + "/api/photo/" + key;
