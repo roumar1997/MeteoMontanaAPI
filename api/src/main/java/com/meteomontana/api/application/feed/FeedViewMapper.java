@@ -91,6 +91,28 @@ public class FeedViewMapper {
                         if (line.getStartType() != null) startType = line.getStartType().name();
                         liveLineName = line.getName();
                         liveGrade = line.getGrade();
+
+                        // VÍA NUEVA: al añadir varias de golpe se publica UN post
+                        // que apunta a la PRIMERA, así que solo se dibujaba una y
+                        // el resto del trabajo no se veía (Rodrigo, 2026-08-17).
+                        // Se mandan todas las de ESA foto, como en piedra nueva.
+                        // En un ASCENSO no: ahí el post va de UNA vía concreta.
+                        if (FeedViews.KIND_NEW_LINE.equals(p.getKind())) {
+                            final String foto = photoPath;
+                            var conTrazo = block.getLines().stream()
+                                    .filter(l -> l.getLinePath() != null && !l.getLinePath().isBlank())
+                                    .toList();
+                            blockLines = conTrazo.stream()
+                                    .filter(l -> l.getPhotoPath() == null
+                                            || l.getPhotoPath().equals(foto))
+                                    .map(l -> new FeedLineView(
+                                            l.getName(), l.getGrade(),
+                                            l.getStartType() != null ? l.getStartType().name() : null,
+                                            l.getLinePath()))
+                                    .toList();
+                            otherFacesLines = conTrazo.size() - blockLines.size();
+                            if (blockLines.isEmpty()) blockLines = null;
+                        }
                     }
                 } else if (FeedViews.KIND_NEW_BLOCK.equals(p.getKind())) {
                     // Piedra nueva: el post no tiene lineId → mandamos las vías de
