@@ -35,7 +35,13 @@ public final class FeedViews {
             String startType, String caption, String photoUrl,
             // Solo en NEW_BLOCK: vías de la cara portada (null en el resto).
             // Campo ADITIVO y nullable → las apps viejas lo ignoran.
-            List<FeedLineView> blockLines) {}
+            List<FeedLineView> blockLines,
+            // Vías dibujadas en las OTRAS caras, que NO se pueden pintar sobre
+            // la portada: su trazo está hecho sobre otra imagen y encima de esta
+            // caerían donde no toca. Se manda el número para que las apps digan
+            // "+N vías en otras fotos" y la publicación no parezca incompleta
+            // (Rodrigo, 2026-08-17). ADITIVO: 0 en el resto de casos.
+            int otherFacesLines) {}
 
     // author como OBJETO (no String): las apps deserializan FeedAuthorDto —
     // mandar el snapshot "@usuario" rompía el parseo y los comentarios ni se
