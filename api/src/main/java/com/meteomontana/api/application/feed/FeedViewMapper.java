@@ -73,6 +73,7 @@ public class FeedViewMapper {
             String linePath = null;
             String startType = null;
             List<FeedLineView> blockLines = null;
+            int otherFacesLines = 0;
             String liveBlockName = null;
             String liveLineName = null;
             String liveGrade = null;
@@ -95,8 +96,10 @@ public class FeedViewMapper {
                     // Piedra nueva: el post no tiene lineId → mandamos las vías de
                     // la cara PORTADA para que las apps las dibujen sobre la foto.
                     String cover = block.getPhotoPath();
-                    blockLines = block.getLines().stream()
+                    var conTrazo = block.getLines().stream()
                             .filter(l -> l.getLinePath() != null && !l.getLinePath().isBlank())
+                            .toList();
+                    blockLines = conTrazo.stream()
                             .filter(l -> l.getPhotoPath() == null
                                     || l.getPhotoPath().equals(cover))
                             .map(l -> new FeedLineView(
@@ -104,6 +107,11 @@ public class FeedViewMapper {
                                     l.getStartType() != null ? l.getStartType().name() : null,
                                     l.getLinePath()))
                             .toList();
+                    // Las de las OTRAS caras NO se pueden dibujar aquí (su trazo
+                    // está hecho sobre otra foto y encima de esta caería donde no
+                    // toca), pero se CUENTAN para que la app avise y la
+                    // publicación no parezca incompleta.
+                    otherFacesLines = conTrazo.size() - blockLines.size();
                     if (blockLines.isEmpty()) blockLines = null;
                 }
             }
@@ -119,7 +127,7 @@ public class FeedViewMapper {
                     commentCounts.getOrDefault(p.getId(), 0L),
                     p.getUserUid().equals(uid),
                     startType, p.getCaption(), signedPhotoUrl(p.getPhotoPath()),
-                    blockLines);
+                    blockLines, otherFacesLines);
         }).filter(v -> v != null).toList();
     }
 

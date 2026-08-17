@@ -13,6 +13,59 @@
 
 (Las últimas 5-10 sesiones aproximadamente. Las más antiguas se podan.)
 
+### Sesión 2026-08-15/16 — Las fotos no cargaban: dominio de R2, peso y caché
+
+Rodrigo: "no me carga ninguna foto". Tres problemas encadenados; el segundo y
+el tercero llevaban **un mes** ahí sin que nadie los viera.
+
+**1) CAUSA RAÍZ — el endpoint S3 de R2 no es alcanzable desde los móviles.** Las
+fotos existían en R2 (verificado en el dashboard) y el backend firmaba bien la
+URL, pero `{bucket}.{account}.r2.cloudflarestorage.com` daba **timeout de
+conexión** desde el PC de Rodrigo, su móvil con datos y un tercer entorno. No
+era un 404: es que no se llegaba. Ese endpoint es la **API de gestión**
+(servidor-a-servidor), no está pensado para que descarguen los usuarios; el
+propio Cloudflare avisa de que en producción hay que conectar un **dominio
+propio**. Solución: `photos.climbingteams.com` como Custom Domain del bucket +
+`R2_PUBLIC_URL` → `signedReadUrl` devuelve esa URL en vez de firmar contra S3.
+El `r2.dev` (Public Development URL) **tampoco vale**: falló igual, y Cloudflare
+lo marca como limitado por tasa y no recomendado para producción.
+**Trampa de diagnóstico**: dos piedras SÍ se veían en la app. No tenían nada
+especial en la BD — eran las dos que Rodrigo miró justo al subirlas, así que
+Coil las tenía en disco. Casi manda la investigación por el camino equivocado.
+
+**2) Fotos de 1-1,5 MB sin reducir.** `ImageResizer` (1600 px lado mayor / q75;
+512 en avatares) al subir, y `PhotoShrinkService` para las ya subidas
+(`PHOTO_SHRINK=dry|run`; copia el original en `originals/` antes de sobrescribir
+→ reversible). Real en prod: **165 fotos, 216 MB → 46 MB, 0 fallos**. OJO al
+re-codificar: se pierde el EXIF, así que hay que **aplicar el giro a los
+píxeles** o las fotos verticales salen tumbadas (de ahí `metadata-extractor`).
+
+**3) Tras encoger seguía lento: Cloudflare servía las versiones VIEJAS.**
+`cf-cache-status: HIT`, `Age: 6891` y el tamaño antiguo, con `max-age=14400`
+(4 h) por foto. **Encoger no basta: hay que purgar la caché** (Caching → Purge
+Everything). Hasta hacerlo, los usuarios siguen bajándose las gordas.
+
+**Por qué "antes iba más rápido" (auditoría a petición de Rodrigo).** No fue
+nada de esa semana: descartados los commits del backend (solo datos y el fix del
+CHECK), el bump de Dependabot de 36 dependencias (**se quedó en una rama, no
+llegó a `main`**) y Coil/OkHttp (sin cambios). Lo explicó la BD: **todas** las
+fotos apuntan al redirect del backend y solo queda 1 de Firebase por tabla — o
+sea que hasta la migración a R2 del **2026-07-15** eran URLs DIRECTAS de
+Firebase (un salto, CDN de Google) y desde entonces van por backend + redirect
+(dos servidores, dos TLS). Medido: **2,9-4,7 s con redirect contra 1,8-2,7 s
+directo — ~40% del tiempo en el salto**. De ahí `PhotoDirectUrlService`
+(`PHOTO_DIRECT_URLS=dry|run`) y que las fotos nuevas ya nazcan con la URL
+directa. La reescritura de las antiguas quedó **SIN EJECUTAR**: con lo anterior
+ya iba bien y no se quiso tocar más en caliente.
+
+**Pendiente / vigilar**: al conectar el dominio propio, el bucket **entero**
+quedó público, saltándose la lista de prefijos de `PhotoController`
+(`feed-photos/`, `piedra-photos/`, `originals/`). Riesgo bajo (claves UUID, sin
+listado posible), pero se abrió sin querer → mover `originals/` a un bucket sin
+dominio público. `StartTypeConstraintTest` falla en `main` desde ANTES de esta
+sesión (lee la restricción equivocada tras el cambio de `chk_contribution_type`);
+no se tocó para no mezclar.
+
 ### Sesión 2026-07-07 — Escalado para lanzamiento (EN PROD, merge `29b62a3`)
 
 - **Push asíncrono + en lote** (`sendEachForMulticast`, pool `pushExecutor`,
