@@ -13,6 +13,28 @@
 
 (Las últimas 5-10 sesiones aproximadamente. Las más antiguas se podan.)
 
+### Sesión 2026-08-18 — `feed_posts` huérfano por doble envío casi simultáneo
+
+Segundo caso del mismo fallo estructural que el de la sesión 2026-08-16/17
+(piedra 6): un post del feed (`feed_posts.line_id`) puede quedar apuntando a
+una `block_lines.id` que ya no existe. Esta vez la causa fue distinta —no una
+edición offline con JSON corrupto, sino un **doble envío**: dos contribuciones
+casi idénticas (mismas fotos, mismas vías) llegaron con 0,33s de diferencia
+(probablemente doble toque en "Guardar" en iOS), cada una creó su propia vía
+nueva "5" en la piedra `8` de Santa Gadea con `id` distinto, y una de las dos
+vías acabó desapareciendo del bloque sin que el post que la referenciaba
+(id=120) se actualizara o borrara. Reparado a mano: `DELETE FROM feed_posts
+WHERE id=120` (cascada a `feed_likes`/`feed_comments`, sin filas). El post 121
+(la vía real, `3c2cd1ea-...`) se queda como único.
+
+**Pendiente, no arreglado**: el backend no dedupe contribuciones casi
+simultáneas al mismo bloque, y cuando una vía "nueva" se fusiona/descarta con
+otra, no hay ningún mecanismo que revise `feed_posts` en busca de referencias
+huérfanas. Ver qué pieza fusiona/borra la vía duplicada (sospecha:
+`LineReconciler`/`ContributionLineParser` al procesar la segunda contribución
+solapada) y, si se puede, o bien detectar el duplicado antes de crear dos
+vías, o bien limpiar/actualizar el `feed_posts` correspondiente al fusionar.
+
 ### Sesión 2026-08-15/16 — Las fotos no cargaban: dominio de R2, peso y caché
 
 Rodrigo: "no me carga ninguna foto". Tres problemas encadenados; el segundo y
