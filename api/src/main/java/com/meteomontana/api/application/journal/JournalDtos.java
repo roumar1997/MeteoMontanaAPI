@@ -18,7 +18,9 @@ public class JournalDtos {
             LocalDate date,
             String discipline,   // BOULDER (bloque) / ROUTE (vía); default BOULDER si null
             String lineId,       // id estable de la vía (null si offline/antiguo → match por nombre)
-            String status        // DONE | PROJECT; default DONE si null (compat con clientes antiguos)
+            String status,       // DONE | PROJECT; default DONE si null (compat con clientes antiguos)
+            Boolean aVista,      // estilo de ascensión, independientes entre sí; default false si null
+            Boolean alFlash
     ) {}
 
     public record JournalSessionDto(
@@ -33,7 +35,9 @@ public class JournalDtos {
             LocalDateTime createdAt,
             String discipline,
             String lineId,
-            String status
+            String status,
+            boolean aVista,
+            boolean alFlash
     ) {
         public static JournalSessionDto from(JournalSession s) {
             return new JournalSessionDto(
@@ -42,7 +46,8 @@ public class JournalDtos {
                     s.getSessionDate(), s.getCreatedAt(),
                     s.getDiscipline() != null ? s.getDiscipline() : "BOULDER",
                     s.getLineId(),
-                    s.getStatus() != null ? s.getStatus() : "DONE"
+                    s.getStatus() != null ? s.getStatus() : "DONE",
+                    s.isAVista(), s.isAlFlash()
             );
         }
     }

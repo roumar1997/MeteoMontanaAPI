@@ -14,6 +14,9 @@ public interface JournalRepository {
     /** Cambia la fecha de una entrada (el diario cuenta cuándo la hiciste). */
     void updateSessionDate(String id, java.time.LocalDate newDate);
 
+    /** Cambia el estilo (a vista / al flash) de una entrada. Independientes. */
+    void updateStyle(String id, boolean aVista, boolean alFlash);
+
     /**
      * Propaga el nombre nuevo de una vía a todas las entradas que la tienen
      * marcada. El diario guarda el nombre copiado (para listar sin JOIN), así

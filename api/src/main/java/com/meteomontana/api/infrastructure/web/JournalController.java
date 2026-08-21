@@ -59,6 +59,17 @@ public class JournalController {
         return useCase.updateDate(user.uid(), id, req.date());
     }
 
+    /** Cambiar el estilo (a vista / al flash) de una entrada. Independientes entre sí. */
+    public record UpdateStyleRequest(boolean aVista, boolean alFlash) {}
+
+    @org.springframework.web.bind.annotation.PatchMapping("/journal/{id}/style")
+    public JournalDtos.JournalSessionDto updateStyle(
+            @org.springframework.web.bind.annotation.PathVariable String id,
+            @org.springframework.web.bind.annotation.RequestBody UpdateStyleRequest req,
+            @AuthenticationPrincipal FirebaseUser user) {
+        return useCase.updateStyle(user.uid(), id, req.aVista(), req.alFlash());
+    }
+
     @DeleteMapping("/journal/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@AuthenticationPrincipal FirebaseUser user, @PathVariable String id) {

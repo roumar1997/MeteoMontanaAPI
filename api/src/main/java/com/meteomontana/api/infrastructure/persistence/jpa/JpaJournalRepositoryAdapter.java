@@ -26,6 +26,8 @@ public class JpaJournalRepositoryAdapter implements JournalRepository {
         e.setDiscipline(s.getDiscipline());
         e.setLineId(s.getLineId());
         e.setStatus(s.getStatus());
+        e.setAVista(s.isAVista());
+        e.setAlFlash(s.isAlFlash());
         return toDomain(jpaRepo.save(e));
     }
 
@@ -48,6 +50,15 @@ public class JpaJournalRepositoryAdapter implements JournalRepository {
     }
 
     @Override
+    public void updateStyle(String id, boolean aVista, boolean alFlash) {
+        jpaRepo.findById(id).ifPresent(e -> {
+            e.setAVista(aVista);
+            e.setAlFlash(alFlash);
+            jpaRepo.save(e);
+        });
+    }
+
+    @Override
     public void deleteById(String id) {
         jpaRepo.deleteById(id);
     }
@@ -56,7 +67,8 @@ public class JpaJournalRepositoryAdapter implements JournalRepository {
         return new JournalSession(
                 e.getId(), e.getUid(), e.getSchoolId(), e.getSchoolName(),
                 e.getSector(), e.getBlockName(), e.getGrade(), e.getNotes(),
-                e.getDiscipline(), e.getLineId(), e.getStatus(), e.getSessionDate(), e.getCreatedAt()
+                e.getDiscipline(), e.getLineId(), e.getStatus(),
+                e.isAVista(), e.isAlFlash(), e.getSessionDate(), e.getCreatedAt()
         );
     }
 
