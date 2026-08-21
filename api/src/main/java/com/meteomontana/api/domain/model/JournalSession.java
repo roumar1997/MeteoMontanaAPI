@@ -21,6 +21,11 @@ public class JournalSession {
     // DONE (hecho, comportamiento de siempre) | PROJECT (proyecto: lo estás
     // probando pero aún no te ha salido). null = DONE (entradas antiguas).
     private final String status;
+    // Estilo de ascensión, independientes entre sí (Rodrigo, 2026-08-21): se
+    // puede marcar a vista, al flash, las dos o ninguna. Solo tienen sentido
+    // con status=DONE.
+    private final boolean aVista;
+    private final boolean alFlash;
     private final LocalDate sessionDate;
     private final LocalDateTime createdAt;
 
@@ -42,7 +47,7 @@ public class JournalSession {
                           String sector, String blockName, String grade, String notes,
                           String discipline, String lineId, LocalDate sessionDate, LocalDateTime createdAt) {
         this(id, uid, schoolId, schoolName, sector, blockName, grade, notes,
-             discipline, lineId, null, sessionDate, createdAt);
+             discipline, lineId, null, false, false, sessionDate, createdAt);
     }
 
 }

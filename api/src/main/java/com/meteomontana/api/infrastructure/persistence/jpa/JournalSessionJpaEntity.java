@@ -53,6 +53,16 @@ public class JournalSessionJpaEntity {
     @Column(name = "status", nullable = false)
     private String status = "DONE";
 
+    // Estilo de ascensión, independientes entre sí (Rodrigo, 2026-08-21): se
+    // puede marcar a vista, al flash, las dos o ninguna.
+    @Column(name = "a_vista", nullable = false)
+    @Setter
+    private boolean aVista = false;
+
+    @Column(name = "al_flash", nullable = false)
+    @Setter
+    private boolean alFlash = false;
+
     @Column(name = "session_date", nullable = false)
     @Setter
     private LocalDate sessionDate;

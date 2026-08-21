@@ -38,6 +38,8 @@ public class JournalUseCase {
                 normalizeDiscipline(req.discipline()),
                 req.lineId(),
                 normalizeStatus(req.status()),
+                Boolean.TRUE.equals(req.aVista()),
+                Boolean.TRUE.equals(req.alFlash()),
                 req.date(),
                 LocalDateTime.now()
         );
@@ -54,6 +56,16 @@ public class JournalUseCase {
         if (!session.getUid().equals(uid))
             throw new com.meteomontana.api.domain.exception.ForbiddenException("NOT_YOURS");
         repository.updateSessionDate(id, newDate);
+        return JournalDtos.JournalSessionDto.from(repository.findById(id).orElseThrow());
+    }
+
+    /** Cambia el estilo (a vista / al flash) de MI entrada. Independientes entre sí. */
+    public JournalDtos.JournalSessionDto updateStyle(String uid, String id, boolean aVista, boolean alFlash) {
+        JournalSession session = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Entrada no encontrada"));
+        if (!session.getUid().equals(uid))
+            throw new ForbiddenException("NOT_YOURS");
+        repository.updateStyle(id, aVista, alFlash);
         return JournalDtos.JournalSessionDto.from(repository.findById(id).orElseThrow());
     }
 
