@@ -52,7 +52,8 @@ class FeedContractTest {
                 "topos/p15.jpg", "[{\"x\":0.1,\"y\":0.9}]",
                 3L, true, 5L, false,
                 "SIT", "¡Por fin!", "https://cdn/celebracion.jpg",
-                List.of(new FeedLineView("La ola", "7a", "SIT", "[{\"x\":0.1,\"y\":0.9}]")));
+                List.of(new FeedLineView("La ola", "7a", "SIT", "[{\"x\":0.1,\"y\":0.9}]")),
+                0);
     }
 
     private static FeedCommentView sampleComment() {
