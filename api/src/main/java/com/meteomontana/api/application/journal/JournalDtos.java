@@ -75,5 +75,8 @@ public class JournalDtos {
         public record SchoolStats(String schoolName, int blockCount, String maxGrade) {}
     }
 
+    /** Cambiar el estilo (a vista / al flash) de una entrada. Independientes entre sí. */
+    public record UpdateStyleRequest(boolean aVista, boolean alFlash) {}
+
     private JournalDtos() {}
 }

@@ -59,13 +59,23 @@ public class JournalController {
         return useCase.updateDate(user.uid(), id, req.date());
     }
 
-    /** Cambiar el estilo (a vista / al flash) de una entrada. Independientes entre sí. */
-    public record UpdateStyleRequest(boolean aVista, boolean alFlash) {}
-
-    @org.springframework.web.bind.annotation.PatchMapping("/journal/{id}/style")
+    /**
+     * Cambiar el estilo (a vista / al flash) de una entrada. Independientes
+     * entre sí.
+     *
+     * Registrado con @RequestMapping explícito (method = PATCH) en vez de
+     * @PatchMapping: en producción, esta ruta caía al manejador de recursos
+     * estáticos (NoResourceFoundException) pese a ser sintácticamente
+     * idéntica a /date, que sí registra bien con @PatchMapping — sin causa
+     * raíz clara tras revisar el código a fondo, se prueba con la forma más
+     * explícita (Rodrigo, 2026-08-22, con log real de Railway).
+     */
+    @org.springframework.web.bind.annotation.RequestMapping(
+            path = "/journal/{id}/style",
+            method = org.springframework.web.bind.annotation.RequestMethod.PATCH)
     public JournalDtos.JournalSessionDto updateStyle(
             @org.springframework.web.bind.annotation.PathVariable String id,
-            @org.springframework.web.bind.annotation.RequestBody UpdateStyleRequest req,
+            @org.springframework.web.bind.annotation.RequestBody JournalDtos.UpdateStyleRequest req,
             @AuthenticationPrincipal FirebaseUser user) {
         return useCase.updateStyle(user.uid(), id, req.aVista(), req.alFlash());
     }
